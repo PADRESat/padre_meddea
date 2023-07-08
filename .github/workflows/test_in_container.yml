@@ -1,0 +1,27 @@
+# This workflow will install Python dependencies and run tests in the docker container
+name: Testing in pipeline container
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: 
+      image: public.ecr.aws/w5r9l1c8/swsoc-docker-lambda-base:latest
+
+    strategy:
+      fail-fast: false
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Run tests
+      run: pytest --pyargs padre_meddea --cov padre_meddea
+      env:
+        PLATFORM: 'docker'
+    - name: Upload coverage reports to Codecov with GitHub Action
+      uses: codecov/codecov-action@v3

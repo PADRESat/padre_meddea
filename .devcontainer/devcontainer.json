@@ -1,0 +1,56 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the README at:
+// https://github.com/microsoft/vscode-dev-containers/tree/v0.183.0/containers/python-3
+{
+	"name": "Ubuntu 20.04 Python 3",
+	// Repo where this image's Dockerfile is maintained: https://github.com/HERMES-SOC/docker-lambda-base
+	"image": "public.ecr.aws/w5r9l1c8/swsoc-docker-lambda-base:latest",
+	"initializeCommand": "docker logout public.ecr.aws && docker pull public.ecr.aws/w5r9l1c8/swsoc-docker-lambda-base:latest",
+	// Set *default* container specific settings.json values on container create.
+	"settings": {
+		"python.pythonPath": "/usr/bin/python3",
+		"python.languageServer": "Pylance",
+		"python.linting.enabled": true,
+		"python.linting.pylintEnabled": true,
+		"python.formatting.blackPath": "/usr/local/bin/black",
+		"python.formatting.provider": "black",
+		"python.formatting.blackArgs": [
+			"--line-length",
+			"100"
+		],
+		"python.testing.unittestEnabled": false,
+		"python.testing.pytestEnabled": true,
+		"python.linting.lintOnSave": true,
+		"python.linting.flake8Enabled": true,
+		"editor.formatOnSave": true,
+		"python.linting.banditPath": "/usr/local/bin/bandit",
+		"python.linting.flake8Path": "/usr/local/bin/flake8",
+		"python.linting.mypyPath": "/usr/local/bin/mypy",
+		"python.linting.pycodestylePath": "/usr/local/bin/pycodestyle",
+		"python.linting.pydocstylePath": "/usr/local/bin/pydocstyle",
+		"python.linting.pylintPath": "/usr/bin/pylint",
+		"terminal.integrated.defaultProfile.linux": "bash (login)",
+		"terminal.integrated.profiles.linux": {
+			"bash (login)": {
+				"path": "bash"
+			}
+		}
+	},
+	// Add the IDs of extensions you want installed when the container is created.
+	"extensions": [
+		"ms-python.python",
+		"ms-python.vscode-pylance",
+		"marklarah.pre-commit-vscode",
+		"ms-toolsai.jupyter",
+		"ms-toolsai.jupyter-renderers",
+		"ms-toolsai.jupyter-keymap",
+		"jithurjacob.nbpreviewer"
+	],
+	// Mount to a volume if you'd like to persist data to your disk
+	// "mounts": ["source=<add your /path/on/host here>, target=/workspaces/hermes_core, type=bind"],
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	// "forwardPorts": [],
+	// Use 'postCreateCommand' to run commands after the container is created.
+	//"postCreateCommand": "bash -i -c 'pip3 install --user .[all]'",
+	// Comment out connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
+	"remoteUser": "vscode"
+}

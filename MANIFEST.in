@@ -1,0 +1,17 @@
+include README.rst
+include CHANGES.rst
+include setup.cfg
+include LICENSE.rst
+include pyproject.toml
+include AUTHORS.rst
+include CONTRIBUTING.rst
+
+recursive-include tests *
+recursive-exclude * __pycache__
+recursive-exclude * *.py[co]
+
+prune build
+prune docs/_build
+prune docs/api
+
+global-exclude *.pyc *.o

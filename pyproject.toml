@@ -1,0 +1,104 @@
+[build-system]
+requires = ["setuptools>=45",
+            "setuptools_scm[toml]>=6.2",
+            "wheel"]
+build-backend = 'setuptools.build_meta'
+
+[project]
+name = "padre_meddea"
+description = "A Python package to process and analyze data from the PADRE MEDDEA instrument."
+readme = "README.rst"
+dynamic = ["version"]
+authors = [{name = "Steven Christe", email="steven.christe@nasa.gov"}]
+license = {file = "LICENSE.rst"}
+requires-python = ">=3.10"
+keywords = ["nasa mission", "space weather"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "License :: OSI Approved :: Apache 2.0",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.8",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+dependencies = [
+  'astropy>=4.1.0',
+  'numpy>=1.16.0',
+  'sunpy>=3.1.4',
+]
+
+[project.optional-dependencies]
+dev = [
+  'coverage>=5.0.3',
+  'pytest',
+  'pytest-astropy',
+  'pytest-cov',
+  'black',
+  'flake8',
+  'coverage[toml]'
+]
+
+docs = [
+  'sphinx',
+  'sphinx-automodapi'
+]
+
+test = [
+  'pytest',
+  'pytest-astropy',
+  'pytest-cov',
+  'coverage[toml]'
+]
+
+style = [
+  'black',
+  'flake8'
+]
+
+[tool.setuptools.package-data]
+"padre_meddea.data" = ["**"]
+
+[tool.setuptools]
+packages = ["padre_meddea"]
+
+[tool.setuptools_scm]
+write_to = "padre_meddea/_version.py"
+
+[tool.pytest.ini_options]
+testpaths = [
+   "padre_meddea/tests",
+   "docs"
+]
+doctest_plus = "enabled"
+text_file_format = "rst"
+addopts = "--doctest-rst"
+
+[tool.coverage.run]
+omit = [
+  'padre_meddea/__init*',
+  'padre_meddea/conftest.py',
+  'padre_meddea/*setup_package*',
+  'padre_meddea/tests/*',
+  'padre_meddea/*/tests/*',
+  'padre_meddea/extern/*',
+  'padre_meddea/version*',
+  '*/padre_meddea/__init*',
+  '*/padre_meddea/conftest.py',
+  '*/padre_meddea/*setup_package*',
+  '*/padre_meddea/tests/*',
+  '*/padre_meddea/*/tests/*',
+  '*/padre_meddea/extern/*',
+  '*/padre_meddea/version*',
+]
+
+[tool.black]
+line-length = 88
+force-exclude = '''
+(
+  # Individual files to always exclude
+  ^/padre_meddea/_version.py
+)
+'''
