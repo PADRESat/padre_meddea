@@ -8,9 +8,10 @@ Overview
     :stub-columns: 1
 
     * - docs
-      - |docs|
+      - |docs| |readthedocs|
     * - build status
       - |testing| |codestyle|
+
 .. |docs| image:: https://github.com/PADRESat/padre_meddea/actions/workflows/docs.yml/badge.svg
     :target: https://github.com/PADRESat/padre_meddea/actions/workflows/docs.yml
     :alt: Documentation Build Status
@@ -22,6 +23,10 @@ Overview
 .. |codestyle| image:: https://github.com/PADRESat/padre_meddea/actions/workflows/codestyle.yml/badge.svg
     :target: https://github.com/PADRESat/padre_meddea/actions/workflows/codestyle.yml
     :alt: Codestyle and linting using flake8
+
+.. |readthedocs| image:: https://readthedocs.org/projects/padre-meddea/badge/?version=latest
+    :target: https://padre-meddea.readthedocs.io/en/latest/?badge=latest
+    :alt: Documentation Status
 
 .. end-badges
 
