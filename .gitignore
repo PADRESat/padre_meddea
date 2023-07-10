@@ -177,3 +177,6 @@ Icon
 Network Trash Folder
 Temporary Items
 .apdisk
+
+# jupyter notebooks should not be added to Python Packages
+*.ipynb
