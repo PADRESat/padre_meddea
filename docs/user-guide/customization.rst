@@ -43,4 +43,4 @@ A sample configrc file
 
     `(download) <../_static/configrc>`__
 
-.. literalinclude:: ../../padre_meddea_eea/data/configrc
+.. literalinclude:: ../../padre_meddea/data/configrc

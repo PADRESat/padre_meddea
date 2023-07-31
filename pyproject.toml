@@ -25,9 +25,10 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Physics",
 ]
 dependencies = [
-  'astropy>=4.1.0',
-  'numpy>=1.16.0',
-  'sunpy>=3.1.4',
+  'astropy',
+  'sunpy',
+  'roentgen',
+  'specutils',
 ]
 
 [project.optional-dependencies]

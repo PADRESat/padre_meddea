@@ -21,6 +21,12 @@ SOL2002-07-23_RHESSI_flare_spectrum.csv
 The x-ray spectrum of the SOL2002-07-23 X4.8 class flare as observed by RHESSI (Lin et al. 2002).
 Spectrum courtesy of Dr. Albert Shih (@ayshih).
 
+SOL2002-07-23_GOESXRS_lightcurve.csv
+------------------------------------
+The lightcurve of the SOL2002-07-23 X4.8 class flare as observed by GOES XRS.
+These data were downloaded using sunpy.
+Data drop outs were manually removed.
+
 Calibration files
 -----------------
 Calibration files are stored in the `calibration` subdirectory.

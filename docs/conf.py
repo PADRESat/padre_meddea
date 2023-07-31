@@ -39,7 +39,11 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx_automodapi.automodapi",
     "sphinx_automodapi.smart_resolver",
+    "matplotlib.sphinxext.plot_directive"
 ]
+
+# plot_directive default to always show source when including a plot
+plot_include_source = True
 
 # Set automodapi to generate files inside the generated directory
 # automodapi_toctreedirnm = "_build/html/api"
