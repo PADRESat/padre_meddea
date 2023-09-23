@@ -183,3 +183,5 @@ Temporary Items
 
 *.bin
 _version.py
+
+*.csv
