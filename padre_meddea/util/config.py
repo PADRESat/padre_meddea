@@ -97,7 +97,9 @@ def get_and_create_download_dir():
         return download_dir
 
     download_dir = (
-        Path(padre_meddea.config.get("downloads", "download_dir")).expanduser().resolve()
+        Path(padre_meddea.config.get("downloads", "download_dir"))
+        .expanduser()
+        .resolve()
     )
     if not _is_writable_dir(download_dir):
         raise RuntimeError(f'Could not write to downloads directory="{download_dir}"')

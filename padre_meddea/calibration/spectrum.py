@@ -22,28 +22,38 @@ te_kalpha1 = 27472.3 * u.eV  # x-ray data booklet 2009
 # the expected count rate at the peak of an X-class flare
 # for all detectors combined
 # TODO: provide better justification for this number. Calculation can be found in proposal.
-XCLASS_FLARE_RATE = 22421.0 * u.s ** -1
+XCLASS_FLARE_RATE = 22421.0 * u.s**-1
 
 #  TODO: add escape lines to the ba133_lines Table
 
-__all__ = ["barium_spectrum", "flare_spectrum", "setup_phgenerator_ba", "setup_phgenerator_flare", "get_flare_rate"]
+__all__ = [
+    "barium_spectrum",
+    "flare_spectrum",
+    "setup_phgenerator_ba",
+    "setup_phgenerator_flare",
+    "get_flare_rate",
+]
 
 # load flare spectrum file
-flare_spectrum_data = QTable(ascii.read(padre_meddea._data_directory / 'SOL2002-07-23_RHESSI_flare_spectrum.csv'))
+flare_spectrum_data = QTable(
+    ascii.read(padre_meddea._data_directory / "SOL2002-07-23_RHESSI_flare_spectrum.csv")
+)
 for this_col in flare_spectrum_data.colnames:
-    unit_str = re.findall(r'\(.*?\)', this_col)[0][1:-1]
+    unit_str = re.findall(r"\(.*?\)", this_col)[0][1:-1]
     flare_spectrum_data[this_col].unit = u.Unit(unit_str)
 
-flare_timeseries = QTable(ascii.read(padre_meddea._data_directory / 'SOL2002-07-23_GOESXRS_lightcurve.csv'))
-flare_timeseries['sec_from_start'].unit = u.s
+flare_timeseries = QTable(
+    ascii.read(padre_meddea._data_directory / "SOL2002-07-23_GOESXRS_lightcurve.csv")
+)
+flare_timeseries["sec_from_start"].unit = u.s
 
-ba133_lines = QTable(ascii.read(padre_meddea._data_directory / 'ba133.csv'))
-ba133_lines['energy (eV)'].unit = u.eV
+ba133_lines = QTable(ascii.read(padre_meddea._data_directory / "ba133.csv"))
+ba133_lines["energy (eV)"].unit = u.eV
 
 
 @u.quantity_input
 def barium_spectrum(fwhm: u.keV):
-    """Provide the spectrum model from radioactive Ba133 as observed by the 
+    """Provide the spectrum model from radioactive Ba133 as observed by the
     Caliste-SO detector. It includes Cd and Te escape lines.
 
     Returns
@@ -54,16 +64,32 @@ def barium_spectrum(fwhm: u.keV):
     """
 
     for i, this_line in enumerate(ba133_lines):
-        cd_escape_line = this_line['energy (eV)'] - cd_kalpha1
-        te_escape_line = this_line['energy (eV)'] - te_kalpha1
+        cd_escape_line = this_line["energy (eV)"] - cd_kalpha1
+        te_escape_line = this_line["energy (eV)"] - te_kalpha1
         if i == 0:
-            spec = Gaussian1D(amplitude=this_line['intensity'], mean=this_line['energy (eV)'], stddev=fwhm)
+            spec = Gaussian1D(
+                amplitude=this_line["intensity"],
+                mean=this_line["energy (eV)"],
+                stddev=fwhm,
+            )
         else:
-            spec += Gaussian1D(amplitude=this_line['intensity'], mean=this_line['energy (eV)'], stddev=fwhm)
-        if cd_escape_line > 0 * u.eV:  # TODO: need to scale down the intensity of line based on probably of escape
-            spec += Gaussian1D(amplitude=this_line['intensity'], mean=cd_escape_line, stddev=fwhm)
-        if te_escape_line > 0 * u.eV:  # TODO: need to scale down the intensity of line based on probably of escape
-            spec += Gaussian1D(amplitude=this_line['intensity'], mean=te_escape_line, stddev=fwhm)
+            spec += Gaussian1D(
+                amplitude=this_line["intensity"],
+                mean=this_line["energy (eV)"],
+                stddev=fwhm,
+            )
+        if (
+            cd_escape_line > 0 * u.eV
+        ):  # TODO: need to scale down the intensity of line based on probably of escape
+            spec += Gaussian1D(
+                amplitude=this_line["intensity"], mean=cd_escape_line, stddev=fwhm
+            )
+        if (
+            te_escape_line > 0 * u.eV
+        ):  # TODO: need to scale down the intensity of line based on probably of escape
+            spec += Gaussian1D(
+                amplitude=this_line["intensity"], mean=te_escape_line, stddev=fwhm
+            )
     return spec
 
 
@@ -82,10 +108,10 @@ def flare_spectrum(x: u.keV):
     -------
     model : ~astropy.modeling.models
     """
-    factor=1
+    factor = 1
     # NOTE: it may be better to interpolate the log of the spectrum for high accuracy
     func = interpolate.interp1d(
-        flare_spectrum_data['Bin mean (keV)'].value,
+        flare_spectrum_data["Bin mean (keV)"].value,
         np.log10(flare_spectrum_data[flare_spectrum_data.colnames[-1]].value * factor),
         bounds_error=True,
         assume_sorted=True,
@@ -95,7 +121,7 @@ def flare_spectrum(x: u.keV):
 
 @custom_model
 def get_flare_rate(x: u.s):
-    """Provides a times series of an X4.8 flare in x-rays as measured by GOES 
+    """Provides a times series of an X4.8 flare in x-rays as measured by GOES
     XRS B (1 to 8 angstrom). The flare is clipped to limit flux at times when
     the power is less than 1e-5.
 
@@ -106,13 +132,13 @@ def get_flare_rate(x: u.s):
     -------
     model : ~astropy.modeling.models
     """
-    y = flare_timeseries['xrsb']
+    y = flare_timeseries["xrsb"]
     # remove the pre and post-flare times
     y[y < 1e-5] = 1e-30
     # normalize this lightcurve to counts/s/det, from proposal calculation
     y = y / y.max() * XCLASS_FLARE_RATE.value
     func = interpolate.interp1d(
-        flare_timeseries['sec_from_start'],
+        flare_timeseries["sec_from_start"],
         np.log10(y),
         bounds_error=True,
         assume_sorted=True,
@@ -141,6 +167,7 @@ def setup_phgenerator_ba(fwhm: u.keV):
     class spec:
         def pdf(self, x):
             return ba(x * u.keV)
+
     dist = spec()
     urng = np.random.default_rng(seed=42)
     rng = NumericalInversePolynomial(dist, random_state=urng, domain=[1, 150])
@@ -150,7 +177,7 @@ def setup_phgenerator_ba(fwhm: u.keV):
 
 def gen_random_ba_photons(ba_rvs, num):
     """Generate random photons from Ba133 source
-    
+
     Returns
     -------
     photons : ~np.array
@@ -180,6 +207,7 @@ def setup_phgenerator_flare(factor, filename=None):
     class spec:
         def pdf(self, x):
             return fa(x * u.keV)
+
     dist = spec()
     urng = np.random.default_rng(seed=42)
     rng = NumericalInversePolynomial(dist, random_state=urng, domain=[5, 150])
@@ -203,9 +231,11 @@ def next_ph_time(rate: u.s**-1, size):
     return -np.log(1 - np.random.random(size=size)) / rate
 
 
-def generate_calib_ph_list(rate: u.s**-1, num: int, width: u.keV, output_file: bool=False):
+def generate_calib_ph_list(
+    rate: u.s**-1, num: int, width: u.keV, output_file: bool = False
+):
     """Generate a list of random photon generated from the calibration source.
-    
+
     Parameters
     ----------
     rate : u.Quantity
@@ -228,31 +258,29 @@ def generate_calib_ph_list(rate: u.s**-1, num: int, width: u.keV, output_file: b
     ba_rng = setup_phgenerator_ba(width)
     ph_energies = ba_rng.rvs(num)
     ph_origin_label = np.chararray(num, itemsize=5)
-    ph_origin_label[:] = 'calib'
+    ph_origin_label[:] = "calib"
 
     ph_table = QTable(
-            [
-                ph_arrival_times,
-                ph_wait_times,
-                ph_energies,
-                ph_origin_label,
-            ],
-            names=("times (s)", "wait times (s)", "energy (keV)", "label"),
-            meta={"name": "simulated photons list of calib source"},
-        )
-    
+        [
+            ph_arrival_times,
+            ph_wait_times,
+            ph_energies,
+            ph_origin_label,
+        ],
+        names=("times (s)", "wait times (s)", "energy (keV)", "label"),
+        meta={"name": "simulated photons list of calib source"},
+    )
+
     if output_file:
-        ph_table.write(
-            'simul_flare_list.csv', format="ascii.csv", overwrite=True
-        )
-    
+        ph_table.write("simul_flare_list.csv", format="ascii.csv", overwrite=True)
+
     return ph_table
 
 
-def generate_flare_ph_list(goes_class: str, num: int, output_file: bool=False):
-    """Generate a list of random photon generated at the peak of a flare peak. 
+def generate_flare_ph_list(goes_class: str, num: int, output_file: bool = False):
+    """Generate a list of random photon generated at the peak of a flare peak.
     The flare rate does not change.
- 
+
     Parameters
     ----------
     goes_class : str
@@ -266,7 +294,7 @@ def generate_flare_ph_list(goes_class: str, num: int, output_file: bool=False):
     -------
     result : ~astropy.table.Qtable
     """
-    RATE_CONV_FACTOR = {'X': 1, 'M': 1e-1, 'C': 1e-2, 'B': 1e-3, 'A': 1e-4}
+    RATE_CONV_FACTOR = {"X": 1, "M": 1e-1, "C": 1e-2, "B": 1e-3, "A": 1e-4}
     rate = XCLASS_FLARE_RATE * RATE_CONV_FACTOR[goes_class.upper()]
 
     ph_wait_times = next_ph_time(rate, num)
@@ -278,26 +306,23 @@ def generate_flare_ph_list(goes_class: str, num: int, output_file: bool=False):
 
     ph_energies = fl_rng.rvs(num)
     ph_origin_label = np.chararray(num, itemsize=5)
-    ph_origin_label[:] = 'flare'
+    ph_origin_label[:] = "flare"
 
     ph_table = QTable(
-            [
-                ph_arrival_times,
-                ph_wait_times,
-                ph_energies,
-                ph_origin_label,
-            ],
-            names=("times (s)", "wait times (s)", "energy (keV)", "label"),
-            meta={"name": f"simulated photons list at peak of  {goes_class}-class flare"},
-        )
-    
-    if output_file:
-        ph_table.write(
-            'simul_flare_list.csv', format="ascii.csv", overwrite=True
-        )
-    
-    return ph_table
+        [
+            ph_arrival_times,
+            ph_wait_times,
+            ph_energies,
+            ph_origin_label,
+        ],
+        names=("times (s)", "wait times (s)", "energy (keV)", "label"),
+        meta={"name": f"simulated photons list at peak of  {goes_class}-class flare"},
+    )
 
+    if output_file:
+        ph_table.write("simul_flare_list.csv", format="ascii.csv", overwrite=True)
+
+    return ph_table
 
 
 def generate_photon_list_file(output_file=True):
@@ -316,8 +341,8 @@ def generate_photon_list_file(output_file=True):
     ba_ph_num = int(time.max() * ba_rate)
 
     # over 10000 s we should expect 10000 counts
-    # let's generate 10000 wait times, 
-    
+    # let's generate 10000 wait times,
+
     ba_ph_wait_times = next_ph_time(ba_rate, ba_ph_num)
     ba_ph_arrival_times = ba_ph_wait_times.cumsum()
 
@@ -381,8 +406,6 @@ def generate_photon_list_file(output_file=True):
         meta={"name": "simulated photons list including X-class flare and ba133"},
     )
     if output_file:
-        ph_table.write(
-            'simul_flare_list.csv', format="ascii.csv", overwrite=True
-        )
+        ph_table.write("simul_flare_list.csv", format="ascii.csv", overwrite=True)
 
     return ph_table

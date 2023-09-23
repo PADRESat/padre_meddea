@@ -12,7 +12,7 @@ __all__ = [
     "process_file",
     "calibrate_file",
     "get_calibration_file",
-    "read_calibration_file"
+    "read_calibration_file",
 ]
 
 
