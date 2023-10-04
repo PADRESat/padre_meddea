@@ -23,6 +23,16 @@ _package_directory = Path(__file__).parent
 _data_directory = _package_directory / "data"
 
 MISSION_NAME = "PADRE"
-INSTRUMENT_NAME = "MEDDEA"
+INSTRUMENT_NAME = "MeDDEA"
+
+# the ratio of detector area for large pixels versus small pixels
+RATIO_TOTAL_LARGE_TO_SMALL_PIX = 0.947
+
+# the ratio of a large pixel to a small pixel area
+RATIO_LARGE_TO_SMALL_PIX = 9.47
+
+NUM_PIXELS = 12
+NUM_SMALL_PIXELS = 4
+NUM_LARGE_PIXELS = NUM_PIXELS - NUM_SMALL_PIXELS
 
 log.debug(f"padre_meddea version: {__version__}")

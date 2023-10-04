@@ -260,19 +260,30 @@ def generate_calib_ph_list(
     ph_origin_label = np.chararray(num, itemsize=5)
     ph_origin_label[:] = "calib"
 
+    det_num, pixel_num = get_random_det_pixel(num)
+
     ph_table = QTable(
         [
             ph_arrival_times,
             ph_wait_times,
             ph_energies,
+            det_num,
+            pixel_num,
             ph_origin_label,
         ],
-        names=("times (s)", "wait times (s)", "energy (keV)", "label"),
+        names=(
+            "times (s)",
+            "wait times (s)",
+            "energy (keV)",
+            "detnum",
+            "pixelnum",
+            "source",
+        ),
         meta={"name": "simulated photons list of calib source"},
     )
 
     if output_file:
-        ph_table.write("simul_flare_list.csv", format="ascii.csv", overwrite=True)
+        ph_table.write("simul_photon_list.csv", format="ascii.csv", overwrite=True)
 
     return ph_table
 
@@ -308,19 +319,32 @@ def generate_flare_ph_list(goes_class: str, num: int, output_file: bool = False)
     ph_origin_label = np.chararray(num, itemsize=5)
     ph_origin_label[:] = "flare"
 
+    # generate random detector and pixel assignments
+
+    det_num, pixel_num = get_random_det_pixel(num)
+
     ph_table = QTable(
         [
             ph_arrival_times,
             ph_wait_times,
             ph_energies,
+            det_num,
+            pixel_num,
             ph_origin_label,
         ],
-        names=("times (s)", "wait times (s)", "energy (keV)", "label"),
+        names=(
+            "times (s)",
+            "wait times (s)",
+            "energy (keV)",
+            "detnum",
+            "pixelnum",
+            "source",
+        ),
         meta={"name": f"simulated photons list at peak of  {goes_class}-class flare"},
     )
 
     if output_file:
-        ph_table.write("simul_flare_list.csv", format="ascii.csv", overwrite=True)
+        ph_table.write("simul_photon_list.csv", format="ascii.csv", overwrite=True)
 
     return ph_table
 
@@ -395,17 +419,52 @@ def generate_photon_list_file(output_file=True):
 
     sort_index = np.argsort(ph_arrival_times)
 
+    det_num, pixel_num = get_random_det_pixel(len(sort_index))
+
     ph_table = QTable(
         [
             ph_arrival_times[sort_index],
             ph_wait_times[sort_index],
             ph_energies[sort_index],
+            det_num,
+            pixel_num,
             ph_origin_label[sort_index],
         ],
-        names=("times (s)", "wait times (s)", "energy (keV)", "label"),
+        names=(
+            "times (s)",
+            "wait times (s)",
+            "energy (keV)",
+            "detnum",
+            "pixelnum",
+            "source",
+        ),
         meta={"name": "simulated photons list including X-class flare and ba133"},
     )
     if output_file:
-        ph_table.write("simul_flare_list.csv", format="ascii.csv", overwrite=True)
+        ph_table.write("simul_photon_list.csv", format="ascii.csv", overwrite=True)
 
     return ph_table
+
+
+def get_random_det_pixel(num):
+    """Generate random detector and pixel assignments assuming even
+    illumintation on all detectors and pixels.
+
+    Returns
+    -------
+    detector_numbers, pixel_numbers
+    """
+    det_number = np.random.randint(4, size=num)
+
+    pixel_choices = np.arange(padre_meddea.NUM_PIXELS)
+    weights = padre_meddea.NUM_LARGE_PIXELS * [
+        padre_meddea.RATIO_TOTAL_LARGE_TO_SMALL_PIX / padre_meddea.NUM_LARGE_PIXELS
+    ]
+    weights += padre_meddea.NUM_SMALL_PIXELS * [
+        (1 - padre_meddea.RATIO_TOTAL_LARGE_TO_SMALL_PIX)
+        / padre_meddea.NUM_SMALL_PIXELS
+    ]
+
+    pixel_nums = np.random.choice(pixel_choices, p=weights, size=num)
+
+    return det_number, pixel_nums
