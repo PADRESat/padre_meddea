@@ -12,5 +12,7 @@ For more details checkout the :ref:`reference`.
 
    Brief Tour <tour>
    data
+   level0
+   spectrum
    customization
    logger

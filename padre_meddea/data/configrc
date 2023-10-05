@@ -46,7 +46,7 @@ log_exceptions = True
 log_to_file = True
 
 # The file to log messages to
-log_file_path = hermes.log
+log_file_path = padre_meddea.log
 
 # Threshold for logging messages to log_file_path
 log_file_level = INFO

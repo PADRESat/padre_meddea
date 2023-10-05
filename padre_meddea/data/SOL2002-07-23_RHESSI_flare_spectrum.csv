@@ -1,4 +1,4 @@
-Bin start (keV),Bin end (keV),Bin width (keV),Bin mean (keV),Flux (photons/s/cm2/keV)
+Bin start (keV),Bin end (keV),Bin width (keV),Bin mean (keV),Flux (photon/s/cm ** 2/keV)
 3,4,1,3.5,2490240
 4,5,1,4.5,1334770
 5,6,1,5.5,701562
