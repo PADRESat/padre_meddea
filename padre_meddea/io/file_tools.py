@@ -8,8 +8,8 @@ from ccsdspy import PacketField, PacketArray
 
 __all__ = ["read_file"]
 
-APID_HIST = 0xA2  #  162
-APID_PHOTON = 0xA0  #  160
+APID_HIST = 0xA2  # 162
+APID_PHOTON = 0xA0  # 160
 
 
 def read_file(data_filename):
