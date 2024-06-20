@@ -2,9 +2,7 @@
 A module for all things calibration.
 """
 from pathlib import Path
-import random
-
-from astropy.time import Time
+import datetime as dt
 
 from padre_meddea import log
 
@@ -41,48 +39,6 @@ def process_file(data_filename: Path) -> list:
 
     # add other tasks below
     return output_files
-
-
-def calibrate_file(data_filename: Path, output_level=2) -> Path:
-    """
-    Given an input file, calibrate it and return a new file.
-
-    Parameters
-    ----------
-    data_filename: str
-        Fully specificied filename of the non-calibrated file (data level < 2)
-    output_level: int
-        The requested data level of the output file.
-
-    Returns
-    -------
-    output_filename: str
-        Fully specificied filename of the non-calibrated file (data level < 2)
-
-    Examples
-    --------
-    """
-
-    log.info(
-        "Despiking removing {num_spikes} spikes".format(
-            num_spikes=random.randint(0, 10)
-        )
-    )
-    log.warning(
-        "Despiking could not remove {num_spikes}".format(
-            num_spikes=random.randint(1, 5)
-        )
-    )
-
-    calib_file = get_calibration_file(data_filename)
-    if calib_file is None:
-        raise ValueError("Calibration file for {} not found.".format(data_filename))
-    else:
-        calib_data = read_calibration_file(calib_file)
-
-    # example log messages
-
-    return None
 
 
 def get_calibration_file(time: Time) -> Path:
