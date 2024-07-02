@@ -16,7 +16,7 @@ from ccsdspy.utils import (
     split_by_apid,
 )
 
-__all__ = ["read_file"]
+__all__ = ["read_file", "read_raw_file", ""]
 
 APID = {
     "spectrum": 0xA2,  # decimal 162
@@ -43,11 +43,16 @@ def read_file(filename: Path):
     Examples
     --------
     """
-    result = read_l0_file(filename)
+    if filename.suffix == "bin":  # raw binary file
+        result = read_raw_file(filename)
+    elif filename.suffix == "fits":  # level 0 or above
+        pass
+    else:
+        raise ValueError("File extension {filename.suffix} not recognized.")
     return result
 
 
-def read_l0_file(filename: Path, include_ccsds_headers: bool = True):
+def read_raw_file(filename: Path):
     """
     Read a level 0 data file.
 
@@ -55,18 +60,19 @@ def read_l0_file(filename: Path, include_ccsds_headers: bool = True):
     ----------
     filename : Path
         A file to read
-    include_ccsds_headers : bool
-        If True then return the CCSDS headers in the data arrays.
 
     Returns
     -------
     data : dict
         A dictionary of data arrays.
     """
-    
-    result = {"photons": parse_ph_packets(filename),
-              "housekeeping": parse_hk_packets(filename),
-              "spectra": parse_spectrum_packets(filename)}
+
+    result = {
+        "photons": parse_ph_packets(filename),
+        "housekeeping": parse_hk_packets(filename),
+        "spectra": parse_spectrum_packets(filename),
+        "cmd_resp": parse_cmd_response_packets(filename)
+    }
 
     return result
 
@@ -91,47 +97,57 @@ def parse_ph_packets(filename: Path):
         return None
     packet_definition = packet_definition_ph()
     pkt = ccsdspy.VariableLength(packet_definition)
-    ph_data = pkt.load(packet_stream)
-
+    ph_data = pkt.load(packet_stream, include_primary_header=True)
     integration_time = ph_data["INTEGRATION_TIME"] * 12.8 * 1e-6
     live_time = ph_data["LIVE_TIME"] * 12.8 * 1e-6
     dead_time = (1.0 - live_time / integration_time) * 100
+    packet_time = ph_data["TIME_S"] + ph_data["TIME_CLOCKS"] / 20.0e6
     total_hits = 0
     for this_packet in ph_data["PIXEL_DATA"]:
         total_hits += len(this_packet[0::3])
 
-    hit_list = np.zeros((4, total_hits), dtype="uint32")
+    hit_list = np.zeros((6, total_hits), dtype="uint16")
     time_stamps = np.zeros(total_hits)
     # 0 time, 1 asic_num, 2 channel num, 3 hit channel
     i = 0
-    for this_ph_data, this_s, this_clock in zip(
-        ph_data["PIXEL_DATA"], ph_data["TIME_S"], ph_data["TIME_CLOCKS"]
+    for this_pkt_num, this_ph_data, this_time in zip(
+        ph_data["CCSDS_SEQUENCE_COUNT"],
+        ph_data["PIXEL_DATA"],
+        packet_time,
     ):
-        packet_time = this_s + this_clock / 20.0e6
+
         num_hits = len(this_ph_data[0::3])
         ids = this_ph_data[1::3]
         asic_num = (ids & 0b11100000) >> 5
         channel_num = ids & 0b00011111
         hit_list[0, i : i + num_hits] = this_ph_data[0::3]
-        time_stamps[i : i + num_hits] = this_ph_data[0::3] * 12.8e-6 + packet_time
+        time_stamps[i : i + num_hits] = this_ph_data[0::3] * 12.8e-6 + this_time
         hit_list[1, i : i + num_hits] = asic_num
         hit_list[2, i : i + num_hits] = channel_num
         hit_list[3, i : i + num_hits] = this_ph_data[2::3]
+        hit_list[4, i : i + num_hits] = this_pkt_num
+        hit_list[5, i : i + num_hits] = this_ph_data[0::3]
         i += num_hits
 
     ph_times = [EPOCH + dt.timedelta(seconds=this_t) for this_t in time_stamps]
     ph_list = TimeSeries(
         time=ph_times,
         data={
-            "energy": hit_list[3, :],
-            "channel": hit_list[2, :],
-            "num": np.ones(len(hit_list[2, :])),
+            "atod": hit_list[3, :],
+            "asic_num": hit_list[1, :],
+            "asic_channel": hit_list[2, :],
+            "clock": hit_list[5, :],
+            "packet_num": hit_list[4, :],
+            # "num": np.ones(len(hit_list[2, :])),
         },
         meta={
             "integration_times": integration_time,
             "live_times": live_time,
             "dead_times": dead_time,
             "total_hits": total_hits,
+            "packet_time": packet_time,
+            "time_s": ph_data["TIME_S"],
+            "time_clocks": ph_data["TIME_CLOCKS"],
         },
     )
     ph_list.sort()
@@ -180,7 +196,7 @@ def parse_spectrum_packets(filename: Path):
     Returns
     -------
     hk_list : astropy.time.TimeSeries or None
-        A list of spectra data
+        A list of spectra data or None if no spectrum packets are found.
     """
     with open(filename, "rb") as mixed_file:
         stream_by_apid = split_by_apid(mixed_file)
@@ -198,6 +214,26 @@ def parse_spectrum_packets(filename: Path):
     histogram_data = h[:, :, 1:]  # remove the id field
     ids = h[:, :, 0]
     return timestamps, histogram_data, ids
+
+
+def parse_cmd_response_packets(filename: Path):
+    """Given a raw binary file, read only the command response packets and return the data.
+
+    Parameters
+    ----------
+    filename : Path
+        A file to read
+
+    Returns
+    -------
+    cmd_resp_list : astropy.time.TimeSeries or None
+        A list of command responses."""
+    return None
+
+
+def packet_definition_cmd_resp():
+    """Return the packet definiton for a command response packet."""
+    pass
 
 
 def packet_definition_hk():

@@ -5,6 +5,7 @@ This directory contains data files included with the package source
 code distribution. Note that this is intended only for relatively small files
 - large files should be externally hosted and downloaded as needed.
 This directory is NOT for downloaded instrument data unless it is needed for testing purposes.
+Note that calibration files are stored in the `calibration` subdirectory.
 
 ba133.csv
 ---------
@@ -27,6 +28,14 @@ The lightcurve of the SOL2002-07-23 X4.8 class flare as observed by GOES XRS.
 These data were downloaded using sunpy.
 Data drop outs were manually removed.
 
-Calibration files
------------------
-Calibration files are stored in the `calibration` subdirectory.
+fits_keywords_hdu0.csv
+----------------------
+Default keyword values for the primary HDU for all MeDDEA FITS files.
+
+detector_values.csv
+-------------------
+Stores detector constants.
+
+hk_channel_defs.csv
+-------------------
+Stores the definitions for the values provided in housekeeping packets.

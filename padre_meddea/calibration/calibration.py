@@ -5,16 +5,17 @@ from pathlib import Path
 import datetime as dt
 
 from padre_meddea import log
+from padre_meddea.io import file_tools
+from padre_meddea.io.file_tools import read_file
 
 __all__ = [
     "process_file",
-    "calibrate_file",
     "get_calibration_file",
     "read_calibration_file",
 ]
 
 
-def process_file(data_filename: Path) -> list:
+def process_file(filename: Path) -> list:
     """
     This is the entry point for the pipeline processing.
     It runs all of the various processing steps required.
@@ -29,7 +30,9 @@ def process_file(data_filename: Path) -> list:
     output_filenames: list
         Fully specificied filenames for the output files.
     """
-    log.info(f"Processing file {data_filename}.")
+    log.info(f"Processing file {filename}.")
+    if filename.suffix == "bin":
+        l0_filename = raw_to_l0(filename)
     output_files = []
 
     #  calibrated_file = calibrate_file(data_filename)
@@ -40,6 +43,13 @@ def process_file(data_filename: Path) -> list:
     # add other tasks below
     return output_files
 
+
+def raw_to_l0(filename: Path):
+    if not (filename.suffix == "bin"):
+        raise ValueError(f"File {filename} extension not recognized.")
+    
+    data = file_tools.read_raw_file(filename)
+    
 
 def get_calibration_file(time: Time) -> Path:
     """

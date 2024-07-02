@@ -35,4 +35,23 @@ NUM_PIXELS = 12
 NUM_SMALL_PIXELS = 4
 NUM_LARGE_PIXELS = NUM_PIXELS - NUM_SMALL_PIXELS
 
+peaking_time = [
+    0.73,
+    1.39,
+    2.05,
+    2.72,
+    3.39,
+    4.06,
+    4.72,
+    5.39,
+    6.07,
+    6.73,
+    7.40,
+    8.04,
+    8.73,
+    9.39,
+    10.06,
+    10.73,
+]
+
 log.debug(f"padre_meddea version: {__version__}")
