@@ -35,18 +35,29 @@ __all__ = [
 
 # load flare spectrum file
 flare_spectrum_data = QTable(
-    ascii.read(padre_meddea._data_directory / "SOL2002-07-23_RHESSI_flare_spectrum.csv")
+    ascii.read(
+        padre_meddea._data_directory / "SOL2002-07-23_RHESSI_flare_spectrum.csv",
+        format="csv",
+    )
 )
 for this_col in flare_spectrum_data.colnames:
     unit_str = re.findall(r"\(.*?\)", this_col)[0][1:-1]
     flare_spectrum_data[this_col].unit = u.Unit(unit_str)
 
 flare_timeseries = QTable(
-    ascii.read(padre_meddea._data_directory / "SOL2002-07-23_GOESXRS_lightcurve.csv")
+    ascii.read(
+        padre_meddea._data_directory / "SOL2002-07-23_GOESXRS_lightcurve.csv",
+        format="csv",
+    )
 )
 flare_timeseries["sec_from_start"].unit = u.s
 
-ba133_lines = QTable(ascii.read(padre_meddea._data_directory / "ba133.csv"))
+ba133_lines = QTable(
+    ascii.read(
+        padre_meddea._data_directory / "ba133.csv",
+        format="csv",
+    )
+)
 ba133_lines["energy (eV)"].unit = u.eV
 
 
@@ -389,9 +400,9 @@ def generate_photon_list_file(output_file=True):
             flare_ph_num = index.sum()
             print(f"Got {flare_ph_num} flare photons.")
 
-            fl_ph_wait_times[
-                ph_counter : ph_counter + flare_ph_num
-            ] = this_fl_ph_wait_times[index]
+            fl_ph_wait_times[ph_counter : ph_counter + flare_ph_num] = (
+                this_fl_ph_wait_times[index]
+            )
             fl_ph_arrival_times[ph_counter : ph_counter + flare_ph_num] = (
                 this_fl_ph_arrival_times[index] + this_time * u.s
             )

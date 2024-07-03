@@ -124,6 +124,7 @@ def read_calibration_file(calib_filename: Path):
 def read_fits_keyword_file(csv_file: Path):
     """Read csv file with default fits metadata information."""
     fits_meta_table = ascii.read(
-        padre_meddea._data_directory / "fits_keywords_primaryhdu.csv"
+        padre_meddea._data_directory / "fits_keywords_primaryhdu.csv",
+        format="csv",
     )
     return fits_meta_table
