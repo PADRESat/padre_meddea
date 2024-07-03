@@ -16,7 +16,7 @@ from ccsdspy.utils import (
     split_by_apid,
 )
 
-__all__ = ["read_file", "read_raw_file", ""]
+__all__ = ["read_file", "read_raw_file"]
 
 APID = {
     "spectrum": 0xA2,  # decimal 162
@@ -78,7 +78,7 @@ def read_raw_file(filename: Path):
 
 
 def parse_ph_packets(filename: Path):
-    """Given a binary file, read only the photon packets and return a photon list.
+    """Given a binary file, read only the photon packets and return an event list.
 
     Parameters
     ----------

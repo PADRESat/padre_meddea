@@ -1,6 +1,9 @@
 #  this scripts takes a raw packet file which includes all APIDs and creates
 #  smaller invididual files with a smaller number of packets
 import os
+import argparse
+
+from numpy import uint
 
 from ccsdspy.utils import (
     split_packet_bytes,
@@ -8,11 +11,17 @@ from ccsdspy.utils import (
     split_by_apid,
 )
 
-packets_per_file = 4
+parser = argparse.ArgumentParser("split_packet_file")
+parser.add_argument("filename", help="A binary CCSDS file to be split.", type=str)
+parser.add_argument(
+    "--num", default=4, type=uint,
+    help="The number of packets to include in each output.",
+)
 
-filename = "20240327_134604_calistesoproto_v02_ba133.bin"
+args = parser.parse_args()
 
-packets_split = split_by_apid(filename)
+packets_per_file = args.num
+packets_split = split_by_apid(args.filename)
 
 for key, val in packets_split.items():
     output_filename = f"apid{key}_{packets_per_file}packets.bin"

@@ -21,6 +21,7 @@ __all__ = ["config", "print_config"]
 
 _package_directory = Path(__file__).parent
 _data_directory = _package_directory / "data"
+_test_files_directory = _package_directory / "data" / "test"
 
 MISSION_NAME = "PADRE"
 INSTRUMENT_NAME = "MeDDEA"
