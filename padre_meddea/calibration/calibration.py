@@ -21,7 +21,7 @@ __all__ = [
 ]
 
 
-def process_file(filename: Path) -> list:
+def process_file(filename: Path, overwrite=False) -> list:
     """
     This is the entry point for the pipeline processing.
     It runs all of the various processing steps required.
@@ -59,7 +59,7 @@ def process_file(filename: Path) -> list:
                 test=True,
                 version="0.1.0",
             )
-            hdul.writeto(output_filename)
+            hdul.writeto(output_filename, overwrite=overwrite)
             output_files = [output_filename]
 
     #  calibrated_file = calibrate_file(data_filename)
