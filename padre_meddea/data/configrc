@@ -19,7 +19,7 @@ time_format = %Y-%m-%d %H:%M:%S
 [downloads]
 
 ; Location to save download data to. Path should be specified relative to the
-; HERMES working directory.
+; PADRE working directory.
 ; Default value: data/
 download_dir = data
 
