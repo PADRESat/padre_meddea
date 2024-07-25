@@ -71,7 +71,7 @@ def read_raw_file(filename: Path):
         "photons": parse_ph_packets(filename),
         "housekeeping": parse_hk_packets(filename),
         "spectra": parse_spectrum_packets(filename),
-        "cmd_resp": parse_cmd_response_packets(filename)
+        "cmd_resp": parse_cmd_response_packets(filename),
     }
 
     return result
@@ -115,7 +115,6 @@ def parse_ph_packets(filename: Path):
         ph_data["PIXEL_DATA"],
         packet_time,
     ):
-
         num_hits = len(this_ph_data[0::3])
         ids = this_ph_data[1::3]
         asic_num = (ids & 0b11100000) >> 5

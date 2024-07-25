@@ -400,9 +400,9 @@ def generate_photon_list_file(output_file=True):
             flare_ph_num = index.sum()
             print(f"Got {flare_ph_num} flare photons.")
 
-            fl_ph_wait_times[ph_counter : ph_counter + flare_ph_num] = (
-                this_fl_ph_wait_times[index]
-            )
+            fl_ph_wait_times[
+                ph_counter : ph_counter + flare_ph_num
+            ] = this_fl_ph_wait_times[index]
             fl_ph_arrival_times[ph_counter : ph_counter + flare_ph_num] = (
                 this_fl_ph_arrival_times[index] + this_time * u.s
             )
