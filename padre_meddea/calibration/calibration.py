@@ -3,6 +3,7 @@ A module for all things calibration.
 """
 
 from pathlib import Path
+import tempfile
 
 from astropy.io import fits, ascii
 from astropy.time import Time
@@ -60,8 +61,9 @@ def process_file(filename: Path, overwrite=False) -> list:
                 version="0.1.0",
             )
 
-            # Output file in tmp directory
-            path = Path(f"/tmp/{output_filename}")
+            # Determine the temporary directory
+            temp_dir = Path(tempfile.gettempdir())
+            path = temp_dir / output_filename
 
             hdul.writeto(path, overwrite=overwrite)
             output_files = [path]
