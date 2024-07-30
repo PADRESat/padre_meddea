@@ -26,11 +26,11 @@ classifiers = [
 ]
 dependencies = [
   'astropy==6.1.*',
-  'numpy==1.9.*',
+  'numpy==1.23.*',
   'sunpy==6.0.*',
   'roentgen',
-  'specutils==1.15',
-  'ccsdspy==1.3'
+  'specutils==1.15.*',
+  'ccsdspy==1.3.*'
 ]
 
 [project.optional-dependencies]
