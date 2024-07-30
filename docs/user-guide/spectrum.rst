@@ -47,7 +47,7 @@ operations.
     >>> energy = np.arange(5, 100, 1) * u.keV
     >>> flux = flare_spectrum(1)(energy)
     >>> data_limiter = flare_spectrum_data['Bin mean (keV)'] < energy.max()
-    >>> y = flare_spectrum_data['Flux (photon/s/cm ** 2/keV)'][data_limiter]
+    >>> y = flare_spectrum_data['Flux (ph s**-1 cm**-2 keV**-1)'][data_limiter]
     >>> plt.plot(flare_spectrum_data['Bin mean (keV)'][data_limiter], y, label='data [RHESSI]')
     >>> plt.plot(energy, flux, label='Interpolated', alpha=0.5, linewidth=3.0)
     >>> plt.legend()

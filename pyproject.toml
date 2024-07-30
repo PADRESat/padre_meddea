@@ -47,7 +47,8 @@ dev = [
 
 docs = [
   'sphinx',
-  'sphinx-automodapi'
+  'sphinx-automodapi',
+  'matplotlib',
 ]
 
 test = [

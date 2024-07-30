@@ -185,3 +185,4 @@ Temporary Items
 _version.py
 
 *.csv
+*.fits
