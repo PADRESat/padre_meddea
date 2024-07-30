@@ -61,7 +61,7 @@ def process_file(filename: Path, overwrite=False) -> list:
             )
             
             # Output file in tmp directory
-            path = Path("/tmp" / output_filename)
+            path = Path(f"/tmp/{output_filename}")
             
             hdul.writeto(path, overwrite=overwrite)
             output_files = [output_filename]
