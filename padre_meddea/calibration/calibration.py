@@ -54,17 +54,17 @@ def process_file(filename: Path, overwrite=False) -> list:
             output_filename = create_science_filename(
                 "meddea",
                 ph_list["time"][0].fits,
-                "l0",
+                "l1",
                 descriptor="eventlist",
                 test=True,
                 version="0.1.0",
             )
-            
+
             # Output file in tmp directory
             path = Path(f"/tmp/{output_filename}")
-            
+
             hdul.writeto(path, overwrite=overwrite)
-            output_files = [output_filename]
+            output_files = [path]
 
     #  calibrated_file = calibrate_file(data_filename)
     #  data_plot_files = plot_file(data_filename)
