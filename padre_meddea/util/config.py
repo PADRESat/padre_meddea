@@ -4,6 +4,7 @@ This module provides configuration file functionality.
 This code is based on that provided by SunPy see
     licenses/SUNPY.rst
 """
+
 import os
 import shutil
 import configparser

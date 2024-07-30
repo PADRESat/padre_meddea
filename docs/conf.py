@@ -39,7 +39,7 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx_automodapi.automodapi",
     "sphinx_automodapi.smart_resolver",
-    "matplotlib.sphinxext.plot_directive"
+    "matplotlib.sphinxext.plot_directive",
 ]
 
 # plot_directive default to always show source when including a plot
@@ -109,7 +109,7 @@ html_theme = "bizstyle"
 html_static_path = ["_static"]
 
 html_logo = "logo/padre_logo.png"
-#html_favicon = "logo/favicon.ico"
+# html_favicon = "logo/favicon.ico"
 html_css_files = ["css/custom.css"]
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

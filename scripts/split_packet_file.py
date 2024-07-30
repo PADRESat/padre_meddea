@@ -14,7 +14,9 @@ from ccsdspy.utils import (
 parser = argparse.ArgumentParser("split_packet_file")
 parser.add_argument("filename", help="A binary CCSDS file to be split.", type=str)
 parser.add_argument(
-    "--num", default=4, type=uint,
+    "--num",
+    default=4,
+    type=uint,
     help="The number of packets to include in each output.",
 )
 
