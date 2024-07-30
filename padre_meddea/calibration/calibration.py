@@ -59,7 +59,11 @@ def process_file(filename: Path, overwrite=False) -> list:
                 test=True,
                 version="0.1.0",
             )
-            hdul.writeto(output_filename, overwrite=overwrite)
+            
+            # Output file in tmp directory
+            path = Path("/tmp" / output_filename)
+            
+            hdul.writeto(path, overwrite=overwrite)
             output_files = [output_filename]
 
     #  calibrated_file = calibrate_file(data_filename)
