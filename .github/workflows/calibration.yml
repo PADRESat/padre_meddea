@@ -43,6 +43,7 @@ jobs:
         echo "Status Code: $STATUS_CODE"
 
         # Docker logs for debugging
+        container_id=$(docker ps -qf "ancestor=processing_function:latest")
         docker logs $container_id
 
         # If the HTTP status code is 200, then the test is successful
