@@ -35,14 +35,15 @@ jobs:
       id: test-lambda
       run: |
         # Run curl and write the HTTP status code to a variable
-        cat .github/workflows/test_data/test_meddea_event.json
-        ls -a
         HTTP_STATUS=$(curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" -d @.github/workflows/test_data/test_meddea_event.json)
         echo "HTTP Status: $HTTP_STATUS"
 
         # Grep the HTTP status code from the curl output for 200 (success)
         STATUS_CODE=$(echo $HTTP_STATUS | grep -oP '200')
         echo "Status Code: $STATUS_CODE"
+
+        # Docker logs for debugging
+        docker logs $container_id
 
         # If the HTTP status code is 200, then the test is successful
         if [ "$STATUS_CODE" == "200" ]; then
@@ -63,6 +64,7 @@ jobs:
         mkdir processed_files
         # Copy the files from the container to the host
         docker cp $container_id:/test_data/. processed_files/
+        docker cp $container_id:/tmp/. processed_files/
 
     - name: Upload Processed Files as Artifact
       id: artifact-upload-step

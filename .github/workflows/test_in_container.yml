@@ -12,7 +12,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container: 
-      image: public.ecr.aws/w5r9l1c8/swsoc-docker-lambda-base:latest
+      image: public.ecr.aws/w5r9l1c8/dev-padre-swsoc-docker-lambda-base:latest
 
     strategy:
       fail-fast: false
