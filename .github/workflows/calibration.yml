@@ -1,0 +1,84 @@
+name: Test Lambda Function Locally and Upload Artifacts
+
+on: [pull_request_target]
+
+jobs:
+  test-and-upload:
+    permissions:
+        pull-requests: write
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+
+    - name: Build Lambda Docker Image
+      run: |
+        cd ..
+        git clone https://github.com/HERMES-SOC/sdc_aws_processing_lambda.git
+        cd sdc_aws_processing_lambda/lambda_function
+        BRANCH_URL="git+https://github.com/${{ github.event.pull_request.head.repo.full_name }}.git@${{ github.event.pull_request.head.ref }}"
+        echo "Branch URL: $BRANCH_URL"
+        sed -i "1i padre_meddea @ $BRANCH_URL" requirements.txt
+        docker build --build-arg BASE_IMAGE=public.ecr.aws/w5r9l1c8/dev-padre-swsoc-docker-lambda-base:latest -t processing_function:latest . --network host
+        
+    - name: Run Lambda Docker Container
+      run: |
+        docker run -d -p 9000:8080 -e USE_INSTRUMENT_TEST_DATA=True processing_function:latest
+        container_id=$(docker ps -qf "ancestor=processing_function:latest")
+        echo "Container ID: $container_id"
+
+    - name: Wait for Container to Initialize
+      run: sleep 5
+
+    - name: Test Lambda Function with curl
+      id: test-lambda
+      run: |
+        cd ../sdc_aws_processing_lambda/
+        # Run curl and write the HTTP status code to a variable
+        HTTP_STATUS=$(curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" -d @lambda_function/tests/test_data/test_eea_event.json)
+        echo "HTTP Status: $HTTP_STATUS"
+
+        # Grep the HTTP status code from the curl output for 200 (success)
+        STATUS_CODE=$(echo $HTTP_STATUS | grep -oP '200')
+        echo "Status Code: $STATUS_CODE"
+
+        # If the HTTP status code is 200, then the test is successful
+        if [ "$STATUS_CODE" == "200" ]; then
+          echo "Success: HTTP status is 200"
+          echo "test_success=true" >> $GITHUB_OUTPUT
+          exit 0  # Exit with success
+        else
+          echo "Error or unexpected HTTP status: $HTTP_STATUS"
+          echo "test_success=false" >> $GITHUB_OUTPUT
+          exit 1  # Exit with failure
+        fi
+
+    - name: Copy Processed Files from Container
+      if: steps.test-lambda.outputs.test_success == 'true'
+      run: |
+        container_id=$(docker ps -qf "ancestor=processing_function:latest")
+        # Create a directory for processed files
+        mkdir processed_files
+        # Copy the files from the container to the host
+        docker cp $container_id:/test_data/. processed_files/
+
+    - name: Upload Processed Files as Artifact
+      id: artifact-upload-step
+      if: steps.test-lambda.outputs.test_success == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+          name: processed-files
+          path: processed_files/
+
+    - name: Echo Artifact URL
+      if: steps.test-lambda.outputs.test_success == 'true'
+      run: echo "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts/${{ steps.artifact-upload-step.outputs.artifact-id }}"
+    
+    - name: Comment PR
+      if: steps.test-lambda.outputs.test_success == 'true'
+      uses: thollander/actions-comment-pull-request@v2
+      # Only comment if triggered by a pull request target event
+      with:
+        message: |
+            The processed files are available as an artifact: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts/${{ steps.artifact-upload-step.outputs.artifact-id }}
