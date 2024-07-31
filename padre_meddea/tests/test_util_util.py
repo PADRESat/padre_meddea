@@ -3,7 +3,7 @@
 import pytest
 
 from astropy.time import Time
-from padre_meddea.util import util
+from swxsoc.util import util
 
 time = "2024-04-06T12:06:21"
 time_formatted = "20240406T120621"
