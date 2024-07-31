@@ -34,7 +34,6 @@ jobs:
     - name: Test Lambda Function with curl
       id: test-lambda
       run: |
-        cd ../sdc_aws_processing_lambda/
         # Run curl and write the HTTP status code to a variable
         cat .github/workflows/test_data/test_meddea_event.json
         ls -a
