@@ -24,7 +24,7 @@ jobs:
         
     - name: Run Lambda Docker Container
       run: |
-        docker run -d -p 9000:8080 -e USE_INSTRUMENT_TEST_DATA=True processing_function:latest
+        docker run -d -p 9000:8080 -e USE_INSTRUMENT_TEST_DATA=True -e SWXSOC_MISSION=padre processing_function:latest
         container_id=$(docker ps -qf "ancestor=processing_function:latest")
         echo "Container ID: $container_id"
 
@@ -36,7 +36,7 @@ jobs:
       run: |
         cd ../sdc_aws_processing_lambda/
         # Run curl and write the HTTP status code to a variable
-        HTTP_STATUS=$(curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" -d @lambda_function/tests/test_data/test_eea_event.json)
+        HTTP_STATUS=$(curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" -d @.github/workflows/test_data/test_meddea_event.json)
         echo "HTTP Status: $HTTP_STATUS"
 
         # Grep the HTTP status code from the curl output for 200 (success)

@@ -181,7 +181,7 @@ Temporary Items
 # jupyter notebooks should not be added to Python Packages
 *.ipynb
 
-*.bin
+# *.bin
 _version.py
 
 *.csv
