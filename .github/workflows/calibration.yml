@@ -36,6 +36,8 @@ jobs:
       run: |
         cd ../sdc_aws_processing_lambda/
         # Run curl and write the HTTP status code to a variable
+        cat .github/workflows/test_data/test_meddea_event.json
+        ls -a
         HTTP_STATUS=$(curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" -d @.github/workflows/test_data/test_meddea_event.json)
         echo "HTTP Status: $HTTP_STATUS"
 
