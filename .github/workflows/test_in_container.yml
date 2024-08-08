@@ -12,7 +12,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container: 
-      image: public.ecr.aws/w5r9l1c8/swsoc-docker-lambda-base:latest
+      image: public.ecr.aws/w5r9l1c8/dev-padre-swsoc-docker-lambda-base:latest
 
     strategy:
       fail-fast: false
@@ -23,6 +23,7 @@ jobs:
       run: pytest --pyargs padre_meddea --cov padre_meddea
       env:
         PLATFORM: 'docker'
+        SWXSOC_MISSION: padre
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v3
         env: CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

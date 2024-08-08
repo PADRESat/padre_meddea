@@ -3,15 +3,19 @@ A module for all things calibration.
 """
 
 from pathlib import Path
+import tempfile
 
 from astropy.io import fits, ascii
 from astropy.time import Time
 from astropy.table import Table
 
+from swxsoc.util.util import create_science_filename
+
 import padre_meddea
 from padre_meddea import log
 from padre_meddea.io import file_tools
-from padre_meddea.util.util import create_science_filename
+
+# from padre_meddea.util.util import create_science_filename
 from padre_meddea.io.file_tools import read_raw_file
 
 __all__ = [
@@ -54,13 +58,18 @@ def process_file(filename: Path, overwrite=False) -> list:
             output_filename = create_science_filename(
                 "meddea",
                 ph_list["time"][0].fits,
-                "l0",
+                "l1",
                 descriptor="eventlist",
                 test=True,
                 version="0.1.0",
             )
-            hdul.writeto(output_filename, overwrite=overwrite)
-            output_files = [output_filename]
+
+            # Determine the temporary directory
+            temp_dir = Path(tempfile.gettempdir())
+            path = temp_dir / output_filename
+
+            hdul.writeto(path, overwrite=overwrite)
+            output_files = [path]
 
     #  calibrated_file = calibrate_file(data_filename)
     #  data_plot_files = plot_file(data_filename)

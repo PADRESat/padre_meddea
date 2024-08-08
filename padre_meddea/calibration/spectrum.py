@@ -1,6 +1,7 @@
 """
 This module provides tools to analyze and manipulate spectrum data.
 """
+
 import numpy as np
 
 from astropy.timeseries import aggregate_downsample
@@ -27,7 +28,7 @@ def phlist_to_lc(event_list, int_time):
 
 def phlist_to_spec(event_list, bins=None):
     if bins is None:
-        bins = np.arange(0, 2 ** 12 - 1)
+        bins = np.arange(0, 2**12 - 1)
     data, bins = np.histogram(event_list["energy"], bins=bins)
     result = Spectrum1D(
         flux=u.Quantity(data, "count"),
