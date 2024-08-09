@@ -1,7 +1,7 @@
 """
 A module for all things calibration.
 """
-
+import os
 from pathlib import Path
 import tempfile
 
@@ -41,6 +41,9 @@ def process_file(filename: Path, overwrite=False) -> list:
         Fully specificied filenames for the output files.
     """
     log.info(f"Processing file {filename}.")
+    
+    output_files = []
+    
     if filename.suffix == ".bin":
         parsed_data = read_raw_file(filename)
         if "photons" in parsed_data.keys():  # we have event list data
@@ -55,7 +58,7 @@ def process_file(filename: Path, overwrite=False) -> list:
             bin_hdu = fits.BinTableHDU(data=Table(ph_list))
             hdul = fits.HDUList([hdu, bin_hdu])
 
-            output_filename = create_science_filename(
+            path = create_science_filename(
                 "meddea",
                 ph_list["time"][0].fits,
                 "l1",
@@ -63,12 +66,20 @@ def process_file(filename: Path, overwrite=False) -> list:
                 test=True,
                 version="0.1.0",
             )
+            
+            # Check if the LAMBDA_ENVIRONMENT environment variable is set
+            lambda_environment = os.getenv('LAMBDA_ENVIRONMENT')
 
-            # Determine the temporary directory
-            temp_dir = Path(tempfile.gettempdir())
-            path = temp_dir / output_filename
+            # Set the temp_dir and overwrite flag based on the environment variable
+            if lambda_environment:
+                temp_dir = Path(tempfile.gettempdir())  # Set to temp directory
+                overwrite = True  # Set overwrite to True
+                path = temp_dir / path
 
+            # Write the file, with the overwrite option controlled by the environment variable
             hdul.writeto(path, overwrite=overwrite)
+
+            # Store the output file path in a list
             output_files = [path]
 
     #  calibrated_file = calibrate_file(data_filename)
