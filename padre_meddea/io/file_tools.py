@@ -43,9 +43,9 @@ def read_file(filename: Path):
     Examples
     --------
     """
-    if filename.suffix == "bin":  # raw binary file
+    if filename.suffix == ".bin":  # raw binary file
         result = read_raw_file(filename)
-    elif filename.suffix == "fits":  # level 0 or above
+    elif filename.suffix == ".fits":  # level 0 or above
         pass
     else:
         raise ValueError("File extension {filename.suffix} not recognized.")
@@ -237,7 +237,7 @@ def packet_definition_cmd_resp():
 
 def packet_definition_hk():
     """Return the packet definiton for the housekeeping packets."""
-    NUM_FIELDS = 8
+    NUM_FIELDS = 13
     p = [PacketField(name="TIMESTAMP", data_type="uint", bit_length=32)]
     for i in range(NUM_FIELDS):
         p += [PacketField(name=f"HK{i}", data_type="uint", bit_length=16)]
