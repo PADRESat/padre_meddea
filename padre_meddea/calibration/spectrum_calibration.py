@@ -1,18 +1,33 @@
 '''
-This module provides ...
+This module provides the tools necessary to calibrate a spectrum. 
 '''
 
 from pathlib import Path
 import numpy as np
+from numpy.polynomial import Polynomial
+import matplotlib.pyplot as plt
 from specutils.spectra import SpectralRegion
 from specutils import Spectrum1D
 from specutils.fitting import fit_lines
 from specutils.spectra import SpectralRegion
 from specutils.manipulation import extract_region
 from specutils.fitting import estimate_line_parameters
-import matplotlib.pyplot as plt
 import padre_meddea
 import padre_meddea.io.file_tools as file_tools
+import datetime as dt
+from astropy.modeling import models
+from astropy.timeseries import aggregate_downsample, TimeSeriesd
+import astropy.units as u
+from scipy import stats
+from scipy.interpolate import UnivariateSpline
+import ccsdspy
+from ccsdspy import PacketField, PacketArray
+from ccsdspy.utils import (
+    split_packet_bytes,
+    count_packets,
+    split_by_apid,
+    read_primary_headers,
+)
 
 __all__ = ["spectrum", "calibrate_spectrum", "nearest_energy", "find_nearest"]
 
