@@ -37,3 +37,5 @@ jobs:
     - name: Build docs
       working-directory: ./docs
       run: make html
+      env:
+        SWXSOC_MISSION: padre

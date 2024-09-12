@@ -8,13 +8,12 @@ except ImportError:
     __version__ = "unknown version"
     version_tuple = (0, 0, "unknown version")
 
-from padre_meddea.util.config import load_config, print_config
-from padre_meddea.util.logger import _init_log
+from swxsoc import config as swxsoc_config, log as swxsoc_log, print_config
 
 # Load user configuration
-config = load_config()
+config = swxsoc_config
 
-log = _init_log(config=config)
+log = swxsoc_log
 
 # Then you can be explicit to control what ends up in the namespace,
 __all__ = ["config", "print_config"]

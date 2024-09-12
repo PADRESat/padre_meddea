@@ -7,6 +7,7 @@ but rather in the particular package.
 This code is based on that provided by SunPy see
     licenses/SUNPY.rst
 """
+
 import warnings
 
 __all__ = [
