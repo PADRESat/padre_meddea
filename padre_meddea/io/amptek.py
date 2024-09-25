@@ -9,6 +9,7 @@ import numpy as np
 from numpy.polynomial.polynomial import Polynomial
 
 import astropy.units as u
+from astropy.nddata import StdDevUncertainty
 
 from specutils import Spectrum1D
 from specutils.spectra import SpectralRegion
@@ -120,10 +121,12 @@ def read_mca(filename: Path, count_rate=False):
             line_number += 1
         if count_rate:
             y = u.Quantity(np.array(data) / meta["REAL_TIME"], "ct/s")
-            # uncertainty = u.Quantity(np.sqrt(data) / meta["REAL_TIME"], "ct/s")
+            uncertainty = StdDevUncertainty(
+                u.Quantity(np.sqrt(data) / meta["REAL_TIME"], "ct/s")
+            )
         else:
             y = data * u.ct
-            # uncertainty = np.sqrt(data) * u.ct
+            uncertainty = StdDevUncertainty(np.sqrt(data) * u.ct)
 
         if roi_data:
             rois = SpectralRegion(
@@ -147,7 +150,7 @@ def read_mca(filename: Path, count_rate=False):
         spectrum = Spectrum1D(
             flux=y,
             spectral_axis=np.arange(len(data)) * u.pix,
-            uncertainty=None,  # TODO add uncertainty, problem with ct/s as unit
+            uncertainty=uncertainty,  # TODO add uncertainty, problem with ct/s as unit
             meta=meta,
         )
 
