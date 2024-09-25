@@ -41,7 +41,7 @@ def process_file(filename: Path, overwrite=False) -> list:
         Fully specificied filenames for the output files.
     """
     log.info(f"Processing file {filename}.")
-    if filename.suffix == ".bin":  
+    if filename.suffix == ".bin":
         parsed_data = read_raw_file(filename)
         if "photons" in parsed_data.keys():  # we have event list data
             ph_list = parsed_data["photons"]
