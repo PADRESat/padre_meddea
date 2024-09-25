@@ -14,5 +14,6 @@ For more details checkout the :ref:`reference`.
    data
    level0
    spectrum
+   amptek
    customization
    logger
