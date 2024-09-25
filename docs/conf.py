@@ -40,7 +40,11 @@ extensions = [
     "sphinx_automodapi.automodapi",
     "sphinx_automodapi.smart_resolver",
     "matplotlib.sphinxext.plot_directive",
+    "sphinx_copybutton",
 ]
+
+# to exclude traditional Python prompts from your copied code
+copybutton_prompt_text = ">>> "
 
 # plot_directive default to always show source when including a plot
 plot_include_source = True
