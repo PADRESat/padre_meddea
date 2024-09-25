@@ -50,6 +50,7 @@ docs = [
   'sphinx',
   'sphinx-automodapi',
   'matplotlib',
+  'sphinx-copybutton',
 ]
 
 test = [
