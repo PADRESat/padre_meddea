@@ -25,7 +25,6 @@ __all__ = [
     
     "spectrum",
     "calibrate_spectrum",
-    "nearest_energy",
     "find_nearest"
 ]
 
