@@ -25,7 +25,8 @@ __all__ = [
     
     "spectrum",
     "calibrate_spectrum",
-    "find_nearest"
+    "find_nearest",
+    "gains_offsets"
 ]
 
 
