@@ -68,7 +68,7 @@
 	// "forwardPorts": [],
 	
 	// Use 'postCreateCommand' to run commands after the container is created.
-	//"postCreateCommand": "bash -i -c 'pip3 install --user .[all]'",
+	"postCreateCommand": "sudo pip3 uninstall padre_meddea -y",
 	// Comment out connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
 	"remoteUser": "vscode"
 }

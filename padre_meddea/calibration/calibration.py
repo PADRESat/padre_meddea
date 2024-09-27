@@ -1,6 +1,7 @@
 """
 A module for all things calibration.
 """
+
 import os
 from pathlib import Path
 import tempfile
@@ -41,9 +42,9 @@ def process_file(filename: Path, overwrite=False) -> list:
         Fully specificied filenames for the output files.
     """
     log.info(f"Processing file {filename}.")
-    
+
     output_files = []
-    
+
     if filename.suffix == ".bin":
         parsed_data = read_raw_file(filename)
         if "photons" in parsed_data.keys():  # we have event list data
@@ -66,9 +67,9 @@ def process_file(filename: Path, overwrite=False) -> list:
                 test=True,
                 version="0.1.0",
             )
-            
+
             # Check if the LAMBDA_ENVIRONMENT environment variable is set
-            lambda_environment = os.getenv('LAMBDA_ENVIRONMENT')
+            lambda_environment = os.getenv("LAMBDA_ENVIRONMENT")
 
             # Set the temp_dir and overwrite flag based on the environment variable
             if lambda_environment:
