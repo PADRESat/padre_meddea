@@ -46,7 +46,7 @@ extensions = [
 plot_include_source = True
 
 # Set automodapi to generate files inside the generated directory
-# automodapi_toctreedirnm = "_build/html/api"
+automodapi_toctreedirnm = "_build/api"
 numpydoc_show_class_members = False
 # generate autosummary even if no references
 autosummary_generate = True
@@ -87,18 +87,24 @@ intersphinx_mapping = {
     ),
     "numpy": (
         "https://docs.scipy.org/doc/numpy/",
-        (None, "http://data.astropy.org/intersphinx/numpy.inv"),
+        (None, "https://numpy.org/doc/stable/objects.inv"),
     ),
     "scipy": (
         "https://docs.scipy.org/doc/scipy/reference/",
-        (None, "http://data.astropy.org/intersphinx/scipy.inv"),
+        (None, "https://docs.scipy.org/doc/scipy/objects.inv"),
     ),
     "matplotlib": (
         "https://matplotlib.org/",
-        (None, "http://data.astropy.org/intersphinx/matplotlib.inv"),
+        (None, "https://matplotlib.org/stable/objects.inv"),
     ),
-    "astropy": ("http://docs.astropy.org/en/stable/", None),
-    "sunpy": ("https://docs.sunpy.org/en/stable/", None),
+    "astropy": (
+        "http://docs.astropy.org/en/stable/",
+        "https://docs.astropy.org/en/stable/objects.inv",
+    ),
+    "sunpy": (
+        "https://docs.sunpy.org/en/stable/",
+        "https://docs.sunpy.org/en/stable/objects.inv",
+    ),
 }
 
 # -- Options for HTML output -------------------------------------------------
