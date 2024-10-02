@@ -10,6 +10,7 @@ from numpy.polynomial.polynomial import Polynomial
 
 import astropy.units as u
 from astropy.nddata import StdDevUncertainty
+from astropy.io.fits import Header
 
 from specutils import Spectrum1D
 from specutils.spectra import SpectralRegion
@@ -45,9 +46,9 @@ def read_mca(filename: Path, count_rate=False):
         calib_data = {}
         roi_data = {}
         data = []
-        meta = {}
         line_number = 0
-        meta.update({"description": []})
+        hdr = Header()
+        meta = {}
         for line in fp:
             #  figure out what section of the file we are in
             # the order used here is the order expected in the file
@@ -87,7 +88,7 @@ def read_mca(filename: Path, count_rate=False):
                     value = float(value)
                 except ValueError:
                     pass
-                meta.update({label: value})
+                hdr.append((label, value))
             if in_calib_section:
                 if line.count("-"):
                     continue
@@ -107,8 +108,7 @@ def read_mca(filename: Path, count_rate=False):
                     value = float(value)
                 except ValueError:
                     pass
-                meta.update({keyword: value})
-                meta["description"].append(description)
+                hdr.append((keyword.replace(" ", "")[0:7], value, description))
             if in_status_section and not (line.count("<<") == 1):
                 keyword = line.split(":")[0].strip().upper()
                 value = line.split(":")[1].strip()
@@ -116,13 +116,13 @@ def read_mca(filename: Path, count_rate=False):
                     value = float(value)
                 except ValueError:
                     pass
-                meta.update({keyword: value})
+                hdr.append((keyword.replace(" ", "")[0:7], value))
             # print(f"{i}, {line}")
             line_number += 1
         if count_rate:
-            y = u.Quantity(np.array(data) / meta["REAL_TIME"], "ct/s")
+            y = u.Quantity(np.array(data) / hdr["REAL_TIME"], "ct/s")
             uncertainty = StdDevUncertainty(
-                u.Quantity(np.sqrt(data) / meta["REAL_TIME"], "ct/s")
+                u.Quantity(np.sqrt(data) / hdr["REAL_TIME"], "ct/s")
             )
         else:
             y = data * u.ct
@@ -133,14 +133,16 @@ def read_mca(filename: Path, count_rate=False):
                 [[x1 * u.pix, x2 * u.pix] for x1, x2 in roi_data.items()]
             )
 
+        meta.update({"header": hdr})
+
         meta.update({"roi": rois})
-        meta.update({"live_time": meta["LIVE_TIME"] * u.s})
-        meta.update({"real_time": meta["REAL_TIME"] * u.s})
+        meta.update({"live_time": hdr["LIVE_TIME"] * u.s})
+        meta.update({"real_time": hdr["REAL_TIME"] * u.s})
         meta.update(
-            {"obs_time": datetime.strptime(meta["START_TIME"], "%m/%d/%Y %H:%M:%S")}
+            {"obs_time": datetime.strptime(hdr["START_TIME"], "%m/%d/%Y %H:%M:%S")}
         )
         meta.update({"filename": filename})
-        meta.update({"dead_time_frac": 1 - meta["LIVE_TIME"] / meta["REAL_TIME"]})
+        meta.update({"dead_time_frac": 1 - hdr["LIVE_TIME"] / hdr["REAL_TIME"]})
         meta.update({"count_rate": np.sum(data) * u.ct / meta["real_time"]})
         if len(calib_data) > 0:
             channels = list(calib_data.keys())
