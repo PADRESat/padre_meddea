@@ -43,8 +43,8 @@ def read_file(filename: Path):
     Examples
     --------
     """
-    if filename.suffix == "bin":  # raw binary file
-        result = read_raw_file(filename)
+    if filename.suffix == ".bin":  # raw binary file
+        result = read_raw_file(Path(filename))
     elif filename.suffix == "fits":  # level 0 or above
         pass
     else:
