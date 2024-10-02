@@ -15,6 +15,8 @@ import padre_meddea
 from padre_meddea import log
 from padre_meddea.io import file_tools
 
+
+
 # from padre_meddea.util.util import create_science_filename
 from padre_meddea.io.file_tools import read_raw_file
 
@@ -22,6 +24,7 @@ __all__ = [
     "process_file",
     "get_calibration_file",
     "read_calibration_file",
+    "get_calib_energy_func",
 ]
 
 
@@ -137,3 +140,5 @@ def read_fits_keyword_file(csv_file: Path):
         format="csv",
     )
     return fits_meta_table
+
+
