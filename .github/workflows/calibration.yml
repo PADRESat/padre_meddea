@@ -1,6 +1,6 @@
 name: Test Lambda Function Locally and Upload Artifacts
 
-on: [pull_request_target, pull_request]
+on: [pull_request]
 
 jobs:
   test-and-upload:
@@ -19,8 +19,8 @@ jobs:
         cd sdc_aws_processing_lambda/lambda_function
         BRANCH_URL="git+https://github.com/${{ github.event.pull_request.head.repo.full_name }}.git@${{ github.event.pull_request.head.ref }}"
         echo "Branch URL: $BRANCH_URL"
-        sed -i "1i padre_meddea @ $BRANCH_URL" requirements.txt
-        docker build --build-arg BASE_IMAGE=public.ecr.aws/w5r9l1c8/dev-padre-swsoc-docker-lambda-base:latest -t processing_function:latest . --network host
+        sed -i "1i padre_meddea @ $BRANCH_URL" padre-requirements.txt
+        docker build --build-arg BASE_IMAGE=public.ecr.aws/w5r9l1c8/dev-padre-swsoc-docker-lambda-base:latest --build-arg REQUIREMENTS_FILE=padre-requirements.txt -t processing_function:latest . --network host
         
     - name: Run Lambda Docker Container
       run: |
