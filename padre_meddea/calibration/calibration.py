@@ -11,6 +11,7 @@ from astropy.time import Time
 from astropy.table import Table
 
 from swxsoc.util.util import create_science_filename
+from swxsoc.util.util import record_timeseries
 
 import padre_meddea
 from padre_meddea import log
@@ -42,7 +43,8 @@ def process_file(filename: Path, overwrite=False) -> list:
         Fully specificied filenames for the output files.
     """
     log.info(f"Processing file {filename}.")
-
+    # Check if the LAMBDA_ENVIRONMENT environment variable is set
+    lambda_environment = os.getenv("LAMBDA_ENVIRONMENT")
     output_files = []
 
     if filename.suffix == ".bin":
@@ -68,9 +70,6 @@ def process_file(filename: Path, overwrite=False) -> list:
                 version="0.1.0",
             )
 
-            # Check if the LAMBDA_ENVIRONMENT environment variable is set
-            lambda_environment = os.getenv("LAMBDA_ENVIRONMENT")
-
             # Set the temp_dir and overwrite flag based on the environment variable
             if lambda_environment:
                 temp_dir = Path(tempfile.gettempdir())  # Set to temp directory
@@ -82,6 +81,13 @@ def process_file(filename: Path, overwrite=False) -> list:
 
             # Store the output file path in a list
             output_files = [path]
+        if "housekeeping" in parsed_data.keys():
+            hk_data = parsed_data["housekeeping"]
+            # remove checksum before sending to time stream
+            if "CHECKSUM" in hk_data.colnames:
+                hk_data.remove_column("CHECKSUM")
+            if lambda_environment:
+                record_timeseries(hk_data)
 
     #  calibrated_file = calibrate_file(data_filename)
     #  data_plot_files = plot_file(data_filename)
