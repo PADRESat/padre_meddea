@@ -8,6 +8,7 @@ import datetime as dt
 import numpy as np
 import astropy.units as u
 from astropy.timeseries import TimeSeries
+from astropy.io import ascii
 
 import ccsdspy
 from ccsdspy import PacketField, PacketArray
@@ -15,6 +16,8 @@ from ccsdspy.utils import (
     count_packets,
     split_by_apid,
 )
+
+import padre_meddea
 
 __all__ = ["read_file", "read_raw_file"]
 
@@ -237,10 +240,12 @@ def packet_definition_cmd_resp():
 
 def packet_definition_hk():
     """Return the packet definiton for the housekeeping packets."""
-    NUM_FIELDS = 8
+    hk_table = ascii.read(padre_meddea._data_directory / "hk_packet_def.csv")
+    hk_table.add_index("name")
+    NUM_FIELDS = len(hk_table)
     p = [PacketField(name="TIMESTAMP", data_type="uint", bit_length=32)]
-    for i in range(NUM_FIELDS):
-        p += [PacketField(name=f"HK{i}", data_type="uint", bit_length=16)]
+    for this_hk in hk_table["name"]:
+        p += [PacketField(name=this_hk, data_type="uint", bit_length=16)]
     p += [PacketField(name="CHECKSUM", data_type="uint", bit_length=16)]
     return p
 
