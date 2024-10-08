@@ -10,14 +10,13 @@ from astropy.io import fits, ascii
 from astropy.time import Time
 from astropy.table import Table
 
-from swxsoc.util.util import create_science_filename
 from swxsoc.util.util import record_timeseries
 
 import padre_meddea
 from padre_meddea import log
 from padre_meddea.io import file_tools
 
-# from padre_meddea.util.util import create_science_filename
+from padre_meddea.util.util import create_science_filename
 from padre_meddea.io.file_tools import read_raw_file
 
 __all__ = [
@@ -49,7 +48,7 @@ def process_file(filename: Path, overwrite=False) -> list:
 
     if filename.suffix == ".bin":
         parsed_data = read_raw_file(filename)
-        if "photons" in parsed_data.keys():  # we have event list data
+        if parsed_data["photons"] is not None:  # we have event list data
             ph_list = parsed_data["photons"]
             hdu = fits.PrimaryHDU(data=None)
             hdu.header["DATE"] = (Time.now().fits, "FITS file creation date in UTC")
@@ -81,7 +80,7 @@ def process_file(filename: Path, overwrite=False) -> list:
 
             # Store the output file path in a list
             output_files = [path]
-        if "housekeeping" in parsed_data.keys():
+        if parsed_data["housekeeping"] is not None:
             hk_data = parsed_data["housekeeping"]
             # remove checksum before sending to time stream
             if "CHECKSUM" in hk_data.colnames:
