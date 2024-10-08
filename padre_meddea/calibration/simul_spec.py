@@ -21,7 +21,7 @@ te_kalpha1 = 27472.3 * u.eV  # x-ray data booklet 2009
 # the expected count rate at the peak of an X-class flare
 # for all detectors combined
 # TODO: provide better justification for this number. Calculation can be found in proposal.
-XCLASS_FLARE_RATE = 22421.0 * u.s**-1
+XCLASS_FLARE_RATE = 22421.0 * u.s ** -1
 
 #  TODO: add escape lines to the ba133_lines Table
 
@@ -224,7 +224,7 @@ def setup_phgenerator_flare(factor, filename=None):
     return rng
 
 
-def next_ph_time(rate: u.s**-1, size):
+def next_ph_time(rate: u.s ** -1, size):
     """Generate a list of photon wait times based on a photon rate.
 
     rate : u.Quantity
@@ -242,7 +242,7 @@ def next_ph_time(rate: u.s**-1, size):
 
 
 def generate_calib_ph_list(
-    rate: u.s**-1, num: int, width: u.keV, output_file: bool = False
+    rate: u.s ** -1, num: int, width: u.keV, output_file: bool = False
 ):
     """Generate a list of random photon generated from the calibration source.
 
@@ -400,9 +400,9 @@ def generate_photon_list_file(output_file=True):
             flare_ph_num = index.sum()
             print(f"Got {flare_ph_num} flare photons.")
 
-            fl_ph_wait_times[ph_counter : ph_counter + flare_ph_num] = (
-                this_fl_ph_wait_times[index]
-            )
+            fl_ph_wait_times[
+                ph_counter : ph_counter + flare_ph_num
+            ] = this_fl_ph_wait_times[index]
             fl_ph_arrival_times[ph_counter : ph_counter + flare_ph_num] = (
                 this_fl_ph_arrival_times[index] + this_time * u.s
             )
