@@ -83,6 +83,31 @@ def read_raw_file(filename: Path):
 def parse_ph_packets(filename: Path):
     """Given a binary file, read only the photon packets and return an event list.
 
+    Photon packets consist of 15 header words which includes a checksum.
+    Each photon adds 3 words.
+
+    Photon packet format is (words are 16 bits) described below.
+
+        ==  =============================================================
+        #   Description
+        ==  =============================================================
+        0   CCSDS header 1 (0x00A0)
+        1   CCSDS header 2 (0b11 and sequence count)
+        2   CCSDS header 3 payload size (remaining packet size - 1 octet)
+        3   time_stamp_s 1
+        4   time_stamp_s 2
+        5   time_stamp_clocks 1
+        6   time_stamp_clocks 2
+        7   integration time in clock counts
+        8   live time in clock counts
+        9   drop counter ([15] Int.Time Overflow, [14:12] decimation level, [11:0] # dropped photons)
+        10  checksum
+        11  start of pixel data
+        -   pixel time step in clock count
+        -   pixel_location (ASIC # bits[7:5], pixel num bits[4:0])
+        -   pixel_data 12 bit ADC count
+        ==  =============================================================
+
     Parameters
     ----------
     filename : Path
@@ -93,6 +118,7 @@ def parse_ph_packets(filename: Path):
     ph_list : astropy.time.TimeSeries or None
         A photon list
     """
+
     with open(filename, "rb") as mixed_file:
         stream_by_apid = split_by_apid(mixed_file)
     packet_stream = stream_by_apid.get(APID["photon"], None)
@@ -242,7 +268,6 @@ def packet_definition_hk():
     """Return the packet definiton for the housekeeping packets."""
     hk_table = ascii.read(padre_meddea._data_directory / "hk_packet_def.csv")
     hk_table.add_index("name")
-    NUM_FIELDS = len(hk_table)
     p = [PacketField(name="TIMESTAMP", data_type="uint", bit_length=32)]
     for this_hk in hk_table["name"]:
         p += [PacketField(name=this_hk, data_type="uint", bit_length=16)]
