@@ -1,6 +1,7 @@
 """
 This module provides general utility functions.
 """
+
 import os
 from datetime import datetime, timezone
 import time
@@ -92,7 +93,9 @@ def create_science_filename(
             "The underscore symbol _ is not allowed in mode or descriptor."
         )
 
-    filename = f"padre_meddea_{mode}_{level}{test_str}_{descriptor}_{time_str}_v{version}"
+    filename = (
+        f"padre_meddea_{mode}_{level}{test_str}_{descriptor}_{time_str}_v{version}"
+    )
     filename = filename.replace("__", "_")  # reformat if mode or descriptor not given
 
     return filename + FILENAME_EXTENSION
