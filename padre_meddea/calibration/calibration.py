@@ -10,13 +10,13 @@ from astropy.io import fits, ascii
 from astropy.time import Time
 from astropy.table import Table
 
-from swxsoc.util.util import create_science_filename
+from swxsoc.util.util import record_timeseries
 
 import padre_meddea
 from padre_meddea import log
 from padre_meddea.io import file_tools
 
-# from padre_meddea.util.util import create_science_filename
+from padre_meddea.util.util import create_science_filename
 from padre_meddea.io.file_tools import read_raw_file
 
 __all__ = [
@@ -42,12 +42,13 @@ def process_file(filename: Path, overwrite=False) -> list:
         Fully specificied filenames for the output files.
     """
     log.info(f"Processing file {filename}.")
-
+    # Check if the LAMBDA_ENVIRONMENT environment variable is set
+    lambda_environment = os.getenv("LAMBDA_ENVIRONMENT")
     output_files = []
 
     if filename.suffix == ".bin":
         parsed_data = read_raw_file(filename)
-        if "photons" in parsed_data.keys():  # we have event list data
+        if parsed_data["photons"] is not None:  # we have event list data
             ph_list = parsed_data["photons"]
             hdu = fits.PrimaryHDU(data=None)
             hdu.header["DATE"] = (Time.now().fits, "FITS file creation date in UTC")
@@ -68,9 +69,6 @@ def process_file(filename: Path, overwrite=False) -> list:
                 version="0.1.0",
             )
 
-            # Check if the LAMBDA_ENVIRONMENT environment variable is set
-            lambda_environment = os.getenv("LAMBDA_ENVIRONMENT")
-
             # Set the temp_dir and overwrite flag based on the environment variable
             if lambda_environment:
                 temp_dir = Path(tempfile.gettempdir())  # Set to temp directory
@@ -82,6 +80,14 @@ def process_file(filename: Path, overwrite=False) -> list:
 
             # Store the output file path in a list
             output_files = [path]
+        if parsed_data["housekeeping"] is not None:
+            hk_data = parsed_data["housekeeping"]
+            hk_data.meta["INSTRUME"] = "meddea"
+
+            if "CHECKSUM" in hk_data.colnames:
+                hk_data.remove_column("CHECKSUM")
+
+            record_timeseries(hk_data, "housekeeping")
 
     #  calibrated_file = calibrate_file(data_filename)
     #  data_plot_files = plot_file(data_filename)
