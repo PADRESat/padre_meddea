@@ -82,11 +82,13 @@ def process_file(filename: Path, overwrite=False) -> list:
             output_files = [path]
         if parsed_data["housekeeping"] is not None:
             hk_data = parsed_data["housekeeping"]
-            # remove checksum before sending to time stream
+            hk_data.meta["INSTRUME"] = "meddea"
+
             if "CHECKSUM" in hk_data.colnames:
                 hk_data.remove_column("CHECKSUM")
-            if lambda_environment:
-                record_timeseries(hk_data)
+                
+            record_timeseries(hk_data, "housekeeping")
+
 
     #  calibrated_file = calibrate_file(data_filename)
     #  data_plot_files = plot_file(data_filename)
