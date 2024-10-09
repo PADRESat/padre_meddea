@@ -86,9 +86,8 @@ def process_file(filename: Path, overwrite=False) -> list:
 
             if "CHECKSUM" in hk_data.colnames:
                 hk_data.remove_column("CHECKSUM")
-                
-            record_timeseries(hk_data, "housekeeping")
 
+            record_timeseries(hk_data, "housekeeping")
 
     #  calibrated_file = calibrate_file(data_filename)
     #  data_plot_files = plot_file(data_filename)
