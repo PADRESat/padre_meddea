@@ -49,20 +49,30 @@ def process_file(filename: Path, overwrite=False) -> list:
     if filename.suffix == ".bin":
         parsed_data = read_raw_file(filename)
         if parsed_data["photons"] is not None:  # we have event list data
-            ph_list = parsed_data["photons"]
+            event_list = parsed_data["photons"]
+
             hdu = fits.PrimaryHDU(data=None)
+            # fill in metadata
             hdu.header["DATE"] = (Time.now().fits, "FITS file creation date in UTC")
+            hdu.header["DATE-BEG"] = (event_list.time[0].fits, "Acquisition start time")
+            hdu.header["DATE-END"] = (event_list.time[-1].fits, "Acquisition end time")
+            hdu.header["DATE-AVG"] = (event_list.time[int(len(event_list)/2.)].fits, "Average time of acquisition")
+            hdu.header["DATEREF"] = (event_list.time[0].fits, "Reference date")
+            hdu.header["DSUN_AU"] = 1
+            hdu.header["LEVEL"] = 1
+            # add common fits keywords
             fits_meta = read_fits_keyword_file(
                 padre_meddea._data_directory / "fits_keywords_primaryhdu.csv"
             )
             for row in fits_meta:
                 hdu.header[row["keyword"]] = (row["value"], row["comment"])
-            bin_hdu = fits.BinTableHDU(data=Table(ph_list))
+            
+            bin_hdu = fits.BinTableHDU(data=Table(event_list))
             hdul = fits.HDUList([hdu, bin_hdu])
 
             path = create_science_filename(
                 "meddea",
-                ph_list["time"][0].fits,
+                event_list["time"][0].fits,
                 "l1",
                 descriptor="eventlist",
                 test=True,

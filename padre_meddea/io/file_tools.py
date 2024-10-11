@@ -162,10 +162,10 @@ def parse_ph_packets(filename: Path):
         time=ph_times,
         data={
             "atod": hit_list[3, :],
-            "asic_num": hit_list[1, :],
-            "asic_channel": hit_list[2, :],
+            "asic": hit_list[1, :],
+            "channel": hit_list[2, :],
             "clock": hit_list[5, :],
-            "packet_num": hit_list[4, :],
+            "pktnum": hit_list[4, :],
             # "num": np.ones(len(hit_list[2, :])),
         },
         meta={
