@@ -2,6 +2,7 @@
 A module for all things calibration.
 """
 
+import os
 from pathlib import Path
 import tempfile
 
@@ -9,15 +10,13 @@ from astropy.io import fits, ascii
 from astropy.time import Time
 from astropy.table import Table
 
-from swxsoc.util.util import create_science_filename
+from swxsoc.util.util import record_timeseries
 
 import padre_meddea
 from padre_meddea import log
 from padre_meddea.io import file_tools
 
-
-
-# from padre_meddea.util.util import create_science_filename
+from padre_meddea.util.util import create_science_filename
 from padre_meddea.io.file_tools import read_raw_file
 
 __all__ = [
@@ -44,9 +43,13 @@ def process_file(filename: Path, overwrite=False) -> list:
         Fully specificied filenames for the output files.
     """
     log.info(f"Processing file {filename}.")
+    # Check if the LAMBDA_ENVIRONMENT environment variable is set
+    lambda_environment = os.getenv("LAMBDA_ENVIRONMENT")
+    output_files = []
+
     if filename.suffix == ".bin":
         parsed_data = read_raw_file(filename)
-        if "photons" in parsed_data.keys():  # we have event list data
+        if parsed_data["photons"] is not None:  # we have event list data
             ph_list = parsed_data["photons"]
             hdu = fits.PrimaryHDU(data=None)
             hdu.header["DATE"] = (Time.now().fits, "FITS file creation date in UTC")
@@ -58,7 +61,7 @@ def process_file(filename: Path, overwrite=False) -> list:
             bin_hdu = fits.BinTableHDU(data=Table(ph_list))
             hdul = fits.HDUList([hdu, bin_hdu])
 
-            output_filename = create_science_filename(
+            path = create_science_filename(
                 "meddea",
                 ph_list["time"][0].fits,
                 "l1",
@@ -67,12 +70,25 @@ def process_file(filename: Path, overwrite=False) -> list:
                 version="0.1.0",
             )
 
-            # Determine the temporary directory
-            temp_dir = Path(tempfile.gettempdir())
-            path = temp_dir / output_filename
+            # Set the temp_dir and overwrite flag based on the environment variable
+            if lambda_environment:
+                temp_dir = Path(tempfile.gettempdir())  # Set to temp directory
+                overwrite = True  # Set overwrite to True
+                path = temp_dir / path
 
+            # Write the file, with the overwrite option controlled by the environment variable
             hdul.writeto(path, overwrite=overwrite)
+
+            # Store the output file path in a list
             output_files = [path]
+        if parsed_data["housekeeping"] is not None:
+            hk_data = parsed_data["housekeeping"]
+            hk_data.meta["INSTRUME"] = "meddea"
+
+            if "CHECKSUM" in hk_data.colnames:
+                hk_data.remove_column("CHECKSUM")
+
+            record_timeseries(hk_data, "housekeeping")
 
     #  calibrated_file = calibrate_file(data_filename)
     #  data_plot_files = plot_file(data_filename)
