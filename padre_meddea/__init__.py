@@ -1,4 +1,5 @@
 # see license/LICENSE.rst
+import os
 from pathlib import Path
 
 try:
@@ -8,7 +9,15 @@ except ImportError:
     __version__ = "unknown version"
     version_tuple = (0, 0, "unknown version")
 
-from swxsoc import config as swxsoc_config, log as swxsoc_log, print_config
+# Get SWXSOC_MISSIONS environment variable if it exists or use default for mission
+SWXSOC_MISSION = os.getenv("SWXSOC_MISSION", "padre")
+os.environ["SWXSOC_MISSION"] = SWXSOC_MISSION
+
+from swxsoc import (  # noqa: E402
+    config as swxsoc_config,
+    log as swxsoc_log,
+    print_config,
+)
 
 # Load user configuration
 config = swxsoc_config
