@@ -5,11 +5,16 @@ This module provides general utility functions.
 import os
 from datetime import datetime, timezone
 import time
+from pathlib import Path
+import numpy as np
 
 from astropy.time import Time
+from ccsdspy.utils import split_packet_bytes, split_by_apid
+
 
 __all__ = [
     "create_science_filename",
+    "has_baseline"
 ]
 
 TIME_FORMAT = "%Y%m%dT%H%M%S"
@@ -18,7 +23,6 @@ FILENAME_EXTENSION = ".fits"
 
 
 def create_science_filename(
-    instrument: str,
     time: str,
     level: str,
     version: str,
@@ -99,3 +103,33 @@ def create_science_filename(
     filename = filename.replace("__", "_")  # reformat if mode or descriptor not given
 
     return filename + FILENAME_EXTENSION
+
+
+def has_baseline(filename: Path, packet_count=10):
+    """Given a stream of photon packets, check whether the baseline measurement is included.
+    Baseline packets have one extra word per photon for a total of 4 words (8 bytes).
+
+    This function calculates the number of hits in the packet assuming 4 words per photon.
+    If the resultant is not an integer number then returns False.
+
+    Parameters
+    ----------
+    packet_bytes : byte string
+        Photon packet bytes, must be an integer number of whole packets and greaterh
+    
+    Returns
+    -------
+    result : bool
+
+    """
+    HEADER_BYTES = 11 * 16 / 8
+    BYTES_PER_PHOTON = 16 * 4 / 8
+
+    with open(filename, "rb") as mixed_file:
+        stream_by_apid = split_by_apid(mixed_file)
+        packet_stream = stream_by_apid[160]
+        packet_bytes = split_packet_bytes(packet_stream)
+        num_hits = np.zeros(packet_count)
+        for i in range(packet_count):
+            num_hits[i] = (len(packet_bytes[i]) - HEADER_BYTES) / BYTES_PER_PHOTON
+    return np.sum(num_hits - np.floor(num_hits)) == 1
