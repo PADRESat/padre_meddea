@@ -11,6 +11,7 @@ from astropy.time import Time
 from astropy.table import Table
 
 from swxsoc.util.util import record_timeseries
+import git
 
 import padre_meddea
 from padre_meddea import log
@@ -45,35 +46,55 @@ def process_file(filename: Path, overwrite=False) -> list:
     # Check if the LAMBDA_ENVIRONMENT environment variable is set
     lambda_environment = os.getenv("LAMBDA_ENVIRONMENT")
     output_files = []
+    file_path = Path(filename)
 
-    if filename.suffix == ".bin":
-        parsed_data = read_raw_file(filename)
+    if file_path.suffix == ".bin":
+        parsed_data = read_raw_file(file_path)
         if parsed_data["photons"] is not None:  # we have event list data
-            event_list = parsed_data["photons"]
+            event_list, pkt_list = parsed_data["photons"]
 
-            hdu = fits.PrimaryHDU(data=None)
+            primary_hdr = fits.Header()
+
             # fill in metadata
-            hdu.header["DATE"] = (Time.now().fits, "FITS file creation date in UTC")
-            hdu.header["DATE-BEG"] = (event_list.time[0].fits, "Acquisition start time")
-            hdu.header["DATE-END"] = (event_list.time[-1].fits, "Acquisition end time")
-            hdu.header["DATE-AVG"] = (event_list.time[int(len(event_list)/2.)].fits, "Average time of acquisition")
-            hdu.header["DATEREF"] = (event_list.time[0].fits, "Reference date")
-            hdu.header["DSUN_AU"] = 1
-            hdu.header["LEVEL"] = 1
+            primary_hdr["DATE"] = (Time.now().fits, "FITS file creation date in UTC")
+            for this_keyword, this_str in zip(["DATE-BEG", "DATE-END", "DATE-AVG"], ["Acquisition start time", "Acquisition end time", "Average time of acquisition"]):
+                primary_hdr[this_keyword] = (event_list.meta.get(this_keyword, ""), this_str)
+
+            primary_hdr["DATEREF"] = (primary_hdr["DATE-BEG"], "Reference date")
+            primary_hdr["LEVEL"] = 1
+
+            # add processing information
+            primary_hdr["PRSTEP1"] = ("PROCESS Raw to L1", "Processing step type")
+            primary_hdr["PRPROC1"] = ("padre_meddea.calibration.process", "Name of procedure performing PRSTEP1")
+            primary_hdr["PRPVER1"] = (padre_meddea.__version__, "Version of procedure PRPROC1")
+            primary_hdr["PRLIB1A"] = ("padre_meddea", "Software library containing PRPROC1")
+            primary_hdr["PRVER1A"] = (padre_meddea.__version__, "Version of PRLIB1A")
+            repo = git.Repo(search_parent_directories=True)
+            primary_hdr["PRHSH1A"] = (repo.head.object.hexsha, "GIT commit hash for PRLIB1A")
+            primary_hdr["PRBRA1A"] = (repo.active_branch.name, "GIT/SVN repository branch of PRLIB1A")
+            commits = list(repo.iter_commits("main", max_count=1))
+            primary_hdr["PRVER1B"] = (Time(commits[0].committed_datetime).fits, "Date of last commit of PRLIB1B")
+            #  primary_hdr["PRLOG1"] add log information, need to do this after the fact
+            #  primary_hdr["PRENV1"] add information about processing env, need to do this after the fact
+
+
             # add common fits keywords
             fits_meta = read_fits_keyword_file(
                 padre_meddea._data_directory / "fits_keywords_primaryhdu.csv"
             )
             for row in fits_meta:
-                hdu.header[row["keyword"]] = (row["value"], row["comment"])
-            
-            bin_hdu = fits.BinTableHDU(data=Table(event_list))
-            hdul = fits.HDUList([hdu, bin_hdu])
+                primary_hdr[row["keyword"]] = (row["value"], row["comment"])
+
+            empty_primary = fits.PrimaryHDU(header=primary_hdr)
+            pkt_hdu = fits.BinTableHDU(pkt_list, name="PKT")
+            pkt_hdu.add_checksum()
+            hit_hdu = fits.BinTableHDU(event_list, name="SCI")
+            hit_hdu.add_checksum()
+            hdul = fits.HDUList([empty_primary, hit_hdu, pkt_hdu])
 
             path = create_science_filename(
-                "meddea",
-                event_list["time"][0].fits,
-                "l1",
+                time=primary_hdr["DATE-BEG"],
+                level="l1",
                 descriptor="eventlist",
                 test=True,
                 version="0.1.0",
