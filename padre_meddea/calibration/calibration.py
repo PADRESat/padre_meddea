@@ -23,6 +23,7 @@ __all__ = [
     "process_file",
     "get_calibration_file",
     "read_calibration_file",
+    "get_calib_energy_func",
 ]
 
 
@@ -155,3 +156,5 @@ def read_fits_keyword_file(csv_file: Path):
         format="csv",
     )
     return fits_meta_table
+
+
