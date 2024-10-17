@@ -35,7 +35,7 @@ def test_read_mca_meta_added(keyword):
 )
 def test_read_mca_meta_orig(keyword):
     """Test that a few original meta data items are present."""
-    assert keyword in spec.meta['header']
+    assert keyword in spec.meta["header"]
 
 
 def test_read_mca_calib():
