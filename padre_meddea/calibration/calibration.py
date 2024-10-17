@@ -57,26 +57,58 @@ def process_file(filename: Path, overwrite=False) -> list:
 
             # fill in metadata
             primary_hdr["DATE"] = (Time.now().fits, "FITS file creation date in UTC")
-            for this_keyword, this_str in zip(["DATE-BEG", "DATE-END", "DATE-AVG"], ["Acquisition start time", "Acquisition end time", "Average time of acquisition"]):
-                primary_hdr[this_keyword] = (event_list.meta.get(this_keyword, ""), this_str)
+            for this_keyword, this_str in zip(
+                ["DATE-BEG", "DATE-END", "DATE-AVG"],
+                [
+                    "Acquisition start time",
+                    "Acquisition end time",
+                    "Average time of acquisition",
+                ],
+            ):
+                primary_hdr[this_keyword] = (
+                    event_list.meta.get(this_keyword, ""),
+                    this_str,
+                )
 
             primary_hdr["DATEREF"] = (primary_hdr["DATE-BEG"], "Reference date")
-            primary_hdr["LEVEL"] = 1
+            primary_hdr["LEVEL"] = (0, "Data level of fits file")
 
             # add processing information
             primary_hdr["PRSTEP1"] = ("PROCESS Raw to L1", "Processing step type")
-            primary_hdr["PRPROC1"] = ("padre_meddea.calibration.process", "Name of procedure performing PRSTEP1")
-            primary_hdr["PRPVER1"] = (padre_meddea.__version__, "Version of procedure PRPROC1")
-            primary_hdr["PRLIB1A"] = ("padre_meddea", "Software library containing PRPROC1")
+            primary_hdr["PRPROC1"] = (
+                "padre_meddea.calibration.process",
+                "Name of procedure performing PRSTEP1",
+            )
+            primary_hdr["PRPVER1"] = (
+                padre_meddea.__version__,
+                "Version of procedure PRPROC1",
+            )
+            primary_hdr["PRLIB1A"] = (
+                "padre_meddea",
+                "Software library containing PRPROC1",
+            )
             primary_hdr["PRVER1A"] = (padre_meddea.__version__, "Version of PRLIB1A")
             repo = git.Repo(search_parent_directories=True)
-            primary_hdr["PRHSH1A"] = (repo.head.object.hexsha, "GIT commit hash for PRLIB1A")
-            primary_hdr["PRBRA1A"] = (repo.active_branch.name, "GIT/SVN repository branch of PRLIB1A")
+            primary_hdr["PRHSH1A"] = (
+                repo.head.object.hexsha,
+                "GIT commit hash for PRLIB1A",
+            )
+            primary_hdr["PRBRA1A"] = (
+                repo.active_branch.name,
+                "GIT/SVN repository branch of PRLIB1A",
+            )
             commits = list(repo.iter_commits("main", max_count=1))
-            primary_hdr["PRVER1B"] = (Time(commits[0].committed_datetime).fits, "Date of last commit of PRLIB1B")
+            primary_hdr["PRVER1B"] = (
+                Time(commits[0].committed_datetime).fits,
+                "Date of last commit of PRLIB1B",
+            )
             #  primary_hdr["PRLOG1"] add log information, need to do this after the fact
             #  primary_hdr["PRENV1"] add information about processing env, need to do this after the fact
 
+            # custom keywords
+            primary_hdr["DATATYPE"] = ("event_list", "Description of the data")
+            primary_hdr["ORIGAPID"] = (0xA0, "APID(s) of the originating data")
+            primary_hdr["ORIGFILE"] = (file_path.name, "Originating file(s)")
 
             # add common fits keywords
             fits_meta = read_fits_keyword_file(

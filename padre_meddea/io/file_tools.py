@@ -18,19 +18,13 @@ from ccsdspy.utils import (
     count_packets,
     split_by_apid,
 )
+import astropy.io.fits as fits
 
 import padre_meddea
-from padre_meddea.util.util import has_baseline
+from padre_meddea import EPOCH, APID
+from padre_meddea.util.util import has_baseline, calc_time, channel_to_pixel
 
-__all__ = ["read_file", "read_raw_file"]
-
-APID = {
-    "spectrum": 0xA2,  # decimal 162
-    "photon": 0xA0,  # decimal 160
-    "housekeeping": 0xA3,  # decimal 163
-    "cmd_resp": 0xA5,  # decimal 165
-}
-EPOCH = dt.datetime(2000, 1, 1)
+__all__ = ["read_file", "read_raw_file", "read_fits"]
 
 
 def read_file(filename: Path):
@@ -50,9 +44,9 @@ def read_file(filename: Path):
     --------
     """
     if filename.suffix == "bin":  # raw binary file
-        result = read_raw_file(filename)
+        result = read_raw_file(Path(filename))
     elif filename.suffix == "fits":  # level 0 or above
-        pass
+        read_fits(Path(filename))
     else:
         raise ValueError("File extension {filename.suffix} not recognized.")
     return result
@@ -63,7 +57,7 @@ def read_raw_file(filename: Path):
     Read a level 0 data file.
 
     Parameters
-    ----------
+    ---------
     filename : Path
         A file to read
 
@@ -81,6 +75,38 @@ def read_raw_file(filename: Path):
     }
 
     return result
+
+
+def read_fits(filename: Path):
+    """
+    Read a fits file.
+    """
+    hdu = fits.open(filename)
+    if (hdu[0].header["LEVEL"] == 0) and (hdu[0].header["DATATYPE"] == "event_list"):
+        num_events = len(hdu["SCI"].data["seqcount"])
+        ph_times = calc_time(
+            hdu["sci"].data["pkttimes"],
+            hdu["sci"].data["pktclock"],
+            hdu["sci"].data["clocks"],
+        )
+        # TODO: protect in case of non-pixel channel
+        pixel = np.array(
+            [channel_to_pixel(this_chan) for this_chan in hdu["sci"].data["channel"]],
+            dtype=np.uint8,
+        )
+        event_list = TimeSeries(
+            time=ph_times,
+            data={
+                "atod": hdu["sci"].data["atod"],
+                "asic": hdu["sci"].data["asic"],
+                "channel": hdu["sci"].data["channel"],
+                "pixel": pixel,
+                "clocks": hdu["sci"].data["clocks"],
+                "pktnum": hdu["sci"].data["seqcount"],
+            },
+        )
+        event_list.sort()
+        return event_list
 
 
 def parse_ph_packets(filename: Path):
@@ -131,25 +157,27 @@ def parse_ph_packets(filename: Path):
     packet_definition = packet_definition_ph()
     pkt = ccsdspy.VariableLength(packet_definition)
     ph_data = pkt.load(packet_stream, include_primary_header=True)
-    packet_time = ph_data["TIME_S"] + ph_data["TIME_CLOCKS"] / 20.0e6
+    # packet_time = ph_data["TIME_S"] + ph_data["TIME_CLOCKS"] / 20.0e6
     if has_baseline(filename):
         WORDS_PER_HIT = 4
     else:
         WORDS_PER_HIT = 3
 
     pkt_list = Table()
-    pkt_list['seqcount'] = ph_data["CCSDS_SEQUENCE_COUNT"]
-    pkt_list['time_s'] = ph_data["TIME_S"]
-    pkt_list['clocks'] = ph_data["TIME_CLOCKS"]
-    pkt_list['livetime'] = ph_data["LIVE_TIME"]
-    pkt_list['inttime'] = ph_data["INTEGRATION_TIME"]
+    pkt_list["seqcount"] = ph_data["CCSDS_SEQUENCE_COUNT"]
+    pkt_list["time_s"] = ph_data["TIME_S"]
+    pkt_list["clocks"] = ph_data["TIME_CLOCKS"]
+    pkt_list["livetime"] = ph_data["LIVE_TIME"]
+    pkt_list["inttime"] = ph_data["INTEGRATION_TIME"]
 
     total_hits = 0
     for this_packet in ph_data["PIXEL_DATA"]:
         total_hits += len(this_packet[0::WORDS_PER_HIT])
 
     if (total_hits - np.floor(total_hits)) != 0:
-        raise ValueError(f"Got non-integer number of hits {total_hits - np.floor(total_hits)}.")
+        raise ValueError(
+            f"Got non-integer number of hits {total_hits - np.floor(total_hits)}."
+        )
 
     # hit_list definition
     # 0, raw id number
@@ -158,27 +186,31 @@ def parse_ph_packets(filename: Path):
     # 3, energy 12 bits
     # 4, packet sequence number 12 bits
     # 5, clock number
-    # 6, baseline (if exists)
+    # 6, baseline (if exists) otherwise 0
 
-    hit_list = np.zeros((7, total_hits), dtype="uint16")
-    time_stamps = np.zeros(total_hits)
+    hit_list = np.zeros((9, total_hits), dtype="uint16")
+    time_s = np.zeros(total_hits, dtype="uint32")
+    time_clk = np.zeros(total_hits, dtype="uint32")
     # 0 time, 1 asic_num, 2 channel num, 3 hit channel
     i = 0
-    for this_pkt_num, this_ph_data, this_time in zip(
+    # iterate over packets
+    for this_pkt_num, this_ph_data, pkt_s, pkt_clk in zip(
         ph_data["CCSDS_SEQUENCE_COUNT"],
         ph_data["PIXEL_DATA"],
-        packet_time,
+        ph_data["TIME_S"],
+        ph_data["TIME_CLOCKS"],
     ):
         num_hits = len(this_ph_data[0::3])
         ids = this_ph_data[1::3]
         asic_num = (ids & 0b11100000) >> 5
         channel_num = ids & 0b00011111
         hit_list[0, i : i + num_hits] = this_ph_data[0::WORDS_PER_HIT]
-        time_stamps[i : i + num_hits] = this_ph_data[0::WORDS_PER_HIT] * 12.8e-6 + this_time
         hit_list[1, i : i + num_hits] = asic_num
         hit_list[2, i : i + num_hits] = channel_num
         hit_list[4, i : i + num_hits] = this_pkt_num
         hit_list[5, i : i + num_hits] = this_ph_data[0::WORDS_PER_HIT]
+        time_s[i : i + num_hits] = pkt_s
+        time_clk[i : i + num_hits] = pkt_clk
         if WORDS_PER_HIT == 4:
             hit_list[6, i : i + num_hits] = this_ph_data[2::WORDS_PER_HIT]  # baseline
             hit_list[3, i : i + num_hits] = this_ph_data[3::WORDS_PER_HIT]  # hit energy
@@ -188,17 +220,21 @@ def parse_ph_packets(filename: Path):
 
     event_list = Table()
     event_list["seqcount"] = hit_list[4, :]
-    event_list["clock"] = hit_list[5, :]
+    event_list["clocks"] = hit_list[5, :]
     event_list["asic"] = hit_list[1, :].astype(np.uint8)
     event_list["channel"] = hit_list[2, :].astype(np.uint8)
     event_list["atod"] = hit_list[3, :]
     event_list["baseline"] = hit_list[6, :]  # if baseline not present then all zeros
-
-    ph_times = Time([EPOCH + dt.timedelta(seconds=this_t) for this_t in time_stamps])
-    event_list.meta.update({'DATE-BEG': ph_times.min().fits})
-    event_list.meta.update({'DATE-END': ph_times.max().fits})
-    event_list.meta.update({'DATE-AVG': ph_times[int(len(ph_times)/2.)].fits})
-    #event_list = TimeSeries(
+    event_list["pkttimes"] = time_s
+    event_list["pktclock"] = time_clk
+    date_beg = calc_time(time_s[0], time_clk[0])
+    date_end = calc_time(time_s[-1], time_clk[-1])
+    event_list.meta.update({"DATE-BEG": date_beg.fits})
+    event_list.meta.update({"DATE-END": date_end.fits})
+    center_index = int(len(time_s) / 2.0)
+    date_avg = calc_time(time_s[center_index], time_clk[center_index])
+    event_list.meta.update({"DATE-AVG": date_avg.fits})
+    # event_list = TimeSeries(
     #    time=ph_times,
     #    data={
     #        "atod": hit_list[3, :],
@@ -208,8 +244,8 @@ def parse_ph_packets(filename: Path):
     #        "pktnum": hit_list[4, :],
     #        # "num": np.ones(len(hit_list[2, :])),
     #    }
-    #)
-    #event_list.sort()
+    # )
+    # event_list.sort()
     # int_time = (event_list.time.max() - event_list.time.min()).to("min")
     # event_list.meta.update({"int_time": int_time})
     # event_list.meta.update({"avg rate": (total_hits * u.ct) / int_time})
