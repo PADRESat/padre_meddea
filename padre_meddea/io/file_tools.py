@@ -165,10 +165,11 @@ def parse_ph_packets(filename: Path):
 
     pkt_list = Table()
     pkt_list["seqcount"] = ph_data["CCSDS_SEQUENCE_COUNT"]
-    pkt_list["time_s"] = ph_data["TIME_S"]
-    pkt_list["clocks"] = ph_data["TIME_CLOCKS"]
+    pkt_list["pkttimes"] = ph_data["TIME_S"]
+    pkt_list["pktclock"] = ph_data["TIME_CLOCKS"]
     pkt_list["livetime"] = ph_data["LIVE_TIME"]
     pkt_list["inttime"] = ph_data["INTEGRATION_TIME"]
+    pkt_list["flags"] = ph_data["FLAGS"]
 
     total_hits = 0
     for this_packet in ph_data["PIXEL_DATA"]:
