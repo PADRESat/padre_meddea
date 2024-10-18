@@ -9,6 +9,7 @@ except ImportError:
     version_tuple = (0, 0, "unknown version")
 
 from swxsoc import config as swxsoc_config, log as swxsoc_log, print_config
+from astropy.time import Time
 
 # Load user configuration
 config = swxsoc_config
@@ -53,5 +54,14 @@ peaking_time = [
     10.06,
     10.73,
 ]
+
+APID = {
+    "spectrum": 0xA2,  # decimal 162
+    "photon": 0xA0,  # decimal 160
+    "housekeeping": 0xA3,  # decimal 163
+    "cmd_resp": 0xA5,  # decimal 165
+}
+
+EPOCH = Time("2000-01-01 00:00", scale="utc")
 
 log.debug(f"padre_meddea version: {__version__}")
