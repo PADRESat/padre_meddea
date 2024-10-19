@@ -66,3 +66,11 @@ pkttimes the packet time in seconds since EPOCH, also exists in PKT,            
 pktclock the packet time in clocks since EPOCH, also exists in PKT                                    32
 ======== ============================================================================================ ====
 
+Level 0 spectrum files
+----------------------
+Summary spectra are created for 24 pixels at a regular cadence (normally every 10 s)
+Each spectrum has a total of 512 energy bins.
+
+Level 0 housekeeping files
+--------------------------
+These files contain housekeeping data as described in the housekeeping packet.

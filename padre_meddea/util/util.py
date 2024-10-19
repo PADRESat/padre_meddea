@@ -106,7 +106,7 @@ def create_science_filename(
     return filename + FILENAME_EXTENSION
 
 
-def calc_time(pkt_time_s, pkt_time_clk, ph_clk=0):
+def calc_time(pkt_time_s, pkt_time_clk=0, ph_clk=0):
     """
     Convert times to a Time object
     """

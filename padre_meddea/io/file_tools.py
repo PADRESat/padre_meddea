@@ -82,31 +82,41 @@ def read_fits(filename: Path):
     Read a fits file.
     """
     hdu = fits.open(filename)
+    
     if (hdu[0].header["LEVEL"] == 0) and (hdu[0].header["DATATYPE"] == "event_list"):
-        num_events = len(hdu["SCI"].data["seqcount"])
-        ph_times = calc_time(
-            hdu["sci"].data["pkttimes"],
-            hdu["sci"].data["pktclock"],
-            hdu["sci"].data["clocks"],
-        )
-        # TODO: protect in case of non-pixel channel
-        pixel = np.array(
-            [channel_to_pixel(this_chan) for this_chan in hdu["sci"].data["channel"]],
-            dtype=np.uint8,
-        )
-        event_list = TimeSeries(
-            time=ph_times,
-            data={
-                "atod": hdu["sci"].data["atod"],
-                "asic": hdu["sci"].data["asic"],
-                "channel": hdu["sci"].data["channel"],
-                "pixel": pixel,
-                "clocks": hdu["sci"].data["clocks"],
-                "pktnum": hdu["sci"].data["seqcount"],
-            },
-        )
-        event_list.sort()
+        event_list = read_fits_l0_event_list(filename)  # do I need to close the file since it is being opened again right after this?
         return event_list
+    else:
+        raise ValueError(F"File contents of {filename} not recogized.")
+
+
+def read_fits_l0_event_list(filename: Path) -> TimeSeries:
+    """
+    """
+    hdu = fits.open(filename)
+    num_events = len(hdu["SCI"].data["seqcount"])
+    ph_times = calc_time(
+        hdu["sci"].data["pkttimes"],
+        hdu["sci"].data["pktclock"],
+        hdu["sci"].data["clocks"],
+    )
+    pixel = np.array(
+        [channel_to_pixel(this_chan) for this_chan in hdu["sci"].data["channel"]],
+        dtype=np.uint8,
+    )
+    event_list = TimeSeries(
+        time=ph_times,
+        data={
+            "atod": hdu["sci"].data["atod"],
+            "asic": hdu["sci"].data["asic"],
+            "channel": hdu["sci"].data["channel"],
+            "pixel": pixel,
+            "clocks": hdu["sci"].data["clocks"],
+            "pktnum": hdu["sci"].data["seqcount"],
+        },
+    )
+    event_list.sort()
+    return event_list
 
 
 def parse_ph_packets(filename: Path):
@@ -273,9 +283,9 @@ def parse_hk_packets(filename: Path):
         return None
     packet_definition = packet_definition_hk()
     pkt = ccsdspy.FixedLength(packet_definition)
-    hk_data = pkt.load(packet_bytes)
+    hk_data = pkt.load(packet_bytes, include_primary_header=True)
     hk_timestamps = [
-        dt.timedelta(seconds=int(this_t)) + EPOCH for this_t in hk_data["TIMESTAMP"]
+        dt.timedelta(seconds=int(this_t)) + EPOCH for this_t in hk_data["timestamp"]
     ]
     hk_data = TimeSeries(time=hk_timestamps, data=hk_data)
     return hk_data
@@ -336,7 +346,7 @@ def packet_definition_hk():
     """Return the packet definiton for the housekeeping packets."""
     hk_table = ascii.read(padre_meddea._data_directory / "hk_packet_def.csv")
     hk_table.add_index("name")
-    p = [PacketField(name="TIMESTAMP", data_type="uint", bit_length=32)]
+    p = [PacketField(name="timestamp", data_type="uint", bit_length=32)]
     for this_hk in hk_table["name"]:
         p += [PacketField(name=this_hk, data_type="uint", bit_length=16)]
     p += [PacketField(name="CHECKSUM", data_type="uint", bit_length=16)]
