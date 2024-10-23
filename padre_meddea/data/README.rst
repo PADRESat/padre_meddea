@@ -39,3 +39,5 @@ Stores detector constants.
 hk_channel_defs.csv
 -------------------
 Stores the definitions for the values provided in housekeeping packets.
+
+fits_

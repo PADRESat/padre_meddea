@@ -11,11 +11,10 @@ from astropy.time import Time
 from astropy.table import Table
 
 from swxsoc.util.util import record_timeseries
-import git
 
 import padre_meddea
 from padre_meddea import log
-from padre_meddea.io import file_tools
+from padre_meddea.io import file_tools, fits_tools
 
 from padre_meddea.util.util import create_science_filename, calc_time
 from padre_meddea.io.file_tools import read_raw_file
@@ -79,13 +78,6 @@ def process_file(filename: Path, overwrite=False) -> list:
             primary_hdr["DATATYPE"] = ("event_list", "Description of the data")
             primary_hdr["ORIGAPID"] = (padre_meddea.APID["photon"], "APID(s) of the originating data")
             primary_hdr["ORIGFILE"] = (file_path.name, "Originating file(s)")
-
-            # add common fits keywords
-            fits_meta = read_fits_keyword_file(
-                padre_meddea._data_directory / "fits_keywords_primaryhdu.csv"
-            )
-            for row in fits_meta:
-                primary_hdr[row["keyword"]] = (row["value"], row["comment"])
 
             empty_primary = fits.PrimaryHDU(header=primary_hdr)
             pkt_hdu = fits.BinTableHDU(pkt_list, name="PKT")
@@ -176,50 +168,6 @@ def raw_to_l0(filename: Path):
     data = file_tools.read_raw_file(filename)
 
 
-def add_process_info_to_header(header: fits.Header) -> fits.Header:
-    """Add processing info metadata to fits header.
-    
-    Parameters
-    ----------
-    header : fits.Header
-
-    Returns
-    -------
-    header : fits.Header
-    """
-    header["PRSTEP1"] = ("PROCESS Raw to L1", "Processing step type")
-    header["PRPROC1"] = (
-        "padre_meddea.calibration.process",
-        "Name of procedure performing PRSTEP1",
-    )
-    header["PRPVER1"] = (
-        padre_meddea.__version__,
-        "Version of procedure PRPROC1",
-    )
-    header["PRLIB1A"] = (
-        "padre_meddea",
-        "Software library containing PRPROC1",
-    )
-    header["PRVER1A"] = (padre_meddea.__version__, "Version of PRLIB1A")
-    repo = git.Repo(search_parent_directories=True)
-    header["PRHSH1A"] = (
-        repo.head.object.hexsha,
-        "GIT commit hash for PRLIB1A",
-    )
-    header["PRBRA1A"] = (
-        repo.active_branch.name,
-        "GIT/SVN repository branch of PRLIB1A",
-    )
-    commits = list(repo.iter_commits("main", max_count=1))
-    header["PRVER1B"] = (
-        Time(commits[0].committed_datetime).fits,
-        "Date of last commit of PRLIB1B",
-    )
-    #  primary_hdr["PRLOG1"] add log information, need to do this after the fact
-    #  primary_hdr["PRENV1"] add information about processing env, need to do this after the fact
-    return header
-
-
 def get_calibration_file(time: Time) -> Path:
     """
     Given a time, return the appropriate calibration file.
@@ -262,12 +210,3 @@ def read_calibration_file(calib_filename: Path):
     # if can't read the file
 
     return None
-
-
-def read_fits_keyword_file(csv_file: Path):
-    """Read csv file with default fits metadata information."""
-    fits_meta_table = ascii.read(
-        padre_meddea._data_directory / "fits_keywords_primaryhdu.csv",
-        format="csv",
-    )
-    return fits_meta_table

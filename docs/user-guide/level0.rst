@@ -74,3 +74,4 @@ Each spectrum has a total of 512 energy bins.
 Level 0 housekeeping files
 --------------------------
 These files contain housekeeping data as described in the housekeeping packet.
+It also includes any register read responses that may exist during that time period.
