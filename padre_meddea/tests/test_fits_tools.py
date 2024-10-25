@@ -1,4 +1,5 @@
 """Test for the fits_tools module"""
+
 import pytest
 
 import astropy.io.fits as fits
@@ -8,8 +9,8 @@ from padre_meddea.io.fits_tools import *
 
 def test_comment_lookup_hdr0():
     """Test that all keywords in fits_keyword_primaryhdu are listed in fits_keyword_dict"""
-    hdr0_keywords = list(FITS_HDR0['keyword'])
-    keyword_to_comment = list(FITS_HDR_KEYTOCOMMENT['keyword'])
+    hdr0_keywords = list(FITS_HDR0["keyword"])
+    keyword_to_comment = list(FITS_HDR_KEYTOCOMMENT["keyword"])
     for this_keyword in hdr0_keywords:
         assert this_keyword in keyword_to_comment
 
@@ -32,10 +33,15 @@ def test_add_process_info_to_header():
             assert len(this_card.value) > 0
             assert len(this_card.comment) > 0
 
-@pytest.mark.parametrize("test_input,expected", [("PRSTEP2", "Processing step type"),
-                                                 ("PRSTEP1", "Processing step type"),
-                                                 ("PRPROC3", "Name of procedure performing PRSTEP3"),
-                                                 ("PRHSH5A", "GIT commit hash for PRLIB5A")
-                                                 ])
+
+@pytest.mark.parametrize(
+    "test_input,expected",
+    [
+        ("PRSTEP2", "Processing step type"),
+        ("PRSTEP1", "Processing step type"),
+        ("PRPROC3", "Name of procedure performing PRSTEP3"),
+        ("PRHSH5A", "GIT commit hash for PRLIB5A"),
+    ],
+)
 def test_get_std_comment(test_input, expected):
     assert get_std_comment(test_input) == expected

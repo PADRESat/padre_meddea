@@ -174,4 +174,5 @@ def has_baseline(filename: Path, packet_count=10) -> bool:
         num_hits = np.zeros(packet_count)
         for i in range(packet_count):
             num_hits[i] = (len(packet_bytes[i]) - HEADER_BYTES) / BYTES_PER_PHOTON
-    return np.sum(num_hits - np.floor(num_hits)) == 1
+    # check if there is any remainder for non integer number of hits
+    return np.sum(num_hits - np.floor(num_hits)) == 0

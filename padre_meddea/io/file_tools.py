@@ -82,17 +82,21 @@ def read_fits(filename: Path):
     Read a fits file.
     """
     hdu = fits.open(filename)
-    
+
     if (hdu[0].header["LEVEL"] == 0) and (hdu[0].header["DATATYPE"] == "event_list"):
-        event_list = read_fits_l0_event_list(filename)  # do I need to close the file since it is being opened again right after this?
+        event_list = read_fits_l0_event_list(
+            filename
+        )  # do I need to close the file since it is being opened again right after this?
         return event_list
+    if (hdu[0].header["LEVEL"] == 0) and (hdu[0].header["DATATYPE"] == "housekeeping"):
+        hk_list = read_fits_l0_housekeeping(filename)
+        return hk_list
     else:
-        raise ValueError(F"File contents of {filename} not recogized.")
+        raise ValueError(f"File contents of {filename} not recogized.")
 
 
 def read_fits_l0_event_list(filename: Path) -> TimeSeries:
-    """
-    """
+    """ """
     hdu = fits.open(filename)
     num_events = len(hdu["SCI"].data["seqcount"])
     ph_times = calc_time(
@@ -100,6 +104,7 @@ def read_fits_l0_event_list(filename: Path) -> TimeSeries:
         hdu["sci"].data["pktclock"],
         hdu["sci"].data["clocks"],
     )
+    # add the pixel conversions
     pixel = np.array(
         [channel_to_pixel(this_chan) for this_chan in hdu["sci"].data["channel"]],
         dtype=np.uint8,
@@ -119,6 +124,19 @@ def read_fits_l0_event_list(filename: Path) -> TimeSeries:
     return event_list
 
 
+def read_fits_l0_housekeeping(filename: Path) -> TimeSeries:
+    """Read a level 0 housekeeping file
+    """
+    hdu = fits.open(filename)
+    colnames = [this_col.name for this_col in hdu['HK'].data.columns]
+    times = calc_time(hdu["HK"].data["timestamp"])
+    hk_list = TimeSeries(
+        time = times,
+        data = {key: hdu['hk'].data[key] for key in colnames}
+    )
+    return hk_list
+
+
 def parse_ph_packets(filename: Path):
     """Given a binary file, read only the photon packets and return an event list.
 
@@ -127,25 +145,25 @@ def parse_ph_packets(filename: Path):
 
     Photon packet format is (words are 16 bits) described below.
 
-        ==  =============================================================
-        #   Description
-        ==  =============================================================
-        0   CCSDS header 1 (0x00A0)
-        1   CCSDS header 2 (0b11 and sequence count)
-        2   CCSDS header 3 payload size (remaining packet size - 1 octet)
-        3   time_stamp_s 1
-        4   time_stamp_s 2
-        5   time_stamp_clocks 1
-        6   time_stamp_clocks 2
-        7   integration time in clock counts
-        8   live time in clock counts
-        9   drop counter ([15] Int.Time Overflow, [14:12] decimation level, [11:0] # dropped photons)
-        10  checksum
-        11  start of pixel data
-        -   pixel time step in clock count
-        -   pixel_location (ASIC # bits[7:5], pixel num bits[4:0])
-        -   pixel_data 12 bit ADC count
-        ==  =============================================================
+    ==  =============================================================
+    #   Description
+    ==  =============================================================
+    0   CCSDS header 1 (0x00A0)
+    1   CCSDS header 2 (0b11 and sequence count)
+    2   CCSDS header 3 payload size (remaining packet size - 1 octet)
+    3   time_stamp_s 1
+    4   time_stamp_s 2
+    5   time_stamp_clocks 1
+    6   time_stamp_clocks 2
+    7   integration time in clock counts
+    8   live time in clock counts
+    9   drop counter ([15] Int.Time Overflow, [14:12] decimation level, [11:0] # dropped photons)
+    10  checksum
+    11  start of pixel data
+    -   pixel time step in clock count
+    -   pixel_location (ASIC # bits[7:5], pixel num bits[4:0])
+    -   pixel_data 12 bit ADC count
+    ==  =============================================================
 
     Parameters
     ----------
@@ -211,8 +229,8 @@ def parse_ph_packets(filename: Path):
         ph_data["TIME_S"],
         ph_data["TIME_CLOCKS"],
     ):
-        num_hits = len(this_ph_data[0::3])
-        ids = this_ph_data[1::3]
+        num_hits = len(this_ph_data[0::WORDS_PER_HIT])
+        ids = this_ph_data[1::WORDS_PER_HIT]
         asic_num = (ids & 0b11100000) >> 5
         channel_num = ids & 0b00011111
         hit_list[0, i : i + num_hits] = this_ph_data[0::WORDS_PER_HIT]
@@ -311,10 +329,8 @@ def parse_spectrum_packets(filename: Path):
         return None
     packet_definition = packet_definition_hist2()
     pkt = ccsdspy.FixedLength(packet_definition)
-    data = pkt.load(packet_bytes)
-    timestamps = [
-        dt.timedelta(seconds=int(this_t)) + EPOCH for this_t in data["TIMESTAMPS"]
-    ]
+    data = pkt.load(packet_bytes, include_primary_header=True)
+    timestamps = calc_time(data["TIMESTAMPS"], data["TIMESTAMPCLOCK"])
     num_packets = len(timestamps)
     h = data["HISTOGRAM_DATA"].reshape((num_packets, 24, 513))
     histogram_data = h[:, :, 1:]  # remove the id field
@@ -325,6 +341,23 @@ def parse_spectrum_packets(filename: Path):
 def parse_cmd_response_packets(filename: Path):
     """Given a raw binary file, read only the command response packets and return the data.
 
+    The packet is defined as follows
+
+    ==  =============================================================
+    #   Description
+    ==  =============================================================
+    0   CCSDS header 1 (0x00A5)
+    1   CCSDS header 2 (0b11 and sequence count)
+    2   CCSDS header 3 payload size (remaining packet size - 1 octet)
+    3   time_stamp_s 1
+    4   time_stamp_s 2
+    5   time_stamp_clocks 1
+    6   time_stamp_clocks 2
+    7   register address
+    8   register value
+    9   checksum
+    ==  =============================================================
+
     Parameters
     ----------
     filename : Path
@@ -333,13 +366,26 @@ def parse_cmd_response_packets(filename: Path):
     Returns
     -------
     cmd_resp_list : astropy.time.TimeSeries or None
-        A list of command responses."""
-    return None
-
-
-def packet_definition_cmd_resp():
-    """Return the packet definiton for a command response packet."""
-    pass
+        A list of register read responses.
+    """
+    with open(filename, "rb") as mixed_file:
+        stream_by_apid = split_by_apid(mixed_file)
+    packet_bytes = stream_by_apid.get(APID["cmd_resp"], None)
+    if packet_bytes is None:
+        return None
+    packet_definition = packet_definition_cmd_response()
+    pkt = ccsdspy.FixedLength(packet_definition, include_primary_header=True)
+    data = pkt.load(packet_bytes)
+    timestamps = calc_time(data["TIMESTAMPS"], data["TIMESTAMPCLOCK"])
+    data = {
+        "time_s": data["TIMESTAMPS"],
+        "time_clock": data["TIMESTAMPCLOCK"],
+        "address": data["ADDRESS"],
+        "value": data["VALUE"],
+        "seqcount": data["CCSDS_SEQUENCE_COUNT"],
+    }
+    ts = TimeSeries(time=timestamps, data=data)
+    return ts
 
 
 def packet_definition_hk():
@@ -426,6 +472,18 @@ def packet_definition_ph():
         PacketArray(
             name="PIXEL_DATA", data_type="uint", bit_length=16, array_shape="expand"
         ),
+    ]
+    return p
+
+
+def packet_definition_cmd_response():
+    """Return the packet definiton for the register read response"""
+    p = [
+        PacketField(name="TIMESTAMPS", data_type="uint", bit_length=32),
+        PacketField(name="TIMESTAMPCLOCK", data_type="uint", bit_length=32),
+        PacketField(name="ADDR", data_type="uint", bit_length=16),
+        PacketField(name="VALUE", data_type="uint", bit_length=16),
+        PacketField(name="CHECKSUM", data_type="uint", bit_length=16),
     ]
     return p
 
