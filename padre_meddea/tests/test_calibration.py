@@ -5,7 +5,7 @@ import pytest
 from astropy.io import fits
 
 import padre_meddea
-import padre_meddea.calibration as calib
+import padre_meddea.calibration.calibration as calib
 
 
 def test_process_file_test_file():
