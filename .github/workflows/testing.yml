@@ -38,7 +38,9 @@ jobs:
       env:
         #
         PLATFORM: ${{ matrix.platform }}
-        SWXSOC_MISSION: padre
         #
-    - name: Upload coverage reports to Codecov with GitHub Action
-      uses: codecov/codecov-action@v3
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v4	
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
