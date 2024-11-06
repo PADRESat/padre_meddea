@@ -99,3 +99,11 @@ def create_science_filename(
     filename = filename.replace("__", "_")  # reformat if mode or descriptor not given
 
     return filename + FILENAME_EXTENSION
+
+
+def str_to_fits_keyword(keyword: str) -> str:
+    """Given a keyword string, return a fits compatible keyword string
+    which must not include special characters and have fewer have no more
+    than 8 characters."""
+    clean_keyword = ''.join(e for e in keyword if e.isalnum()).strip().upper()
+    return clean_keyword[0:8]

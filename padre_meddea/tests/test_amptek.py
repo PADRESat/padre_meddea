@@ -23,7 +23,7 @@ def test_read_mca_rate():
 
 
 @pytest.mark.parametrize(
-    "keyword", ["filename", "live_time", "count_rate", "dead_time_frac"]
+    "keyword", ["filename", "livetime", "rate", "dtimfrac"]
 )
 def test_read_mca_meta_added(keyword):
     """Test that a few added meta data items."""
@@ -31,7 +31,7 @@ def test_read_mca_meta_added(keyword):
 
 
 @pytest.mark.parametrize(
-    "keyword", ["LIVE_TIME", "SERIAL_NUMBER", "REAL_TIME", "START_TIME"]
+    "keyword", ["LIVETIME", "SERIALNU", "REALTIME", "STARTTIM"]
 )
 def test_read_mca_meta_orig(keyword):
     """Test that a few original meta data items are present."""
