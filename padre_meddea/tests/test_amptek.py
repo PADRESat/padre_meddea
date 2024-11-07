@@ -22,17 +22,13 @@ def test_read_mca_rate():
     assert spec.flux.unit == u.ct / u.s
 
 
-@pytest.mark.parametrize(
-    "keyword", ["filename", "livetime", "rate", "dtimfrac"]
-)
+@pytest.mark.parametrize("keyword", ["filename", "livetime", "rate", "dtimfrac"])
 def test_read_mca_meta_added(keyword):
     """Test that a few added meta data items."""
     assert keyword in spec.meta
 
 
-@pytest.mark.parametrize(
-    "keyword", ["LIVETIME", "SERIALNU", "REALTIME", "STARTTIM"]
-)
+@pytest.mark.parametrize("keyword", ["LIVETIME", "SERIALNU", "REALTIME", "STARTTIM"])
 def test_read_mca_meta_orig(keyword):
     """Test that a few original meta data items are present."""
     assert keyword in spec.meta["header"]

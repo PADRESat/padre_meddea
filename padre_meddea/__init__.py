@@ -31,9 +31,6 @@ _package_directory = Path(__file__).parent
 _data_directory = _package_directory / "data"
 _test_files_directory = _package_directory / "data" / "test"
 
-MISSION_NAME = "PADRE"
-INSTRUMENT_NAME = "MeDDEA"
-
 # the ratio of detector area for large pixels versus small pixels
 RATIO_TOTAL_LARGE_TO_SMALL_PIX = 0.947
 
