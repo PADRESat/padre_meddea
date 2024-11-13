@@ -59,7 +59,7 @@ APID = {
     "spectrum": 0xA2,  # decimal 162
     "photon": 0xA0,  # decimal 160
     "housekeeping": 0xA3,  # decimal 163
-    "cmd_resp": 0xA5,  # decimal 165
+    "cmd_resp": 0x99,  # decimal 153
 }
 
 EPOCH = Time("2000-01-01 00:00", scale="utc")

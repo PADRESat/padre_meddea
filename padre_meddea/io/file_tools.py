@@ -374,13 +374,13 @@ def parse_cmd_response_packets(filename: Path):
     if packet_bytes is None:
         return None
     packet_definition = packet_definition_cmd_response()
-    pkt = ccsdspy.FixedLength(packet_definition, include_primary_header=True)
-    data = pkt.load(packet_bytes)
+    pkt = ccsdspy.FixedLength(packet_definition)
+    data = pkt.load(packet_bytes, include_primary_header=True)
     timestamps = calc_time(data["TIMESTAMPS"], data["TIMESTAMPCLOCK"])
     data = {
         "time_s": data["TIMESTAMPS"],
         "time_clock": data["TIMESTAMPCLOCK"],
-        "address": data["ADDRESS"],
+        "address": data["ADDR"],
         "value": data["VALUE"],
         "seqcount": data["CCSDS_SEQUENCE_COUNT"],
     }
