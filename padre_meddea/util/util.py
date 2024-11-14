@@ -176,3 +176,8 @@ def has_baseline(filename: Path, packet_count=10) -> bool:
             num_hits[i] = (len(packet_bytes[i]) - HEADER_BYTES) / BYTES_PER_PHOTON
     # check if there is any remainder for non integer number of hits
     return np.sum(num_hits - np.floor(num_hits)) == 0
+
+
+def is_consecutive(arr: np.array):
+    """Return True if the array is all consecutive integers or has not missing numbers."""
+    return np.all(np.diff(arr) == 1)
