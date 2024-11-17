@@ -125,14 +125,12 @@ def read_fits_l0_event_list(filename: Path) -> TimeSeries:
 
 
 def read_fits_l0_housekeeping(filename: Path) -> TimeSeries:
-    """Read a level 0 housekeeping file
-    """
+    """Read a level 0 housekeeping file"""
     hdu = fits.open(filename)
-    colnames = [this_col.name for this_col in hdu['HK'].data.columns]
+    colnames = [this_col.name for this_col in hdu["HK"].data.columns]
     times = calc_time(hdu["HK"].data["timestamp"])
     hk_list = TimeSeries(
-        time = times,
-        data = {key: hdu['hk'].data[key] for key in colnames}
+        time=times, data={key: hdu["hk"].data[key] for key in colnames}
     )
     return hk_list
 

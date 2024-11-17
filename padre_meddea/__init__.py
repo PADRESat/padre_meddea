@@ -23,6 +23,15 @@ from swxsoc import (  # noqa: E402
 
 # Load user configuration
 config = swxsoc_config
+config["mission"]["mission_name"] = "padre"
+config["mission"]["file_extension"] = ".fits"
+config["mission"]["inst_names"] = ["meddea", "sharp"]
+config["mission"]["inst_fullnames"] = [
+    "Measuring Directivity to Determine Electron Anisotropy",
+    "sharp",
+]
+config["mission"]["inst_to_shortname"] = {"meddea": "meddea", "sharp": "sharp"}
+
 
 log = swxsoc_log
 
