@@ -14,7 +14,7 @@ from astropy.time import Time, TimeDelta
 import astropy.units as u
 from ccsdspy.utils import split_packet_bytes, split_by_apid
 
-from padre_meddea import EPOCH
+from padre_meddea import EPOCH, APID
 
 __all__ = ["create_science_filename", "has_baseline"]
 
@@ -169,11 +169,15 @@ def has_baseline(filename: Path, packet_count=10) -> bool:
 
     with open(filename, "rb") as mixed_file:
         stream_by_apid = split_by_apid(mixed_file)
-        packet_stream = stream_by_apid[160]
-        packet_bytes = split_packet_bytes(packet_stream)
-        num_hits = np.zeros(packet_count)
-        for i in range(packet_count):
-            num_hits[i] = (len(packet_bytes[i]) - HEADER_BYTES) / BYTES_PER_PHOTON
+        if APID['photon'] in stream_by_apid.keys():  # only applicable to photon packets
+            packet_stream = stream_by_apid[APID['photon']]
+            packet_bytes = split_packet_bytes(packet_stream)
+            packet_count = min(len(packet_bytes), packet_count)  # in case we have fewer than packet_count in the file
+            num_hits = np.zeros(packet_count)
+            for i in range(packet_count):
+                num_hits[i] = (len(packet_bytes[i]) - HEADER_BYTES) / BYTES_PER_PHOTON
+        else:
+            raise ValueError("Only works on photon packets.")
     # check if there is any remainder for non integer number of hits
     return np.sum(num_hits - np.floor(num_hits)) == 0
 
