@@ -1,5 +1,8 @@
 # see license/LICENSE.rst
+import os
 from pathlib import Path
+
+from astropy.time import Time
 
 try:
     from ._version import version as __version__
@@ -8,8 +11,15 @@ except ImportError:
     __version__ = "unknown version"
     version_tuple = (0, 0, "unknown version")
 
-from swxsoc import config as swxsoc_config, log as swxsoc_log, print_config
-from astropy.time import Time
+# Get SWXSOC_MISSIONS environment variable if it exists or use default for mission
+SWXSOC_MISSION = os.getenv("SWXSOC_MISSION", "padre")
+os.environ["SWXSOC_MISSION"] = SWXSOC_MISSION
+
+from swxsoc import (  # noqa: E402
+    config as swxsoc_config,
+    log as swxsoc_log,
+    print_config,
+)
 
 # Load user configuration
 config = swxsoc_config
@@ -22,9 +32,6 @@ __all__ = ["config", "print_config"]
 _package_directory = Path(__file__).parent
 _data_directory = _package_directory / "data"
 _test_files_directory = _package_directory / "data" / "test"
-
-MISSION_NAME = "PADRE"
-INSTRUMENT_NAME = "MeDDEA"
 
 # the ratio of detector area for large pixels versus small pixels
 RATIO_TOTAL_LARGE_TO_SMALL_PIX = 0.947
