@@ -80,6 +80,7 @@ def process_file(filename: Path, overwrite=False) -> list:
             hdul = fits.HDUList([empty_primary_hdu, hit_hdu, pkt_hdu])
 
             path = create_science_filename(
+                'meddea',
                 time=primary_hdr["DATE-BEG"],
                 level="l1",
                 descriptor="eventlist",
