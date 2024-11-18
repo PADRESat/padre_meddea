@@ -42,10 +42,8 @@ jobs:
         # Grep the HTTP status code from the curl output for 200 (success)
         STATUS_CODE=$(echo $HTTP_STATUS | grep -oP '200')
         echo "Status Code: $STATUS_CODE"
+        docker logs $(docker ps -lq)
 
-        # Docker logs for debugging
-        container_id=$(docker ps -qf "ancestor=processing_function:latest")
-        docker logs $container_id
 
         # If the HTTP status code is 200, then the test is successful
         if [ "$STATUS_CODE" == "200" ]; then
