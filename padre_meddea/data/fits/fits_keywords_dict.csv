@@ -1,0 +1,28 @@
+keyword,comment
+AUTHOR,Who designed the observation
+CREATOR,Name of software pipeline that produced the FITS file
+DETECTOR,Name of the detector
+INFO_URL,a human-readable web page describing the data
+OBSRVTRY,Name of the observatory
+TIMESYS,Time scale of the time-related keywords
+TELESCOP,Telescope/Sensor name
+INSTRUME,Instrument name
+MISSION,Mission name
+ORIGIN,File originator
+DATE-BEG,Acquisition start time
+DATE-END,Acquisition end time
+DATE-AVG,Average time of acquisition
+LEVEL,Data level of fits file
+DATE,File creation date in UTC
+DATATYPE,Description of the data
+ORIGAPID,APID(s) of the originating data
+ORIGFILE,Originating file(s)
+DATEREF,Reference date
+PRSTEP(?P<count>[1-9]),Processing step type
+PRPROC(?P<count>[1-9]),Name of procedure performing PRSTEP<count>
+PRPVER(?P<count>[1-9]),Version of procedure PRPROC<count>
+PRLIB(?P<count>[1-9])A,Software library containing PRPROC<count>
+PRVER(?P<count>[1-9])A,Version of PRLIB1A
+PRHSH(?P<count>[1-9])A,GIT commit hash for PRLIB<count>A
+PRBRA(?P<count>[1-9])A,GIT/SVN repository branch of PRLIB<count>A
+PRVER(?P<count>[1-9])B,Date of last commit of PRLIB<count>B

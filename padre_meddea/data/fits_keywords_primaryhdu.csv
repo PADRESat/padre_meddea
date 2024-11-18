@@ -1,9 +1,0 @@
-keyword,value,comment
-AUTHOR,Steven D. Christe,Who designed the observation
-CREATOR,padre_meddea,Name of software pipeline that produced the FITS file
-OBSRVTRY,PADRE,Name of the observatory
-TIMESYS,UTC,Time scale of the time-related keywords
-TELESCOP,PADRE/MeDDEA,Telescope/Sensor name
-INSTRUME,MeDDEA,Instrument name
-MISSION,PADRE,Mission name
-ORIGIN,NASA GSFC,File originator
