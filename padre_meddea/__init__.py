@@ -21,6 +21,9 @@ from swxsoc import (  # noqa: E402
     print_config,
 )
 
+# Load user configuration
+config = swxsoc_config
+
 log = swxsoc_log
 
 # Then you can be explicit to control what ends up in the namespace,
