@@ -25,7 +25,7 @@ jobs:
         
     - name: Run Lambda Docker Container
       run: |
-        docker run -d -p 9000:8080 -e USE_INSTRUMENT_TEST_DATA=True -e LAMBDA_ENVIRONMENT=DEVELOPMENT processing_function:latest
+        docker run -d -p 9000:8080 -e USE_INSTRUMENT_TEST_DATA=True -e LAMBDA_ENVIRONMENT=DEVELOPMENT -e SWXSOC_MISSION=padre processing_function:latest
         container_id=$(docker ps -qf "ancestor=processing_function:latest")
         echo "Container ID: $container_id"
 
@@ -42,8 +42,10 @@ jobs:
         # Grep the HTTP status code from the curl output for 200 (success)
         STATUS_CODE=$(echo $HTTP_STATUS | grep -oP '200')
         echo "Status Code: $STATUS_CODE"
-        docker logs $(docker ps -lq)
 
+        # Docker logs for debugging
+        container_id=$(docker ps -qf "ancestor=processing_function:latest")
+        docker logs $container_id
 
         # If the HTTP status code is 200, then the test is successful
         if [ "$STATUS_CODE" == "200" ]; then
