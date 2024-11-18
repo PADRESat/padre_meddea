@@ -85,15 +85,15 @@ def add_process_info_to_header(header: fits.Header, n=1) -> fits.Header:
             repo.head.object.hexsha,
             get_std_comment(f"PRHSH{n}A"),
         )
-        #header[f"PRBRA{n}A"] = (
+        # header[f"PRBRA{n}A"] = (
         #    repo.active_branch.name,
         #    get_std_comment(f"PRBRA{n}A"),
-        #)
-        commits = list(repo.iter_commits("main", max_count=1))
-        header[f"PRVER{n}B"] = (
-            Time(commits[0].committed_datetime).fits,
-            get_std_comment(f"PRVER{n}B"),
-        )
+        # )
+        # commits = list(repo.iter_commits("main", max_count=1))
+        # header[f"PRVER{n}B"] = (
+        #    Time(commits[0].committed_datetime).fits,
+        #    get_std_comment(f"PRVER{n}B"),
+        # )
     except InvalidGitRepositoryError:
         pass
     #  primary_hdr["PRLOG1"] add log information, need to do this after the fact
