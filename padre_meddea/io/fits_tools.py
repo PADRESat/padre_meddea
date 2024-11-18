@@ -85,10 +85,10 @@ def add_process_info_to_header(header: fits.Header, n=1) -> fits.Header:
             repo.head.object.hexsha,
             get_std_comment(f"PRHSH{n}A"),
         )
-        header[f"PRBRA{n}A"] = (
-            repo.active_branch.name,
-            get_std_comment(f"PRBRA{n}A"),
-        )
+        #header[f"PRBRA{n}A"] = (
+        #    repo.active_branch.name,
+        #    get_std_comment(f"PRBRA{n}A"),
+        #)
         commits = list(repo.iter_commits("main", max_count=1))
         header[f"PRVER{n}B"] = (
             Time(commits[0].committed_datetime).fits,
