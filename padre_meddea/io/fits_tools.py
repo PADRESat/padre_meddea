@@ -3,8 +3,6 @@ This module provides a utilities to manage fits files reading and writing.
 """
 
 import re
-import git
-from git import InvalidGitRepositoryError
 
 from astropy.io import ascii
 import astropy.io.fits as fits
@@ -80,6 +78,9 @@ def add_process_info_to_header(header: fits.Header, n=1) -> fits.Header:
     )
     header[f"PRVER{n}A"] = (padre_meddea.__version__, get_std_comment(f"PRVER{n}A"))
     try:
+        import git
+        from git import InvalidGitRepositoryError
+
         repo = git.Repo(padre_meddea.__file__, search_parent_directories=True)
         header[f"PRHSH{n}A"] = (
             repo.head.object.hexsha,
@@ -94,6 +95,8 @@ def add_process_info_to_header(header: fits.Header, n=1) -> fits.Header:
         #    Time(commits[0].committed_datetime).fits,
         #    get_std_comment(f"PRVER{n}B"),
         # )
+    except ModuleNotFoundError:
+        pass
     except InvalidGitRepositoryError:
         pass
     #  primary_hdr["PRLOG1"] add log information, need to do this after the fact
