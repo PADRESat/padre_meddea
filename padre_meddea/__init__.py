@@ -2,6 +2,8 @@
 import os
 from pathlib import Path
 
+from astropy.time import Time
+
 try:
     from ._version import version as __version__
     from ._version import version_tuple
@@ -59,5 +61,14 @@ peaking_time = [
     10.06,
     10.73,
 ]
+
+APID = {
+    "spectrum": 0xA2,  # decimal 162
+    "photon": 0xA0,  # decimal 160
+    "housekeeping": 0xA3,  # decimal 163
+    "cmd_resp": 0x99,  # decimal 153
+}
+
+EPOCH = Time("2000-01-01 00:00", scale="utc")
 
 log.debug(f"padre_meddea version: {__version__}")

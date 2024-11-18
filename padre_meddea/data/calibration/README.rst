@@ -1,4 +1,4 @@
-Calbiration directory
+Calibration directory
 =====================
 
 This directory contains calibration files included with the package source
