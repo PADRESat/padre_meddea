@@ -105,3 +105,11 @@ def has_baseline(filename: Path, packet_count=10) -> bool:
 def is_consecutive(arr: np.array):
     """Return True if the array is all consecutive integers or has not missing numbers."""
     return np.all(np.diff(arr) == 1)
+
+
+def str_to_fits_keyword(keyword: str) -> str:
+    """Given a keyword string, return a fits compatible keyword string
+    which must not include special characters and have fewer have no more
+    than 8 characters."""
+    clean_keyword = "".join(e for e in keyword if e.isalnum()).strip().upper()
+    return clean_keyword[0:8]
