@@ -169,6 +169,7 @@ def process_file(filename: Path, overwrite=False) -> list:
             hdul = fits.HDUList([empty_primary_hdu, hk_hdu, cmd_hdu])
 
             path = create_science_filename(
+                'meddea',
                 time=date_beg,
                 level="l1",
                 descriptor="hk",
