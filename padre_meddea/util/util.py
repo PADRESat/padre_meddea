@@ -102,14 +102,29 @@ def has_baseline(filename: Path, packet_count=10) -> bool:
     return np.sum(num_hits - np.floor(num_hits)) == 0
 
 
-def is_consecutive(arr: np.array):
-    """Return True if the array is all consecutive integers or has not missing numbers."""
-    return np.all(np.diff(arr) == 1)
-
-
 def str_to_fits_keyword(keyword: str) -> str:
     """Given a keyword string, return a fits compatible keyword string
     which must not include special characters and have fewer have no more
     than 8 characters."""
     clean_keyword = "".join(e for e in keyword if e.isalnum()).strip().upper()
     return clean_keyword[0:8]
+
+
+def is_consecutive(arr: np.array) -> bool:
+    """Return True if the packet sequence numbers are all consecutive integers, has no missing numbers."""
+    MAX_SEQCOUNT = 2**14 - 1
+    # check if seqcount has wrapped around
+    indices = np.where(arr == MAX_SEQCOUNT)
+    if len(indices[0]) == 0:  # no wrap
+        return np.all(np.diff(arr) == 1)
+    else:
+        last_index = 0
+        result = True
+        for this_ind in indices[0]:
+            this_arr = np.array(arr[last_index:this_ind])
+            result = result & np.all(np.diff(this_arr) == 1)
+            last_index = this_ind + 1
+        # now do the remaining part of the array
+        this_arr = np.array(arr[last_index:])
+        result = result & np.all(np.diff(this_arr) == 1)
+        return result
