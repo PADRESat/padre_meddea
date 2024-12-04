@@ -328,12 +328,12 @@ def parse_spectrum_packets(filename: Path):
     packet_definition = packet_definition_hist2()
     pkt = ccsdspy.FixedLength(packet_definition)
     data = pkt.load(packet_bytes, include_primary_header=True)
-    timestamps = calc_time(data["TIMESTAMPS"], data["TIMESTAMPCLOCK"])
-    num_packets = len(timestamps)
+    timestamps = calc_time(data["TIME_S"], data["TIME_CLOCKS"])
+    num_packets = len(data["TIME_S"])
     h = data["HISTOGRAM_DATA"].reshape((num_packets, 24, 513))
     histogram_data = h[:, :, 1:]  # remove the id field
     ids = h[:, :, 0]
-    return timestamps, histogram_data, ids
+    return timestamps, data, histogram_data, ids
 
 
 def parse_cmd_response_packets(filename: Path):
@@ -374,10 +374,10 @@ def parse_cmd_response_packets(filename: Path):
     packet_definition = packet_definition_cmd_response()
     pkt = ccsdspy.FixedLength(packet_definition)
     data = pkt.load(packet_bytes, include_primary_header=True)
-    timestamps = calc_time(data["TIMESTAMPS"], data["TIMESTAMPCLOCK"])
+    timestamps = calc_time(data["TIME_S"], data["TIME_CLOCKS"])
     data = {
-        "time_s": data["TIMESTAMPS"],
-        "time_clock": data["TIMESTAMPCLOCK"],
+        "time_s": data["TIME_S"],
+        "time_clock": data["TIME_CLOCKS"],
         "address": data["ADDR"],
         "value": data["VALUE"],
         "seqcount": data["CCSDS_SEQUENCE_COUNT"],
@@ -438,8 +438,8 @@ def packet_definition_hist2():
 
     # the header
     p = [
-        PacketField(name="TIMESTAMPS", data_type="uint", bit_length=32),
-        PacketField(name="TIMESTAMPCLOCK", data_type="uint", bit_length=32),
+        PacketField(name="TIME_S", data_type="uint", bit_length=32),
+        PacketField(name="TIME_CLOCKS", data_type="uint", bit_length=32),
         PacketField(name="INTEGRATION_TIME", data_type="uint", bit_length=32),
         PacketField(name="LIVE_TIME", data_type="uint", bit_length=32),
     ]
@@ -477,8 +477,8 @@ def packet_definition_ph():
 def packet_definition_cmd_response():
     """Return the packet definiton for the register read response"""
     p = [
-        PacketField(name="TIMESTAMPS", data_type="uint", bit_length=32),
-        PacketField(name="TIMESTAMPCLOCK", data_type="uint", bit_length=32),
+        PacketField(name="TIME_S", data_type="uint", bit_length=32),
+        PacketField(name="TIME_CLOCKS", data_type="uint", bit_length=32),
         PacketField(name="ADDR", data_type="uint", bit_length=16),
         PacketField(name="VALUE", data_type="uint", bit_length=16),
         PacketField(name="CHECKSUM", data_type="uint", bit_length=16),
