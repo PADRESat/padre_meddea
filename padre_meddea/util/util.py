@@ -121,10 +121,10 @@ def is_consecutive(arr: np.array) -> bool:
         last_index = 0
         result = True
         for this_ind in indices[0]:
-            this_arr = arr[last_index:this_ind+1]
+            this_arr = arr[last_index : this_ind + 1]
             result = result & np.all(np.diff(this_arr) == 1)
             last_index = this_ind + 1
         # now do the remaining part of the array
-        this_arr = arr[last_index+1:]
+        this_arr = arr[last_index + 1 :]
         result = result & np.all(np.diff(this_arr) == 1)
         return result

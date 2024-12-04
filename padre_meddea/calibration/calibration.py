@@ -223,7 +223,7 @@ def process_file(filename: Path, overwrite=False) -> list:
             hdul = fits.HDUList([empty_primary_hdu, spec_hdu, pkt_hdu])
             path = create_science_filename(
                 "meddea",
-                time=dates['DATE-BEG'],
+                time=dates["DATE-BEG"],
                 level="l1",
                 descriptor="spec",
                 test=True,
