@@ -9,6 +9,7 @@ import tempfile
 from astropy.io import fits, ascii
 from astropy.time import Time
 from astropy.table import Table
+from astropy.timeseries import TimeSeries
 
 from swxsoc.util.util import record_timeseries
 
@@ -56,6 +57,9 @@ def process_file(filename: Path, overwrite=False) -> list:
         parsed_data = read_raw_file(file_path)
         if parsed_data["photons"] is not None:  # we have event list data
             event_list, pkt_list = parsed_data["photons"]
+            log.info(
+                f"Found photon data, {len(event_list)} photons and {len(pkt_list)} packets."
+            )
             primary_hdr = get_primary_header()
             primary_hdr = add_process_info_to_header(primary_hdr)
             primary_hdr["LEVEL"] = (0, get_std_comment("LEVEL"))
@@ -137,7 +141,7 @@ def process_file(filename: Path, overwrite=False) -> list:
             hk_hdu = fits.BinTableHDU(data=hk_table, name="HK")
             hk_hdu.add_checksum()
 
-            # add command response data if it exists
+            # add command response data if it exists  in the same fits file
             if parsed_data["cmd_resp"] is not None:
                 data_ts = parsed_data["cmd_resp"]
                 this_header = fits.Header()
@@ -169,7 +173,7 @@ def process_file(filename: Path, overwrite=False) -> list:
             hdul = fits.HDUList([empty_primary_hdu, hk_hdu, cmd_hdu])
 
             path = create_science_filename(
-                'meddea',
+                "meddea",
                 time=date_beg,
                 level="l1",
                 descriptor="hk",
@@ -179,8 +183,54 @@ def process_file(filename: Path, overwrite=False) -> list:
             hdul.writeto(path, overwrite=overwrite)
             output_files.append(path)
         if parsed_data["spectra"] is not None:
-            spec_data = parsed_data["spectra"]
+            timestamps, data, spectra, ids = parsed_data["spectra"]
+            asic_nums = (ids & 0b11100000) >> 5
+            channel_nums = ids & 0b00011111
+            time_s = data["TIME_S"]
+            time_clk = data["TIME_CLOCKS"]
 
+            primary_hdr = get_primary_header()
+            primary_hdr = add_process_info_to_header(primary_hdr)
+            primary_hdr["LEVEL"] = (0, get_std_comment("LEVEL"))
+            primary_hdr["DATATYPE"] = ("spectrum", get_std_comment("DATATYPE"))
+            primary_hdr["ORIGAPID"] = (
+                padre_meddea.APID["spectrum"],
+                get_std_comment("ORIGAPID"),
+            )
+            primary_hdr["ORIGFILE"] = (file_path.name, get_std_comment("ORIGFILE"))
+            dates = {
+                "DATE-BEG": timestamps[0].fits,
+                "DATE-END": timestamps[-1].fits,
+                "DATE-AVG": timestamps[len(timestamps) // 2].fits,
+            }
+            primary_hdr["DATEREF"] = (dates["DATE-BEG"], get_std_comment("DATEREF"))
+            for this_keyword, value in dates.items():
+                primary_hdr[this_keyword] = (
+                    value,
+                    get_std_comment(this_keyword),
+                )
+            spec_hdu = fits.ImageHDU(data=spectra, name="SPEC")
+            spec_hdu.add_checksum()
+            data_table = Table()
+            data_table["pkttimes"] = time_s
+            data_table["pktclock"] = time_clk
+            data_table["asic"] = asic_nums
+            data_table["channel"] = channel_nums
+            data_table["seqcount"] = data["CCSDS_SEQUENCE_COUNT"]
+            record_timeseries(TimeSeries(time=timestamps, data=data_table), "spectrum")
+            pkt_hdu = fits.BinTableHDU(data=data_table, name="PKT")
+            pkt_hdu.add_checksum()
+            hdul = fits.HDUList([empty_primary_hdu, spec_hdu, pkt_hdu])
+            path = create_science_filename(
+                "meddea",
+                time=dates['DATE-BEG'],
+                level="l1",
+                descriptor="spec",
+                test=True,
+                version="0.1.0",
+            )
+            hdul.writeto(path, overwrite=overwrite)
+            output_files.append(path)
     # add other tasks below
     return output_files
 
