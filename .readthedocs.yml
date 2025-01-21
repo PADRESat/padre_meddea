@@ -10,6 +10,10 @@ build:
   tools:
     python: "3.10"
 
+sphinx:
+  # Path to your Sphinx configuration file.
+  configuration: docs/conf.py
+
 # Optionally build your docs in additional formats such as PDF and ePub
 formats:
   - pdf
