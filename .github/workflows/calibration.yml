@@ -82,7 +82,6 @@ jobs:
     - name: Test Lambda Function with curl
       id: test-lambda
       run: |
-        cd ../sdc_aws_processing_lambda/
         # Run curl and write the HTTP status code to a variable
         HTTP_STATUS=$(curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" -d @.github/workflows/test_data/test_${{env.INSTRUMENT_NAME}}_event.json)
         echo "HTTP Status: $HTTP_STATUS"
