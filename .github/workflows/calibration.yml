@@ -42,7 +42,7 @@ jobs:
           touch $REQUIREMENTS_FILE
         fi
     
-        # Remove any previous entries for 'hermes_eea' and add the new branch URL as the first entry
+        # Remove any previous entries for instrument package and add the new branch URL as the first entry
         sed -i "/${PACKAGE_NAME}/d" $REQUIREMENTS_FILE
         sed -i "1i ${PACKAGE_NAME}  @ $BRANCH_URL" $REQUIREMENTS_FILE
     
@@ -84,7 +84,7 @@ jobs:
       run: |
         cd ../sdc_aws_processing_lambda/
         # Run curl and write the HTTP status code to a variable
-        HTTP_STATUS=$(curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" -d @lambda_function/tests/test_data/test_${{env.INSTRUMENT_NAME}}_event.json)
+        HTTP_STATUS=$(curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" -d @.github/workflows/test_data/test_${{env.INSTRUMENT_NAME}}_event.json)
         echo "HTTP Status: $HTTP_STATUS"
     
         # Grep the HTTP status code from the curl output for 200 (success)
