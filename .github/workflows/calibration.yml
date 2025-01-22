@@ -1,6 +1,6 @@
 name: Test Lambda Function Locally and Upload Artifacts
 
-on: [pull_request_target]
+on: [pull_request]
 
 jobs:
   test-and-upload:
@@ -10,43 +10,91 @@ jobs:
 
     steps:
     - name: Checkout Repository
-      uses: actions/checkout@v3
-
+      uses: actions/checkout@v4
     - name: Build Lambda Docker Image
       run: |
-        cd ..
-        git clone https://github.com/HERMES-SOC/sdc_aws_processing_lambda.git
-        cd sdc_aws_processing_lambda/lambda_function
-        BRANCH_URL="git+https://github.com/${{ github.event.pull_request.head.repo.full_name }}.git@${{ github.event.pull_request.head.ref }}"
+        # Define the repository and branch dynamically
+        REPO_URL="https://github.com/${{ github.event.pull_request.head.repo.full_name }}.git"
+        BRANCH_REF="${{ github.event.pull_request.head.ref }}"
+        BRANCH_URL="git+$REPO_URL@$BRANCH_REF"
+    
         echo "Branch URL: $BRANCH_URL"
-        sed -i '/padre_meddea/d' padre-requirements.txt
-        sed -i "1i padre_meddea @ $BRANCH_URL" padre-requirements.txt
-        docker build --build-arg BASE_IMAGE=public.ecr.aws/w5r9l1c8/dev-padre-swsoc-docker-lambda-base:latest --build-arg REQUIREMENTS_FILE=padre-requirements.txt -t processing_function:latest . --network host
-        
+    
+        # Clone the Lambda function repository
+        git clone https://github.com/HERMES-SOC/sdc_aws_processing_lambda.git ../sdc_aws_processing_lambda
+        cd ../sdc_aws_processing_lambda/lambda_function
+    
+        # Define mission name & instrument name from the repository name
+        PACKAGE_NAME=$(basename -s .git $REPO_URL)
+        MISSION_NAME=$(echo $PACKAGE_NAME | awk -F'_' '{print $1}')
+        INSTRUMENT_NAME=$(echo $PACKAGE_NAME | awk -F'_' '{print $2}')
+    
+        echo "Package Name: $PACKAGE_NAME"
+        echo "Mission Name: $MISSION_NAME"
+        echo "Instrument Name: $INSTRUMENT_NAME"
+    
+        # Define the mission-specific requirements file
+        REQUIREMENTS_FILE="${MISSION_NAME}-requirements.txt"
+        echo "Using requirements file: $REQUIREMENTS_FILE"
+    
+        # Ensure the requirements file exists
+        if [[ ! -f $REQUIREMENTS_FILE ]]; then
+          touch $REQUIREMENTS_FILE
+        fi
+    
+        # Remove any previous entries for 'hermes_eea' and add the new branch URL as the first entry
+        sed -i "/${PACKAGE_NAME}/d" $REQUIREMENTS_FILE
+        sed -i "1i ${PACKAGE_NAME}  @ $BRANCH_URL" $REQUIREMENTS_FILE
+    
+        echo "Updated $REQUIREMENTS_FILE:"
+        cat $REQUIREMENTS_FILE
+    
+        # Attempt to build using the base image from ECR
+        BASE_IMAGE="public.ecr.aws/w5r9l1c8/dev-${MISSION_NAME}-swsoc-docker-lambda-base:latest"
+    
+        if docker pull $BASE_IMAGE; then
+          echo "Building Docker image with base image $BASE_IMAGE"
+          docker build --build-arg BASE_IMAGE=$BASE_IMAGE --build-arg REQUIREMENTS_FILE=$REQUIREMENTS_FILE -t processing_function:latest . --network host
+        else
+          echo "Base image not found, falling back to building without base image"
+          docker build --build-arg REQUIREMENTS_FILE=$REQUIREMENTS_FILE -t processing_function:latest . --network host
+        fi
+    
+        # Export mission name and image tag for use in later steps
+        echo "MISSION_NAME=$MISSION_NAME" >> $GITHUB_ENV
+        echo "IMAGE_TAG=processing_function:latest" >> $GITHUB_ENV
+        echo "INSTRUMENT_NAME=$INSTRUMENT_NAME" >> $GITHUB_ENV
+    
     - name: Run Lambda Docker Container
       run: |
-        docker run -d -p 9000:8080 -e USE_INSTRUMENT_TEST_DATA=True -e LAMBDA_ENVIRONMENT=DEVELOPMENT -e SWXSOC_MISSION=padre processing_function:latest
-        container_id=$(docker ps -qf "ancestor=processing_function:latest")
+        # Use environment variables from previous step
+        docker run -d -p 9000:8080 \
+          -e USE_INSTRUMENT_TEST_DATA=True \
+          -e LAMBDA_ENVIRONMENT=DEVELOPMENT \
+          -e SWXSOC_MISSION=${{ env.MISSION_NAME }} \
+          ${{env.IMAGE_TAG}}
+        container_id=$(docker ps -qf "ancestor=${{env.IMAGE_TAG}}")
         echo "Container ID: $container_id"
-
+    
     - name: Wait for Container to Initialize
       run: sleep 5
-
+    
     - name: Test Lambda Function with curl
       id: test-lambda
       run: |
+        cd ../sdc_aws_processing_lambda/
         # Run curl and write the HTTP status code to a variable
-        HTTP_STATUS=$(curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" -d @.github/workflows/test_data/test_meddea_event.json)
+        HTTP_STATUS=$(curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" -d @lambda_function/tests/test_data/test_${{env.INSTRUMENT_NAME}}_event.json)
         echo "HTTP Status: $HTTP_STATUS"
-
+    
         # Grep the HTTP status code from the curl output for 200 (success)
         STATUS_CODE=$(echo $HTTP_STATUS | grep -oP '200')
         echo "Status Code: $STATUS_CODE"
-
+    
         # Docker logs for debugging
-        container_id=$(docker ps -qf "ancestor=processing_function:latest")
+        container_id=$(docker ps -qf "ancestor=${{env.IMAGE_TAG}}")
         docker logs $container_id
-
+    
         # If the HTTP status code is 200, then the test is successful
         if [ "$STATUS_CODE" == "200" ]; then
           echo "Success: HTTP status is 200"
@@ -57,25 +105,25 @@ jobs:
           echo "test_success=false" >> $GITHUB_OUTPUT
           exit 1  # Exit with failure
         fi
-
+    
     - name: Copy Processed Files from Container
       if: steps.test-lambda.outputs.test_success == 'true'
       run: |
-        container_id=$(docker ps -qf "ancestor=processing_function:latest")
+        container_id=$(docker ps -qf "ancestor=${{env.IMAGE_TAG}}")
         # Create a directory for processed files
         mkdir processed_files
         # Copy the files from the container to the host
         docker cp $container_id:/test_data/. processed_files/
         docker cp $container_id:/tmp/. processed_files/
-
+    
     - name: Upload Processed Files as Artifact
       id: artifact-upload-step
       if: steps.test-lambda.outputs.test_success == 'true'
       uses: actions/upload-artifact@v4
       with:
-          name: processed-files
-          path: processed_files/
-
+        name: processed-files
+        path: processed_files/
+    
     - name: Echo Artifact URL
       if: steps.test-lambda.outputs.test_success == 'true'
       run: echo "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts/${{ steps.artifact-upload-step.outputs.artifact-id }}"
@@ -83,7 +131,6 @@ jobs:
     - name: Comment PR
       if: steps.test-lambda.outputs.test_success == 'true' && github.event_name == 'pull_request_target'
       uses: thollander/actions-comment-pull-request@v2
-      # Only comment if triggered by a pull request target event
       with:
         message: |
-            The processed files are available as an artifact: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts/${{ steps.artifact-upload-step.outputs.artifact-id }}
+          The processed files are available as an artifact: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts/${{ steps.artifact-upload-step.outputs.artifact-id }}
