@@ -113,6 +113,7 @@ def read_fits_l0_event_list(filename: Path) -> TimeSeries:
         time=ph_times,
         data={
             "atod": hdu["sci"].data["atod"],
+            "baseline": hdu["sci"].data["baseline"],
             "asic": hdu["sci"].data["asic"],
             "channel": hdu["sci"].data["channel"],
             "pixel": pixel,
