@@ -46,7 +46,7 @@ def channel_to_pixel(channel: int) -> int:
         8: 2,
         1: 3,
         29: 4,
-        13: 5,
+        18: 5,
         5: 6,
         0: 7,
         30: 8,
