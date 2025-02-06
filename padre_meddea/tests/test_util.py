@@ -116,4 +116,3 @@ def test_pixel_to_string_error():
         util.pixel_to_str(13)
     with pytest.raises(ValueError):
         util.pixel_to_str(16)
-   

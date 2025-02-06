@@ -238,13 +238,17 @@ def process_file(filename: Path, overwrite=False) -> list:
 
             # create timeseries for each spectrum
             NUM_ADC_RANGES = 4
-            ADC_RANGES = np.linspace(0, 512, NUM_ADC_RANGES+1, dtype=np.uint16)
-            for i, (this_asic, this_chan) in enumerate(zip(asic_nums[0], channel_nums[0])):
+            ADC_RANGES = np.linspace(0, 512, NUM_ADC_RANGES + 1, dtype=np.uint16)
+            for i, (this_asic, this_chan) in enumerate(
+                zip(asic_nums[0], channel_nums[0])
+            ):
                 this_col = f"Det{this_asic}_{util.pixel_to_str(util.channel_to_pixel(this_chan))}"
-                log.info(f"Sending spectrum {i:02} {this_col} lightcurve to timestream to table spec{i:02}")
+                log.info(
+                    f"Sending spectrum {i:02} {this_col} lightcurve to timestream to table spec{i:02}"
+                )
                 ts = TimeSeries(time=timestamps)
                 for j in range(NUM_ADC_RANGES):
-                    this_lc = spectra[:,i,ADC_RANGES[j]:ADC_RANGES[j+1]]
+                    this_lc = spectra[:, i, ADC_RANGES[j] : ADC_RANGES[j + 1]]
                     ts[f"channel{j}"] = this_lc
                 record_timeseries(ts, f"spec{i:02}")
 
