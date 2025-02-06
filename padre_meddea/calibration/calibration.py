@@ -6,6 +6,8 @@ import os
 from pathlib import Path
 import tempfile
 
+import numpy as np
+
 from astropy.io import fits, ascii
 from astropy.time import Time
 from astropy.table import Table
@@ -16,6 +18,7 @@ from swxsoc.util.util import record_timeseries
 import padre_meddea
 from padre_meddea import log
 from padre_meddea.io import file_tools, fits_tools
+from padre_meddea.util import util
 
 from padre_meddea.util.util import create_science_filename, calc_time
 from padre_meddea.io.file_tools import read_raw_file
@@ -186,6 +189,7 @@ def process_file(filename: Path, overwrite=False) -> list:
             timestamps, data, spectra, ids = parsed_data["spectra"]
             asic_nums = (ids & 0b11100000) >> 5
             channel_nums = ids & 0b00011111
+            # TODO check that asic_nums and channel_nums do not change
             time_s = data["TIME_S"]
             time_clk = data["TIME_CLOCKS"]
 
@@ -217,7 +221,7 @@ def process_file(filename: Path, overwrite=False) -> list:
             data_table["asic"] = asic_nums
             data_table["channel"] = channel_nums
             data_table["seqcount"] = data["CCSDS_SEQUENCE_COUNT"]
-            record_timeseries(TimeSeries(time=timestamps, data=data_table), "spectrum")
+
             pkt_hdu = fits.BinTableHDU(data=data_table, name="PKT")
             pkt_hdu.add_checksum()
             hdul = fits.HDUList([empty_primary_hdu, spec_hdu, pkt_hdu])
@@ -231,6 +235,23 @@ def process_file(filename: Path, overwrite=False) -> list:
             )
             hdul.writeto(path, overwrite=overwrite)
             output_files.append(path)
+
+            # create timeseries for each spectrum
+            NUM_ADC_RANGES = 4
+            ADC_RANGES = np.linspace(0, 512, NUM_ADC_RANGES + 1, dtype=np.uint16)
+            for i, (this_asic, this_chan) in enumerate(
+                zip(asic_nums[0], channel_nums[0])
+            ):
+                this_col = f"Det{this_asic}_{util.pixel_to_str(util.channel_to_pixel(this_chan))}"
+                log.info(
+                    f"Sending spectrum {i:02} {this_col} lightcurve to timestream to table spec{i:02}"
+                )
+                ts = TimeSeries(time=timestamps)
+                for j in range(NUM_ADC_RANGES):
+                    this_lc = spectra[:, i, ADC_RANGES[j] : ADC_RANGES[j + 1]]
+                    ts[f"channel{j}"] = this_lc
+                record_timeseries(ts, f"spec{i:02}")
+
     # add other tasks below
     return output_files
 
