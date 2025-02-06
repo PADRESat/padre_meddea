@@ -103,3 +103,17 @@ def test_has_baseline_error():
 )
 def test_calc_time(pkt_time_s, pkt_time_clk, ph_clk, output):
     assert util.calc_time(pkt_time_s, pkt_time_clk, ph_clk) == output
+
+
+def test_pixel_to_string():
+    assert util.pixel_to_str(0) == "Pixel0L"
+    assert util.pixel_to_str(8) == "Pixel8S"
+    assert util.pixel_to_str(11) == "Pixel11S"
+
+
+def test_pixel_to_string_error():
+    with pytest.raises(ValueError):
+        util.pixel_to_str(13)
+    with pytest.raises(ValueError):
+        util.pixel_to_str(16)
+   
