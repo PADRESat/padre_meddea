@@ -49,7 +49,7 @@ def read_file(filename: Path):
     elif this_path.suffix == ".fits":  # level 0 or above
         result = read_fits(this_path)
     else:
-        raise ValueError("File extension {filename.suffix} not recognized.")
+        raise ValueError(f"File extension {filename.suffix} not recognized.")
     return result
 
 
