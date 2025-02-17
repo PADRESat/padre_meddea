@@ -183,6 +183,13 @@ def process_file(filename: Path, overwrite=False) -> list:
                 test=True,
                 version="0.1.0",
             )
+
+            # Set the temp_dir and overwrite flag based on the environment variable
+            if lambda_environment:
+                temp_dir = Path(tempfile.gettempdir())  # Set to temp directory
+                overwrite = True  # Set overwrite to True
+                path = temp_dir / path
+
             hdul.writeto(path, overwrite=overwrite)
             output_files.append(path)
         if parsed_data["spectra"] is not None:
@@ -233,6 +240,13 @@ def process_file(filename: Path, overwrite=False) -> list:
                 test=True,
                 version="0.1.0",
             )
+
+            # Set the temp_dir and overwrite flag based on the environment variable
+            if lambda_environment:
+                temp_dir = Path(tempfile.gettempdir())  # Set to temp directory
+                overwrite = True  # Set overwrite to True
+                path = temp_dir / path
+
             hdul.writeto(path, overwrite=overwrite)
             output_files.append(path)
 
