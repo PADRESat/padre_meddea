@@ -15,6 +15,16 @@ hk_names = list(calib.cal_table["name"])
 
 
 @pytest.mark.parametrize("name", hk_names)
+def test_get_calib_func(name):
+    """Test that we can get calibration functions for all hk names"""
+    # check that it returns a function
+    f = calib.get_calib_func(name)
+    assert callable(f)
+    # check that it takes an integer and returns a float
+    assert isinstance(f(1), u.Quantity)  # cannot test 0 because log(0)
+
+
+@pytest.mark.parametrize("name", hk_names)
 def test_get_hk_cal_func(name):
     """Test that we can get calibration functions for all hk names"""
     # check that it returns a function
