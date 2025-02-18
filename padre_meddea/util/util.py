@@ -65,6 +65,19 @@ def channel_to_pixel(channel: int) -> int:
         return channel + 12
 
 
+def pixel_to_str(pixel_num: int) -> str:
+    """
+    Given a pixel number, return a standardized string.
+    """
+    if not (0 <= pixel_num <= 11):
+        raise ValueError("Pixel integer number must be 0 to 11.")
+    if 0 <= pixel_num <= 7:
+        pixel_size = "L"
+    elif 8 <= pixel_num <= 12:
+        pixel_size = "S"
+    return f"Pixel{pixel_num}{pixel_size}"
+
+
 def has_baseline(filename: Path, packet_count=10) -> bool:
     """Given a stream of photon packets, check whether the baseline measurement is included.
     Baseline packets have one extra word per photon for a total of 4 words (8 bytes).
