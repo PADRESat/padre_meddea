@@ -31,7 +31,7 @@ Python ConfigParser instance called ``padre_meddea.config``, which is global to
 the package. Settings can be modified directly, for example::
 
     >>> import padre_meddea
-    >>> padre_meddea.config.set('downloads', 'download_dir', '/home/user/Downloads')
+    >>> padre_meddea.config.set('downloads', 'download_dir', '/home/user/Downloads')  # doctest: +SKIP
 
 
 .. configrc-sample:
