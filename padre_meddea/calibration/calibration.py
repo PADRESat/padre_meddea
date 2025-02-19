@@ -262,7 +262,9 @@ def process_file(filename: Path, overwrite=False) -> list:
                 )
                 ts = TimeSeries(time=timestamps)
                 for j in range(NUM_ADC_RANGES):
-                    this_lc = np.sum(spectra[:, i, ADC_RANGES[j] : ADC_RANGES[j + 1]], axis=1)
+                    this_lc = np.sum(
+                        spectra[:, i, ADC_RANGES[j] : ADC_RANGES[j + 1]], axis=1
+                    )
                     ts[f"channel{j}"] = this_lc
                 record_timeseries(ts, f"spec{i:02}")
 
