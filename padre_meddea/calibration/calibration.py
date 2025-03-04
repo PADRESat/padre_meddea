@@ -108,7 +108,7 @@ def process_file(filename: Path, overwrite=False) -> list:
         if parsed_data["housekeeping"] is not None:
             hk_data = parsed_data["housekeeping"]
             # send data to AWS Timestream for Grafana dashboard
-            record_timeseries(hk_data, "housekeeping")
+            record_timeseries(hk_data, "housekeeping", "meddea")
             hk_table = Table(hk_data)
 
             primary_hdr = get_primary_header()
@@ -152,7 +152,7 @@ def process_file(filename: Path, overwrite=False) -> list:
                     data_ts.time[0].fits,
                     get_std_comment("DATEREF"),
                 )
-                record_timeseries(data_ts, "housekeeping")
+                record_timeseries(data_ts, "housekeeping", "meddea")
                 data_table = Table(data_ts)
                 colnames_to_remove = [
                     "CCSDS_VERSION_NUMBER",
@@ -264,11 +264,10 @@ def process_file(filename: Path, overwrite=False) -> list:
                 print(spectra.shape)
                 for j in range(NUM_ADC_RANGES):
                     this_lc = np.sum(
-                        spectra[:, i, ADC_RANGES[j] : ADC_RANGES[j + 1]], axis=1    
+                        spectra[:, i, ADC_RANGES[j] : ADC_RANGES[j + 1]], axis=1
                     )
-                    print(this_lc.shape)
                     ts[f"channel{j}"] = this_lc
-                record_timeseries(ts, f"spec{i:02}")
+                record_timeseries(ts, f"spec{i:02}", "meddea")
 
     # add other tasks below
     return output_files
