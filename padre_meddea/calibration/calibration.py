@@ -261,6 +261,7 @@ def process_file(filename: Path, overwrite=False) -> list:
                     f"Sending spectrum {i:02} {this_col} lightcurve to timestream to table spec{i:02}"
                 )
                 ts = TimeSeries(time=timestamps)
+                print(spectra.shape)
                 for j in range(NUM_ADC_RANGES):
                     this_lc = np.sum(
                         spectra[:, i, ADC_RANGES[j] : ADC_RANGES[j + 1]], axis=1

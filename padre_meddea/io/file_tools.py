@@ -125,13 +125,17 @@ def read_fits_l0_event_list(filename: Path) -> TimeSeries:
     )
     event_list.sort()
     # parse packet header data
-    pkt_times = calc_time(hdu['pkt'].data['pkttimes'], hdu['pkt'].data['pktclock'])
+    pkt_times = calc_time(hdu["pkt"].data["pkttimes"], hdu["pkt"].data["pktclock"])
     pkt_ts = TimeSeries(
-        time = pkt_times,
-        data = {"livetime": hdu['pkt'].data['livetime'],
-                "inttime": hdu['pkt'].data["inttime"],
-                "flags": hdu['pkt'].data['flags'],  # TODO: parse flags into individual columns
-                "seqcount": hdu['pkt'].data["seqcount"]}
+        time=pkt_times,
+        data={
+            "livetime": hdu["pkt"].data["livetime"],
+            "inttime": hdu["pkt"].data["inttime"],
+            "flags": hdu["pkt"].data[
+                "flags"
+            ],  # TODO: parse flags into individual columns
+            "seqcount": hdu["pkt"].data["seqcount"],
+        },
     )
     return event_list, pkt_ts
 
