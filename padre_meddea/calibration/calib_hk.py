@@ -48,6 +48,7 @@ def get_hk_cal_func(hk_name: str):
 
             def f(x):
                 return lambda x: params[0] * np.log(x) + params[1]
+
     else:
         raise ValueError(f"The housekeeping name, {hk_name}, is not recognized.")
     return f
