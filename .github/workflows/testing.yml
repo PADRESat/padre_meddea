@@ -34,7 +34,7 @@ jobs:
         python -m pip install --upgrade pip setuptools wheel
         python -m pip install -e '.[test]'
     - name: Run tests
-      run: pytest --pyargs padre_meddea --cov padre_meddea
+      run: pytest --pyargs padre_meddea --cov padre_meddea no:warnings
       env:
         #
         PLATFORM: ${{ matrix.platform }}

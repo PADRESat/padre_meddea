@@ -26,7 +26,7 @@ classifiers = [
 ]
 dependencies = [
   'astropy==6.1.*',
-  'numpy==2.2.*',
+  'numpy==1.26.*',
   'sunpy==6.0.*',
   'roentgen',
   'specutils==1.15.*',
