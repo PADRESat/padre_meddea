@@ -43,12 +43,13 @@ def read_file(filename: Path):
     Examples
     --------
     """
-    if filename.suffix == "bin":  # raw binary file
-        result = read_raw_file(Path(filename))
-    elif filename.suffix == "fits":  # level 0 or above
-        read_fits(Path(filename))
+    this_path = Path(filename)
+    if this_path.suffix == ".bin":  # raw binary file
+        result = read_raw_file(this_path)
+    elif this_path.suffix == ".fits":  # level 0 or above
+        result = read_fits(this_path)
     else:
-        raise ValueError("File extension {filename.suffix} not recognized.")
+        raise ValueError(f"File extension {filename.suffix} not recognized.")
     return result
 
 
@@ -86,7 +87,7 @@ def read_fits(filename: Path):
     if (hdu[0].header["LEVEL"] == 0) and (hdu[0].header["DATATYPE"] == "event_list"):
         event_list = read_fits_l0_event_list(
             filename
-        )  # do I need to close the file since it is being opened again right after this?
+        )  # TODO do I need to close the file since it is being opened again right after this?
         return event_list
     if (hdu[0].header["LEVEL"] == 0) and (hdu[0].header["DATATYPE"] == "housekeeping"):
         hk_list = read_fits_l0_housekeeping(filename)
@@ -98,6 +99,7 @@ def read_fits(filename: Path):
 def read_fits_l0_event_list(filename: Path) -> TimeSeries:
     """ """
     hdu = fits.open(filename)
+    # parse event data in SCI
     num_events = len(hdu["SCI"].data["seqcount"])
     ph_times = calc_time(
         hdu["sci"].data["pkttimes"],
@@ -118,11 +120,24 @@ def read_fits_l0_event_list(filename: Path) -> TimeSeries:
             "channel": hdu["sci"].data["channel"],
             "pixel": pixel,
             "clocks": hdu["sci"].data["clocks"],
-            "pktnum": hdu["sci"].data["seqcount"],
+            "seqcount": hdu["sci"].data["seqcount"],
         },
     )
     event_list.sort()
-    return event_list
+    # parse packet header data
+    pkt_times = calc_time(hdu["pkt"].data["pkttimes"], hdu["pkt"].data["pktclock"])
+    pkt_ts = TimeSeries(
+        time=pkt_times,
+        data={
+            "livetime": hdu["pkt"].data["livetime"],
+            "inttime": hdu["pkt"].data["inttime"],
+            "flags": hdu["pkt"].data[
+                "flags"
+            ],  # TODO: parse flags into individual columns
+            "seqcount": hdu["pkt"].data["seqcount"],
+        },
+    )
+    return event_list, pkt_ts
 
 
 def read_fits_l0_housekeeping(filename: Path) -> TimeSeries:

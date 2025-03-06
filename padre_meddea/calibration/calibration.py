@@ -108,7 +108,7 @@ def process_file(filename: Path, overwrite=False) -> list:
         if parsed_data["housekeeping"] is not None:
             hk_data = parsed_data["housekeeping"]
             # send data to AWS Timestream for Grafana dashboard
-            record_timeseries(hk_data, "housekeeping")
+            record_timeseries(hk_data, "housekeeping", "meddea")
             hk_table = Table(hk_data)
 
             primary_hdr = get_primary_header()
@@ -152,7 +152,7 @@ def process_file(filename: Path, overwrite=False) -> list:
                     data_ts.time[0].fits,
                     get_std_comment("DATEREF"),
                 )
-                record_timeseries(data_ts, "housekeeping")
+                record_timeseries(data_ts, "housekeeping", "meddea")
                 data_table = Table(data_ts)
                 colnames_to_remove = [
                     "CCSDS_VERSION_NUMBER",
@@ -183,6 +183,13 @@ def process_file(filename: Path, overwrite=False) -> list:
                 test=True,
                 version="0.1.0",
             )
+
+            # Set the temp_dir and overwrite flag based on the environment variable
+            if lambda_environment:
+                temp_dir = Path(tempfile.gettempdir())  # Set to temp directory
+                overwrite = True  # Set overwrite to True
+                path = temp_dir / path
+
             hdul.writeto(path, overwrite=overwrite)
             output_files.append(path)
         if parsed_data["spectra"] is not None:
@@ -233,6 +240,13 @@ def process_file(filename: Path, overwrite=False) -> list:
                 test=True,
                 version="0.1.0",
             )
+
+            # Set the temp_dir and overwrite flag based on the environment variable
+            if lambda_environment:
+                temp_dir = Path(tempfile.gettempdir())  # Set to temp directory
+                overwrite = True  # Set overwrite to True
+                path = temp_dir / path
+
             hdul.writeto(path, overwrite=overwrite)
             output_files.append(path)
 
