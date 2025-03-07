@@ -12,6 +12,7 @@ from astropy.io import fits, ascii
 from astropy.time import Time
 from astropy.table import Table
 from astropy.timeseries import TimeSeries
+from ccsdspy.utils import validate
 
 from swxsoc.util.util import record_timeseries
 
@@ -57,6 +58,11 @@ def process_file(filename: Path, overwrite=False) -> list:
     file_path = Path(filename)
 
     if file_path.suffix == ".bin":
+        # Before we process, validate the file with CCSDS
+        validation_findings = validate(file_path)
+        for finding in validation_findings:
+            log.warning(f"Validation Finding for File : {filename} : {finding}")
+
         parsed_data = read_raw_file(file_path)
         if parsed_data["photons"] is not None:  # we have event list data
             event_list, pkt_list = parsed_data["photons"]
