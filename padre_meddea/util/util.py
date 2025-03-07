@@ -64,6 +64,24 @@ def channel_to_pixel(channel: int) -> int:
         )
         return channel + 12
 
+def parse_pixelids(ids):
+    """
+    Given pixel id infomration, return the asic numbers and channel numbers
+    """
+    asic_nums = (ids & 0b11100000) >> 5
+    channel_nums = ids & 0b00011111
+    return asic_nums, channel_nums
+
+
+def pixelid_to_str(ids):
+    """
+    Given unparse pixel ids, return strings for each 
+    """
+    asic_nums, channel_nums = parse_pixelids(ids)
+    pixel_nums = [channel_to_pixel(this_chan) for this_chan in channel_nums]
+    result = [f'Det{str(this_asic)}{pixel_to_str(this_pix)}' for this_asic, this_pix in zip(asic_nums, pixel_nums)]
+    return result
+
 
 def pixel_to_str(pixel_num: int) -> str:
     """
