@@ -193,13 +193,12 @@ def process_file(filename: Path, overwrite=False) -> list:
             hdul.writeto(path, overwrite=overwrite)
             output_files.append(path)
         if parsed_data["spectra"] is not None:
-            timestamps, data, spectra, ids = parsed_data["spectra"]
-            asic_nums = (ids & 0b11100000) >> 5
-            channel_nums = ids & 0b00011111
+            ts, spectra, ids = parsed_data["spectra"]
+            asic_nums, channel_nums = util.parse_pixelids(ids)
+            #asic_nums = (ids & 0b11100000) >> 5
+            #channel_nums = ids & 0b00011111
             # TODO check that asic_nums and channel_nums do not change
-            time_s = data["TIME_S"]
-            time_clk = data["TIME_CLOCKS"]
-
+=
             primary_hdr = get_primary_header()
             primary_hdr = add_process_info_to_header(primary_hdr)
             primary_hdr["LEVEL"] = (0, get_std_comment("LEVEL"))
@@ -210,9 +209,9 @@ def process_file(filename: Path, overwrite=False) -> list:
             )
             primary_hdr["ORIGFILE"] = (file_path.name, get_std_comment("ORIGFILE"))
             dates = {
-                "DATE-BEG": timestamps[0].fits,
-                "DATE-END": timestamps[-1].fits,
-                "DATE-AVG": timestamps[len(timestamps) // 2].fits,
+                "DATE-BEG": ts.time[0].fits,
+                "DATE-END": ts.time[-1].fits,
+                "DATE-AVG": ts.time[len(ts.time) // 2].fits,
             }
             primary_hdr["DATEREF"] = (dates["DATE-BEG"], get_std_comment("DATEREF"))
             for this_keyword, value in dates.items():
@@ -222,15 +221,17 @@ def process_file(filename: Path, overwrite=False) -> list:
                 )
             spec_hdu = fits.ImageHDU(data=spectra, name="SPEC")
             spec_hdu.add_checksum()
+            
             data_table = Table()
-            data_table["pkttimes"] = time_s
-            data_table["pktclock"] = time_clk
-            data_table["asic"] = asic_nums
-            data_table["channel"] = channel_nums
-            data_table["seqcount"] = data["CCSDS_SEQUENCE_COUNT"]
+            data_table["pkttimes"] = ts['pkttimes']
+            data_table["pktclock"] = ts['pktclock']
+            data_table["asic"] = asic_nums[0]
+            data_table["channel"] = channel_nums[0]
+            data_table["seqcount"] = ts['seqcount']
 
             pkt_hdu = fits.BinTableHDU(data=data_table, name="PKT")
             pkt_hdu.add_checksum()
+            empty_primary_hdu = fits.PrimaryHDU(header=primary_hdr)
             hdul = fits.HDUList([empty_primary_hdu, spec_hdu, pkt_hdu])
             path = create_science_filename(
                 "meddea",
@@ -251,8 +252,8 @@ def process_file(filename: Path, overwrite=False) -> list:
             output_files.append(path)
 
             # create timeseries for each spectrum
-            NUM_ADC_RANGES = 4
-            ADC_RANGES = np.linspace(0, 512, NUM_ADC_RANGES + 1, dtype=np.uint16)
+            NUM_LC_PER_SPEC = 4
+            ADC_RANGES = np.linspace(0, 512, NUM_LC_PER_SPEC + 1, dtype=np.uint16)
             for i, (this_asic, this_chan) in enumerate(
                 zip(asic_nums[0], channel_nums[0])
             ):
@@ -260,11 +261,11 @@ def process_file(filename: Path, overwrite=False) -> list:
                 log.info(
                     f"Sending spectrum {i:02} {this_col} lightcurve to timestream to table spec{i:02}"
                 )
-                ts = TimeSeries(time=timestamps)
-                for j in range(NUM_ADC_RANGES):
+                ts = TimeSeries(time=ts.time)
+                for j in range(NUM_LC_PER_SPEC):
                     this_lc = spectra[:, i, ADC_RANGES[j] : ADC_RANGES[j + 1]]
                     ts[f"channel{j}"] = this_lc
-                record_timeseries(ts, f"spec{i:02}")
+            record_timeseries(ts, f"spec{i:02}")
 
     # add other tasks below
     return output_files

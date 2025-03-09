@@ -20,9 +20,16 @@ from ccsdspy.utils import (
 )
 import astropy.io.fits as fits
 
+from specutils import Spectrum1D
+
 import padre_meddea
 from padre_meddea import EPOCH, APID
-from padre_meddea.util.util import has_baseline, calc_time, channel_to_pixel
+from padre_meddea.util.util import (
+    has_baseline,
+    calc_time,
+    channel_to_pixel,
+    get_pixel_str,
+)
 
 __all__ = ["read_file", "read_raw_file", "read_fits"]
 
@@ -85,13 +92,11 @@ def read_fits(filename: Path):
     hdu = fits.open(filename)
 
     if (hdu[0].header["LEVEL"] == 0) and (hdu[0].header["DATATYPE"] == "event_list"):
-        event_list = read_fits_l0_event_list(
-            filename
-        )  # TODO do I need to close the file since it is being opened again right after this?
-        return event_list
+        return read_fits_l0_event_list(filename)
     if (hdu[0].header["LEVEL"] == 0) and (hdu[0].header["DATATYPE"] == "housekeeping"):
-        hk_list = read_fits_l0_housekeeping(filename)
-        return hk_list
+        return read_fits_l0_housekeeping(filename)
+    if (hdu[0].header["LEVEL"] == 0) and (hdu[0].header["DATATYPE"] == "spectrum"):
+        return read_fits_l0_spectrum(filename)
     else:
         raise ValueError(f"File contents of {filename} not recogized.")
 
@@ -107,10 +112,14 @@ def read_fits_l0_event_list(filename: Path) -> TimeSeries:
         hdu["sci"].data["clocks"],
     )
     # add the pixel conversions
-    pixel = np.array(
+    pixels = np.array(
         [channel_to_pixel(this_chan) for this_chan in hdu["sci"].data["channel"]],
         dtype=np.uint8,
     )
+    pixel_strs = [
+        get_pixel_str(this_asic, this_pixel)
+        for this_asic, this_pixel in zip(hdu["sci"].data["asic"], pixels)
+    ]
     event_list = TimeSeries(
         time=ph_times,
         data={
@@ -118,9 +127,10 @@ def read_fits_l0_event_list(filename: Path) -> TimeSeries:
             "baseline": hdu["sci"].data["baseline"],
             "asic": hdu["sci"].data["asic"],
             "channel": hdu["sci"].data["channel"],
-            "pixel": pixel,
+            "pixel": pixels,
             "clocks": hdu["sci"].data["clocks"],
             "seqcount": hdu["sci"].data["seqcount"],
+            "pixel_str": pixel_strs,
         },
     )
     event_list.sort()
@@ -141,7 +151,12 @@ def read_fits_l0_event_list(filename: Path) -> TimeSeries:
 
 
 def read_fits_l0_housekeeping(filename: Path) -> TimeSeries:
-    """Read a level 0 housekeeping file"""
+    """Read a level 0 housekeeping file
+
+    Returns
+    -------
+    TimeSeries of housekeeping data.
+    """
     hdu = fits.open(filename)
     colnames = [this_col.name for this_col in hdu["HK"].data.columns]
     times = calc_time(hdu["HK"].data["timestamp"])
@@ -149,6 +164,42 @@ def read_fits_l0_housekeeping(filename: Path) -> TimeSeries:
         time=times, data={key: hdu["hk"].data[key] for key in colnames}
     )
     return hk_list
+
+
+def read_fits_l0_spectrum(filename: Path):
+    """Read a level 0 spectrum file.
+
+    .. note::
+       This function is in Draft form and what it returns will likely be updated.
+
+    Returns
+    -------
+    timestamps, Spectrum1D array, asic_nums, pixel_nums, pixelid_strings
+    """
+    hdu = fits.open(filename)
+    timestamps = calc_time(hdu["PKT"].data["pkttimes"], hdu["PKT"].data["pktclock"])
+    asic_nums = hdu["PKT"].data["asic"]
+    channel_nums = hdu["PKT"].data["channel"]
+    pixel_nums = channel_to_pixel(channel_nums)
+    these_asics = asic_nums[0]
+    these_pixels = pixel_nums[0]
+    pixel_strs = [
+        get_pixel_str(this_asic, this_pixel)
+        for this_asic, this_pixel in zip(these_asics, these_pixels)
+    ]
+    # TODO: check that all asic_nums and channel_nums are the same
+    specs = Spectrum1D(
+        spectral_axis=np.arange(512) * u.pix, flux=hdu["spec"].data * u.ct
+    )
+    ts = TimeSeries(times=timestamps)
+    ts["asic"] = these_asics
+    ts["pixel"] = these_pixels
+    ts["pixel_str"] = pixel_strs
+    ts["seqcount"] = hdu["pkt"].data["seqcount"]
+    ts["pkttimes"] = hdu["pkt"].data["pkttimes"]
+    ts[""]
+
+    return ts, specs
 
 
 def parse_ph_packets(filename: Path):
@@ -347,9 +398,15 @@ def parse_spectrum_packets(filename: Path):
     timestamps = calc_time(data["TIME_S"], data["TIME_CLOCKS"])
     num_packets = len(data["TIME_S"])
     h = data["HISTOGRAM_DATA"].reshape((num_packets, 24, 513))
-    histogram_data = h[:, :, 1:]  # remove the id field
-    ids = h[:, :, 0]
-    return timestamps, data, histogram_data, ids
+    histogram_data = h[:, :, 1:]  # remove the pixel id field
+    pixel_ids = h[:, :, 0]
+    ts = TimeSeries(time=timestamps)
+    ts["livetime"] = data["LIVE_TIME"]
+    ts["inttime"] = data["INTEGRATION_TIME"]
+    ts["pkttimes"] = data["TIME_S"]
+    ts["pktclock"] = data["TIME_CLOCKS"]
+    ts["seqcount"] = data["CCSDS_SEQUENCE_COUNT"]
+    return ts, histogram_data, pixel_ids
 
 
 def parse_cmd_response_packets(filename: Path):

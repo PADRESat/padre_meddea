@@ -36,7 +36,7 @@ def calc_time(pkt_time_s, pkt_time_clk=0, ph_clk=0) -> Time:
     return result
 
 
-def channel_to_pixel(channel: int) -> int:
+def _channel_to_pixel(channel: int) -> int:
     """
     Given a channel pixel number, return the pixel number.
     """
@@ -60,9 +60,12 @@ def channel_to_pixel(channel: int) -> int:
         return CHANNEL_TO_PIX[channel]
     else:
         warnings.warn(
-            f"Found unconnected channel, {channel}. Returning channel + 12 ={channel+12}."
+            f"Found unconnected channel, {channel}. Returning channel + 12 ={channel + 12}."
         )
         return channel + 12
+
+
+channel_to_pixel = np.vectorize(_channel_to_pixel)
 
 def parse_pixelids(ids):
     """
@@ -73,14 +76,19 @@ def parse_pixelids(ids):
     return asic_nums, channel_nums
 
 
+def get_pixel_str(asic_num: int, pixel_num: int):
+    return f'Det{str(asic_num)}{pixel_to_str(pixel_num)}'
+
+
 def pixelid_to_str(ids):
     """
-    Given unparse pixel ids, return strings for each 
+    Given unparsed pixel ids, return strings for each 
     """
     asic_nums, channel_nums = parse_pixelids(ids)
     pixel_nums = [channel_to_pixel(this_chan) for this_chan in channel_nums]
-    result = [f'Det{str(this_asic)}{pixel_to_str(this_pix)}' for this_asic, this_pix in zip(asic_nums, pixel_nums)]
+    result = [get_pixel_str(this_asic, this_pixel) for this_asic, this_pixel in zip(asic_nums, pixel_nums)]
     return result
+
 
 
 def pixel_to_str(pixel_num: int) -> str:
@@ -159,3 +167,9 @@ def is_consecutive(arr: np.array) -> bool:
         this_arr = arr[last_index + 1 :]
         result = result & np.all(np.diff(this_arr) == 1)
         return result
+
+
+def verify_file(filename: Path):
+    packet_bytes = split_packet_bytes(filename)
+    # for i in range(num):
+    #    checksum = np.bitwise_xor.reduce(np.frombuffer(packet_bytes[i], dtype=np.uint16))
