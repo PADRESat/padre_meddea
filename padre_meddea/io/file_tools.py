@@ -24,12 +24,7 @@ from specutils import Spectrum1D
 
 import padre_meddea
 from padre_meddea import EPOCH, APID
-from padre_meddea.util.util import (
-    has_baseline,
-    calc_time,
-    channel_to_pixel,
-    get_pixel_str,
-)
+import padre_meddea.util.util as util
 
 __all__ = ["read_file", "read_raw_file", "read_fits"]
 
@@ -106,18 +101,15 @@ def read_fits_l0_event_list(filename: Path) -> TimeSeries:
     hdu = fits.open(filename)
     # parse event data in SCI
     num_events = len(hdu["SCI"].data["seqcount"])
-    ph_times = calc_time(
+    ph_times = util.calc_time(
         hdu["sci"].data["pkttimes"],
         hdu["sci"].data["pktclock"],
         hdu["sci"].data["clocks"],
     )
     # add the pixel conversions
-    pixels = np.array(
-        [channel_to_pixel(this_chan) for this_chan in hdu["sci"].data["channel"]],
-        dtype=np.uint8,
-    )
+    pixels = util.channel_to_pixel(hdu["sci"].data["channel"])
     pixel_strs = [
-        get_pixel_str(this_asic, this_pixel)
+        util.get_pixel_str(this_asic, this_pixel)
         for this_asic, this_pixel in zip(hdu["sci"].data["asic"], pixels)
     ]
     event_list = TimeSeries(
@@ -135,7 +127,7 @@ def read_fits_l0_event_list(filename: Path) -> TimeSeries:
     )
     event_list.sort()
     # parse packet header data
-    pkt_times = calc_time(hdu["pkt"].data["pkttimes"], hdu["pkt"].data["pktclock"])
+    pkt_times = util.calc_time(hdu["pkt"].data["pkttimes"], hdu["pkt"].data["pktclock"])
     pkt_ts = TimeSeries(
         time=pkt_times,
         data={
@@ -159,7 +151,7 @@ def read_fits_l0_housekeeping(filename: Path) -> TimeSeries:
     """
     hdu = fits.open(filename)
     colnames = [this_col.name for this_col in hdu["HK"].data.columns]
-    times = calc_time(hdu["HK"].data["timestamp"])
+    times = util.calc_time(hdu["HK"].data["timestamp"])
     hk_list = TimeSeries(
         time=times, data={key: hdu["hk"].data[key] for key in colnames}
     )
@@ -177,14 +169,16 @@ def read_fits_l0_spectrum(filename: Path):
     timestamps, Spectrum1D array, asic_nums, pixel_nums, pixelid_strings
     """
     hdu = fits.open(filename)
-    timestamps = calc_time(hdu["PKT"].data["pkttimes"], hdu["PKT"].data["pktclock"])
+    timestamps = util.calc_time(
+        hdu["PKT"].data["pkttimes"], hdu["PKT"].data["pktclock"]
+    )
     asic_nums = hdu["PKT"].data["asic"]
     channel_nums = hdu["PKT"].data["channel"]
-    pixel_nums = channel_to_pixel(channel_nums)
+    pixel_nums = util.channel_to_pixel(channel_nums)
     these_asics = asic_nums[0]
     these_pixels = pixel_nums[0]
     pixel_strs = [
-        get_pixel_str(this_asic, this_pixel)
+        util.get_pixel_str(this_asic, this_pixel)
         for this_asic, this_pixel in zip(these_asics, these_pixels)
     ]
     # TODO: check that all asic_nums and channel_nums are the same
@@ -222,12 +216,13 @@ def parse_ph_packets(filename: Path):
     6   time_stamp_clocks 2
     7   integration time in clock counts
     8   live time in clock counts
-    9   drop counter ([15] Int.Time Overflow, [14:12] decimation level, [11:0] # dropped photons)
+    9   flags, drop counter ([15] Int.Time Overflow, [14:12] decimation level, [11:0] # dropped photons)
     10  checksum
-    11  start of pixel data
+    11  start of pixel data (each is 16 bit field)
     -   pixel time step in clock count
-    -   pixel_location (ASIC # bits[7:5], pixel num bits[4:0])
-    -   pixel_data 12 bit ADC count
+    -   pixel_id (ASIC # bits[7:5], pixel num bits[4:0])
+    -   pixel_data ADC count
+    -   pixel_data baseline 12 bit baseline value (optional)
     ==  =============================================================
 
     Parameters
@@ -251,19 +246,23 @@ def parse_ph_packets(filename: Path):
     pkt = ccsdspy.VariableLength(packet_definition)
     ph_data = pkt.load(packet_stream, include_primary_header=True)
     # packet_time = ph_data["TIME_S"] + ph_data["TIME_CLOCKS"] / 20.0e6
-    if has_baseline(filename):
+    if util.has_baseline(filename):
         WORDS_PER_HIT = 4
     else:
         WORDS_PER_HIT = 3
 
-    pkt_list = Table()
+    pkt_times = util.calc_time(ph_data["TIME_S"], ph_data["TIME_CLOCKS"])
+    pkt_list = TimeSeries(time=pkt_times)
     pkt_list["seqcount"] = ph_data["CCSDS_SEQUENCE_COUNT"]
     pkt_list["pkttimes"] = ph_data["TIME_S"]
     pkt_list["pktclock"] = ph_data["TIME_CLOCKS"]
     pkt_list["livetime"] = ph_data["LIVE_TIME"]
     pkt_list["inttime"] = ph_data["INTEGRATION_TIME"]
     pkt_list["flags"] = ph_data["FLAGS"]
-
+    # parse flag field into their own
+    pkt_list["decim_lvl"], pkt_list["drop_cnt"], pkt_list["int_time_flag"] = (
+        util.parse_ph_flags(pkt_list["flags"])
+    )
     total_hits = 0
     for this_packet in ph_data["PIXEL_DATA"]:
         total_hits += len(this_packet[0::WORDS_PER_HIT])
@@ -272,6 +271,8 @@ def parse_ph_packets(filename: Path):
         raise ValueError(
             f"Got non-integer number of hits {total_hits - np.floor(total_hits)}."
         )
+
+    
 
     # hit_list definition
     # 0, raw id number
@@ -312,7 +313,13 @@ def parse_ph_packets(filename: Path):
             hit_list[3, i : i + num_hits] = this_ph_data[2::WORDS_PER_HIT]  # hit energy
         i += num_hits
 
-    event_list = Table()
+    ph_times = util.calc_time(
+        time_s,
+        time_clk,
+        hit_list[5, :],
+    )
+
+    event_list = TimeSeries(time=ph_times)
     event_list["seqcount"] = hit_list[4, :]
     event_list["clocks"] = hit_list[5, :]
     event_list["asic"] = hit_list[1, :].astype(np.uint8)
@@ -321,12 +328,12 @@ def parse_ph_packets(filename: Path):
     event_list["baseline"] = hit_list[6, :]  # if baseline not present then all zeros
     event_list["pkttimes"] = time_s
     event_list["pktclock"] = time_clk
-    date_beg = calc_time(time_s[0], time_clk[0])
-    date_end = calc_time(time_s[-1], time_clk[-1])
+    date_beg = util.calc_time(time_s[0], time_clk[0])
+    date_end = util.calc_time(time_s[-1], time_clk[-1])
     event_list.meta.update({"DATE-BEG": date_beg.fits})
     event_list.meta.update({"DATE-END": date_end.fits})
     center_index = int(len(time_s) / 2.0)
-    date_avg = calc_time(time_s[center_index], time_clk[center_index])
+    date_avg = util.calc_time(time_s[center_index], time_clk[center_index])
     event_list.meta.update({"DATE-AVG": date_avg.fits})
     # event_list = TimeSeries(
     #    time=ph_times,
@@ -395,7 +402,7 @@ def parse_spectrum_packets(filename: Path):
     packet_definition = packet_definition_hist2()
     pkt = ccsdspy.FixedLength(packet_definition)
     data = pkt.load(packet_bytes, include_primary_header=True)
-    timestamps = calc_time(data["TIME_S"], data["TIME_CLOCKS"])
+    timestamps = util.calc_time(data["TIME_S"], data["TIME_CLOCKS"])
     num_packets = len(data["TIME_S"])
     h = data["HISTOGRAM_DATA"].reshape((num_packets, 24, 513))
     histogram_data = h[:, :, 1:]  # remove the pixel id field
@@ -447,7 +454,7 @@ def parse_cmd_response_packets(filename: Path):
     packet_definition = packet_definition_cmd_response()
     pkt = ccsdspy.FixedLength(packet_definition)
     data = pkt.load(packet_bytes, include_primary_header=True)
-    timestamps = calc_time(data["TIME_S"], data["TIME_CLOCKS"])
+    timestamps = util.calc_time(data["TIME_S"], data["TIME_CLOCKS"])
     data = {
         "time_s": data["TIME_S"],
         "time_clock": data["TIME_CLOCKS"],
