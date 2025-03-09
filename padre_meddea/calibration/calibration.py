@@ -198,7 +198,7 @@ def process_file(filename: Path, overwrite=False) -> list:
             #asic_nums = (ids & 0b11100000) >> 5
             #channel_nums = ids & 0b00011111
             # TODO check that asic_nums and channel_nums do not change
-=
+
             primary_hdr = get_primary_header()
             primary_hdr = add_process_info_to_header(primary_hdr)
             primary_hdr["LEVEL"] = (0, get_std_comment("LEVEL"))
