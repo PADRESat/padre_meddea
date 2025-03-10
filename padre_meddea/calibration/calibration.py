@@ -12,14 +12,13 @@ from astropy.io import fits, ascii
 from astropy.time import Time
 from astropy.table import Table
 from astropy.timeseries import TimeSeries
-from ccsdspy.utils import validate
 
 from swxsoc.util.util import record_timeseries
 
 import padre_meddea
 from padre_meddea import log
 from padre_meddea.io import file_tools, fits_tools
-from padre_meddea.util import util
+from padre_meddea.util import util, validation
 
 from padre_meddea.util.util import create_science_filename, calc_time
 from padre_meddea.io.file_tools import read_raw_file
@@ -59,7 +58,7 @@ def process_file(filename: Path, overwrite=False) -> list:
 
     if file_path.suffix == ".bin":
         # Before we process, validate the file with CCSDS
-        validation_findings = validate(file_path)
+        validation_findings = validation.validate(file_path)
         for finding in validation_findings:
             log.warning(f"Validation Finding for File : {filename} : {finding}")
 
