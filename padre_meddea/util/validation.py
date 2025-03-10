@@ -42,5 +42,10 @@ def validate(file, valid_apids=None):
     ----------
     file: `str | BytesIO`
         A file path (str) or file-like object with a `.read()` method.
+
+    Returns
+    -------
+    List of strings, each in the format "WarningType: message", describing
+    potential validation issues. Returns an empty list if no warnings are issued.
     """
     return validate(file, valid_apids)

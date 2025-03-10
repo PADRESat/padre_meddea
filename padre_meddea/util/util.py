@@ -18,7 +18,6 @@ __all__ = [
     "create_science_filename",
     "calc_time",
     "has_baseline",
-    "is_consecutive",
     "channel_to_pixel",
 ]
 
