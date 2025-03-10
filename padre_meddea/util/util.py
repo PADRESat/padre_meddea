@@ -126,10 +126,10 @@ def str_to_fits_keyword(keyword: str) -> str:
 def is_consecutive(arr: np.array) -> bool:
     """Return True if the packet sequence numbers are all consecutive integers, has no missing numbers."""
     MAX_SEQCOUNT = 2**14 - 1  # 16383
-    
+
     # Ensure arr is at least 1D
     arr = np.atleast_1d(arr)
-    
+
     # check if seqcount has wrapped around
     indices = np.where(arr == MAX_SEQCOUNT)
     if len(indices[0]) == 0:  # no wrap
