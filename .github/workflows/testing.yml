@@ -40,7 +40,6 @@ jobs:
       env:
         #
         PLATFORM: ${{ matrix.platform }}
-        PYTHONWARNINGS: "ignore"
         #
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v4	
