@@ -1,36 +1,44 @@
 """
-This module contains utilities for file and packet validation. 
+This module contains utilities for file and packet validation.
 """
 
+from typing import List
+
 import numpy as np
-from ccsdspy.utils import validate
+from ccsdspy import utils
 
 
-def is_consecutive(arr: np.array) -> bool:
-    """Return True if the packet sequence numbers are all consecutive integers, has no missing numbers."""
-    MAX_SEQCOUNT = 2**14 - 1  # 16383
+def validate_packet_checksums(file) -> List[str]:
+    """
+    Custom Validation Function to check that all packets have contents that match their checksums. This is achieved be a rolling XOR of the packet contents. If the final XOR value is not 0, a warning is issued.
 
-    # Ensure arr is at least 1D
-    arr = np.atleast_1d(arr)
+    Parameters
+    ----------
+    file: `str | BytesIO`
+        A file path (str) or file-like object with a `.read()` method.
 
-    # check if seqcount has wrapped around
-    indices = np.where(arr == MAX_SEQCOUNT)
-    if len(indices[0]) == 0:  # no wrap
-        return np.all(np.diff(arr) == 1)
-    else:
-        last_index = 0
-        result = True
-        for this_ind in indices[0]:
-            this_arr = arr[last_index : this_ind + 1]
-            result = result & np.all(np.diff(this_arr) == 1)
-            last_index = this_ind + 1
-        # now do the remaining part of the array
-        this_arr = arr[last_index + 1 :]
-        result = result & np.all(np.diff(this_arr) == 1)
-        return result
+    Returns
+    -------
+    List of strings, each in the format "WarningType: message", describing potential validation issues. Returns an empty list if no warnings are issued.
+    """
+    validation_warnings = []
+    # Read the file
+    packets = utils.split_packet_bytes(file)
+    for i, packet in enumerate(packets):
+        # Convert to an array of u16 integers
+        packet_arr = np.frombuffer(packet, dtype=np.uint8)
+        checksum_validation = np.bitwise_xor.reduce(packet_arr)
+        # Make sure the XOR reduction is 0
+        if checksum_validation != 0:
+            validation_warnings.append(
+                f"ChecksumWarning: Packet {i} has a checksum error."
+            )
+    return validation_warnings
 
 
-def validate(file, valid_apids=None):
+def validate(
+    file, valid_apids: List[int] = None, custom_validators: List[callable] = None
+) -> List[str]:
     """
     Validate a file containing CCSDS packets and capturing any exceptions or warnings they generate.
     This function checks:
@@ -42,10 +50,26 @@ def validate(file, valid_apids=None):
     ----------
     file: `str | BytesIO`
         A file path (str) or file-like object with a `.read()` method.
+    valid_apids: `list[int]| None`, optional
+       Optional list of valid APIDs. If specified, warning will be issued when
+       an APID is encountered outside this list.
+    custom_validators: `List[callable]`, optional
+        List of custom validation functions that take a file-like object as input and return a list of warnings
 
     Returns
     -------
     List of strings, each in the format "WarningType: message", describing
     potential validation issues. Returns an empty list if no warnings are issued.
     """
-    return validate(file, valid_apids)
+    validation_warnings = []
+    # Run Baseline CCSDSPy validation
+    ccsdspy_warnings = utils.validate(file, valid_apids)
+    validation_warnings.extend(ccsdspy_warnings)
+    # Run custom validation functions
+    if custom_validators:
+        for validator in custom_validators:
+            # Execute Custom Validator
+            custom_warnings = validator(file)
+            validation_warnings.extend(custom_warnings)
+
+    return validation_warnings

@@ -58,7 +58,10 @@ def process_file(filename: Path, overwrite=False) -> list:
 
     if file_path.suffix == ".bin":
         # Before we process, validate the file with CCSDS
-        validation_findings = validation.validate(file_path)
+        custom_validators = [validation.validate_packet_checksums]
+        validation_findings = validation.validate(
+            file_path, custom_validators=custom_validators
+        )
         for finding in validation_findings:
             log.warning(f"Validation Finding for File : {filename} : {finding}")
 

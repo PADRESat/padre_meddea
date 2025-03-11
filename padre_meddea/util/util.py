@@ -18,6 +18,7 @@ __all__ = [
     "create_science_filename",
     "calc_time",
     "has_baseline",
+    "is_consecutive",
     "channel_to_pixel",
 ]
 
@@ -120,3 +121,27 @@ def str_to_fits_keyword(keyword: str) -> str:
     than 8 characters."""
     clean_keyword = "".join(e for e in keyword if e.isalnum()).strip().upper()
     return clean_keyword[0:8]
+
+
+def is_consecutive(arr: np.array) -> bool:
+    """Return True if the packet sequence numbers are all consecutive integers, has no missing numbers."""
+    MAX_SEQCOUNT = 2**14 - 1  # 16383
+
+    # Ensure arr is at least 1D
+    arr = np.atleast_1d(arr)
+
+    # check if seqcount has wrapped around
+    indices = np.where(arr == MAX_SEQCOUNT)
+    if len(indices[0]) == 0:  # no wrap
+        return np.all(np.diff(arr) == 1)
+    else:
+        last_index = 0
+        result = True
+        for this_ind in indices[0]:
+            this_arr = arr[last_index : this_ind + 1]
+            result = result & np.all(np.diff(this_arr) == 1)
+            last_index = this_ind + 1
+        # now do the remaining part of the array
+        this_arr = arr[last_index + 1 :]
+        result = result & np.all(np.diff(this_arr) == 1)
+        return result
