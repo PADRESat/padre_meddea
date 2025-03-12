@@ -1,4 +1,5 @@
 """Provides functions to upload data to the SWxSOC time series database for dashboard display"""
+
 import numpy as np
 from astropy.timeseries import TimeSeries
 
@@ -6,6 +7,7 @@ from swxsoc.util.util import record_timeseries
 
 from padre_meddea import log
 import padre_meddea.util.util as util
+
 
 def record_spectra(ts, spectra, ids):
     """Send spectrum time series data to AWS."""
@@ -16,10 +18,10 @@ def record_spectra(ts, spectra, ids):
     NUM_LC_PER_SPEC = 4
     ADC_RANGES = np.linspace(0, 512, NUM_LC_PER_SPEC + 1, dtype=np.uint16)
 
-    for i, (this_asic, this_chan) in enumerate(
-        zip(asic_nums[0], channel_nums[0])
-    ):
-        this_col = f"Det{this_asic}{util.pixel_to_str(util.channel_to_pixel(this_chan))}"
+    for i, (this_asic, this_chan) in enumerate(zip(asic_nums[0], channel_nums[0])):
+        this_col = (
+            f"Det{this_asic}{util.pixel_to_str(util.channel_to_pixel(this_chan))}"
+        )
         log.info(
             f"Sending spectrum {i:02} {this_col} lightcurve to timestream to table spec{i:02}"
         )
