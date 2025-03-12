@@ -272,8 +272,6 @@ def parse_ph_packets(filename: Path):
             f"Got non-integer number of hits {total_hits - np.floor(total_hits)}."
         )
 
-    
-
     # hit_list definition
     # 0, raw id number
     # 1, asic number, 0 to 7
@@ -328,6 +326,7 @@ def parse_ph_packets(filename: Path):
     event_list["baseline"] = hit_list[6, :]  # if baseline not present then all zeros
     event_list["pkttimes"] = time_s
     event_list["pktclock"] = time_clk
+    event_list["pixel"] = util.channel_to_pixel(event_list["channel"])
     date_beg = util.calc_time(time_s[0], time_clk[0])
     date_end = util.calc_time(time_s[-1], time_clk[-1])
     event_list.meta.update({"DATE-BEG": date_beg.fits})
