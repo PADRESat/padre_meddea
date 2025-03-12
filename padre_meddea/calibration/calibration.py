@@ -18,7 +18,7 @@ from swxsoc.util.util import record_timeseries
 import padre_meddea
 from padre_meddea import log
 from padre_meddea.io import file_tools, fits_tools
-from padre_meddea.util import util
+from padre_meddea.util import util, validation
 
 from padre_meddea.util.util import create_science_filename, calc_time
 from padre_meddea.io.file_tools import read_raw_file
@@ -57,6 +57,14 @@ def process_file(filename: Path, overwrite=False) -> list:
     file_path = Path(filename)
 
     if file_path.suffix == ".bin":
+        # Before we process, validate the file with CCSDS
+        custom_validators = [validation.validate_packet_checksums]
+        validation_findings = validation.validate(
+            file_path, custom_validators=custom_validators
+        )
+        for finding in validation_findings:
+            log.warning(f"Validation Finding for File : {filename} : {finding}")
+
         parsed_data = read_raw_file(file_path)
         if parsed_data["photons"] is not None:  # we have event list data
             event_list, pkt_list = parsed_data["photons"]
