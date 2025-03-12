@@ -191,7 +191,6 @@ def read_fits_l0_spectrum(filename: Path):
     ts["pixel_str"] = pixel_strs
     ts["seqcount"] = hdu["pkt"].data["seqcount"]
     ts["pkttimes"] = hdu["pkt"].data["pkttimes"]
-    ts[""]
 
     return ts, specs
 
@@ -239,7 +238,6 @@ def parse_ph_packets(filename: Path):
     with open(filename, "rb") as mixed_file:
         stream_by_apid = split_by_apid(mixed_file)
     packet_stream = stream_by_apid.get(APID["photon"], None)
-    print(packet_stream)
     if packet_stream is None:
         return None
     packet_definition = packet_definition_ph()
@@ -263,9 +261,16 @@ def parse_ph_packets(filename: Path):
     pkt_list["decim_lvl"], pkt_list["drop_cnt"], pkt_list["int_time_flag"] = (
         util.parse_ph_flags(pkt_list["flags"])
     )
-    total_hits = 0
-    for this_packet in ph_data["PIXEL_DATA"]:
-        total_hits += len(this_packet[0::WORDS_PER_HIT])
+
+    # determine the total amount of hits in all photon packets
+    hit_count = np.zeros(len(pkt_list), dtype="uint32")
+    for i, this_packet in enumerate(ph_data["PIXEL_DATA"]):
+        hit_count[i] = len(this_packet[0::WORDS_PER_HIT])
+    total_hits = np.sum(hit_count)
+    # add the number of hits per photon packet to pkt_list
+    pkt_list["num_hits"] = hit_count
+    pkt_list["rate"] = hit_count / (pkt_list["inttime"] * 12.8e-6)
+    pkt_list["corr_rate"] = hit_count / (pkt_list["livetime"] * 12.8e-6)
 
     if (total_hits - np.floor(total_hits)) != 0:
         raise ValueError(
@@ -284,6 +289,7 @@ def parse_ph_packets(filename: Path):
     hit_list = np.zeros((9, total_hits), dtype="uint16")
     time_s = np.zeros(total_hits, dtype="uint32")
     time_clk = np.zeros(total_hits, dtype="uint32")
+
     # 0 time, 1 asic_num, 2 channel num, 3 hit channel
     i = 0
     # iterate over packets
@@ -334,22 +340,7 @@ def parse_ph_packets(filename: Path):
     center_index = int(len(time_s) / 2.0)
     date_avg = util.calc_time(time_s[center_index], time_clk[center_index])
     event_list.meta.update({"DATE-AVG": date_avg.fits})
-    # event_list = TimeSeries(
-    #    time=ph_times,
-    #    data={
-    #        "atod": hit_list[3, :],
-    #        "asic": hit_list[1, :],
-    #        "channel": hit_list[2, :],
-    #        "clock": hit_list[5, :],
-    #        "pktnum": hit_list[4, :],
-    #        # "num": np.ones(len(hit_list[2, :])),
-    #    }
-    # )
-    # event_list.sort()
-    # int_time = (event_list.time.max() - event_list.time.min()).to("min")
-    # event_list.meta.update({"int_time": int_time})
-    # event_list.meta.update({"avg rate": (total_hits * u.ct) / int_time})
-    return event_list, pkt_list
+    return pkt_list, event_list
 
 
 def parse_hk_packets(filename: Path):
@@ -412,7 +403,11 @@ def parse_spectrum_packets(filename: Path):
     ts["pkttimes"] = data["TIME_S"]
     ts["pktclock"] = data["TIME_CLOCKS"]
     ts["seqcount"] = data["CCSDS_SEQUENCE_COUNT"]
-    return ts, histogram_data, pixel_ids
+    specs = Spectrum1D(
+        spectral_axis=np.arange(histogram_data.shape[2]) * u.pix,
+        flux=histogram_data * u.ct,
+    )
+    return ts, specs, pixel_ids
 
 
 def parse_cmd_response_packets(filename: Path):

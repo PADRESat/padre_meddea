@@ -8,17 +8,16 @@ import tempfile
 
 import numpy as np
 
-from astropy.io import fits, ascii
+from astropy.io import fits
 from astropy.time import Time
 from astropy.table import Table
 from astropy.timeseries import TimeSeries
-
-from swxsoc.util.util import record_timeseries
 
 import padre_meddea
 from padre_meddea import log
 from padre_meddea.io import file_tools, fits_tools
 from padre_meddea.util import util, validation
+import padre_meddea.io.aws_db as aws_db
 
 from padre_meddea.util.util import create_science_filename, calc_time
 from padre_meddea.io.file_tools import read_raw_file
@@ -67,10 +66,14 @@ def process_file(filename: Path, overwrite=False) -> list:
 
         parsed_data = read_raw_file(file_path)
         if parsed_data["photons"] is not None:  # we have event list data
-            event_list, pkt_list = parsed_data["photons"]
+            pkt_list, event_list = parsed_data["photons"]
             log.info(
                 f"Found photon data, {len(event_list)} photons and {len(pkt_list)} packets."
             )
+            aws_db.record_photons(event_list, pkt_list)
+
+            event_list = Table(event_list)
+            event_list.remove_column("time")
             primary_hdr = get_primary_header()
             primary_hdr = add_process_info_to_header(primary_hdr)
             primary_hdr["LEVEL"] = (0, get_std_comment("LEVEL"))
@@ -88,6 +91,8 @@ def process_file(filename: Path, overwrite=False) -> list:
                 )
 
             empty_primary_hdu = fits.PrimaryHDU(header=primary_hdr)
+            pkt_list = Table(pkt_list)
+            pkt_list.remove_column("time")
             pkt_hdu = fits.BinTableHDU(pkt_list, name="PKT")
             pkt_hdu.add_checksum()
             hit_hdu = fits.BinTableHDU(event_list, name="SCI")
@@ -116,7 +121,7 @@ def process_file(filename: Path, overwrite=False) -> list:
         if parsed_data["housekeeping"] is not None:
             hk_data = parsed_data["housekeeping"]
             # send data to AWS Timestream for Grafana dashboard
-            record_timeseries(hk_data, "housekeeping", "meddea")
+            aws_db.record_housekeeping(hk_data, "housekeeping", "meddea")
             hk_table = Table(hk_data)
 
             primary_hdr = get_primary_header()
@@ -160,7 +165,7 @@ def process_file(filename: Path, overwrite=False) -> list:
                     data_ts.time[0].fits,
                     get_std_comment("DATEREF"),
                 )
-                record_timeseries(data_ts, "housekeeping", "meddea")
+                aws_db.record_cmd(data_ts)
                 data_table = Table(data_ts)
                 colnames_to_remove = [
                     "CCSDS_VERSION_NUMBER",
@@ -203,8 +208,8 @@ def process_file(filename: Path, overwrite=False) -> list:
         if parsed_data["spectra"] is not None:
             ts, spectra, ids = parsed_data["spectra"]
             asic_nums, channel_nums = util.parse_pixelids(ids)
-            #asic_nums = (ids & 0b11100000) >> 5
-            #channel_nums = ids & 0b00011111
+            # asic_nums = (ids & 0b11100000) >> 5
+            # channel_nums = ids & 0b00011111
             # TODO check that asic_nums and channel_nums do not change
 
             primary_hdr = get_primary_header()
@@ -229,13 +234,13 @@ def process_file(filename: Path, overwrite=False) -> list:
                 )
             spec_hdu = fits.ImageHDU(data=spectra, name="SPEC")
             spec_hdu.add_checksum()
-            
+
             data_table = Table()
-            data_table["pkttimes"] = ts['pkttimes']
-            data_table["pktclock"] = ts['pktclock']
+            data_table["pkttimes"] = ts["pkttimes"]
+            data_table["pktclock"] = ts["pktclock"]
             data_table["asic"] = asic_nums[0]
             data_table["channel"] = channel_nums[0]
-            data_table["seqcount"] = ts['seqcount']
+            data_table["seqcount"] = ts["seqcount"]
 
             pkt_hdu = fits.BinTableHDU(data=data_table, name="PKT")
             pkt_hdu.add_checksum()
@@ -259,21 +264,7 @@ def process_file(filename: Path, overwrite=False) -> list:
             hdul.writeto(path, overwrite=overwrite)
             output_files.append(path)
 
-            # create timeseries for each spectrum
-            NUM_LC_PER_SPEC = 4
-            ADC_RANGES = np.linspace(0, 512, NUM_LC_PER_SPEC + 1, dtype=np.uint16)
-            for i, (this_asic, this_chan) in enumerate(
-                zip(asic_nums[0], channel_nums[0])
-            ):
-                this_col = f"Det{this_asic}_{util.pixel_to_str(util.channel_to_pixel(this_chan))}"
-                log.info(
-                    f"Sending spectrum {i:02} {this_col} lightcurve to timestream to table spec{i:02}"
-                )
-                ts = TimeSeries(time=ts.time)
-                for j in range(NUM_LC_PER_SPEC):
-                    this_lc = spectra[:, i, ADC_RANGES[j] : ADC_RANGES[j + 1]]
-                    ts[f"channel{j}"] = this_lc
-            record_timeseries(ts, f"spec{i:02}")
+            aws_db.record_spec_ts()
 
     # add other tasks below
     return output_files
