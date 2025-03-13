@@ -3,7 +3,7 @@
 import numpy as np
 from astropy.timeseries import TimeSeries
 
-from swxsoc.util.util import record_timeseries
+from swxsoc.util.util import record_timeseries, create_annotation
 
 from padre_meddea import log
 import padre_meddea.util.util as util
@@ -30,18 +30,22 @@ def record_spectra(ts, spectra, ids):
             this_lc = spectra[:, i, ADC_RANGES[j] : ADC_RANGES[j + 1]]
             ts[f"channel{j}"] = this_lc
     record_timeseries(ts, "spectra", "meddea")
+    create_annotation(ts.time[0], f"{ts.meta['ORIGFILE']}", ["meta"])
 
 
 def record_photons(pkt_list, event_list):
     """Send photon time series data to AWS."""
     record_timeseries(pkt_list, "photon_pkt", "meddea")
+    create_annotation(pkt_list.time[0], f"{pkt_list.meta['ORIGFILE']}", ["meta"])
 
 
 def record_housekeeping(hk_ts):
     """Send the housekeeping time series to AWS."""
     record_timeseries(hk_ts, "housekeeping", "meddea")
+    create_annotation(hk_ts.time[0], f"{hk_ts.meta['ORIGFILE']}", ["meta"])
 
 
 def record_cmd(cmd_ts):
     """Send command time series to AWS."""
     record_timeseries(cmd_ts, "cmd_resp", "meddea")
+    create_annotation(cmd_ts.time[0], f"{cmd_ts.meta['ORIGFILE']}", ["meta"])

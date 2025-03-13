@@ -23,6 +23,7 @@ import astropy.io.fits as fits
 from specutils import Spectrum1D
 
 import padre_meddea
+from padre_meddea import log
 from padre_meddea import EPOCH, APID
 import padre_meddea.util.util as util
 
@@ -234,19 +235,23 @@ def parse_ph_packets(filename: Path):
     ph_list : astropy.time.TimeSeries or None
         A photon list
     """
-
+    filename = Path(filename)
     with open(filename, "rb") as mixed_file:
         stream_by_apid = split_by_apid(mixed_file)
     packet_stream = stream_by_apid.get(APID["photon"], None)
     if packet_stream is None:
         return None
+    else:
+        log.info(f"{filename.name}: Found photon data")
     packet_definition = packet_definition_ph()
     pkt = ccsdspy.VariableLength(packet_definition)
     ph_data = pkt.load(packet_stream, include_primary_header=True)
     # packet_time = ph_data["TIME_S"] + ph_data["TIME_CLOCKS"] / 20.0e6
     if util.has_baseline(filename):
+        log.info(f"{filename.name}: Found baseline measurements in photon data.")
         WORDS_PER_HIT = 4
     else:
+        log.info(f"{filename.name}: No baseline measurements in photon data.")
         WORDS_PER_HIT = 3
 
     pkt_times = util.calc_time(ph_data["TIME_S"], ph_data["TIME_CLOCKS"])
@@ -261,6 +266,7 @@ def parse_ph_packets(filename: Path):
     pkt_list["decim_lvl"], pkt_list["drop_cnt"], pkt_list["int_time_flag"] = (
         util.parse_ph_flags(pkt_list["flags"])
     )
+    pkt_list.meta.update({"ORIGFILE": f"{filename.name}"})
 
     # determine the total amount of hits in all photon packets
     hit_count = np.zeros(len(pkt_list), dtype="uint32")
@@ -337,6 +343,7 @@ def parse_ph_packets(filename: Path):
     date_end = util.calc_time(time_s[-1], time_clk[-1])
     event_list.meta.update({"DATE-BEG": date_beg.fits})
     event_list.meta.update({"DATE-END": date_end.fits})
+    event_list.meta.update({"ORIGFILE": f"{filename.name}"})
     center_index = int(len(time_s) / 2.0)
     date_avg = util.calc_time(time_s[center_index], time_clk[center_index])
     event_list.meta.update({"DATE-AVG": date_avg.fits})
@@ -356,11 +363,14 @@ def parse_hk_packets(filename: Path):
     hk_list : astropy.time.TimeSeries or None
         A list of housekeeping data
     """
+    filename = Path(filename)
     with open(filename, "rb") as mixed_file:
         stream_by_apid = split_by_apid(mixed_file)
     packet_bytes = stream_by_apid.get(APID["housekeeping"], None)
     if packet_bytes is None:
         return None
+    else:
+        log.info(f"{filename.name}: Found housekeeping data")
     packet_definition = packet_definition_hk()
     pkt = ccsdspy.FixedLength(packet_definition)
     hk_data = pkt.load(packet_bytes, include_primary_header=True)
@@ -368,6 +378,7 @@ def parse_hk_packets(filename: Path):
         dt.timedelta(seconds=int(this_t)) + EPOCH for this_t in hk_data["timestamp"]
     ]
     hk_data = TimeSeries(time=hk_timestamps, data=hk_data)
+    hk_data.meta.update({"ORIGFILE": f"{filename.name}"})
     return hk_data
 
 
@@ -384,11 +395,14 @@ def parse_spectrum_packets(filename: Path):
     hk_list : astropy.time.TimeSeries or None
         A list of spectra data or None if no spectrum packets are found.
     """
+    filename = Path(filename)
     with open(filename, "rb") as mixed_file:
         stream_by_apid = split_by_apid(mixed_file)
     packet_bytes = stream_by_apid.get(APID["spectrum"], None)
     if packet_bytes is None:
         return None
+    else:
+        log.info(f"{filename.name}: Found spectrum data")
     packet_definition = packet_definition_hist2()
     pkt = ccsdspy.FixedLength(packet_definition)
     data = pkt.load(packet_bytes, include_primary_header=True)
@@ -407,6 +421,7 @@ def parse_spectrum_packets(filename: Path):
         spectral_axis=np.arange(histogram_data.shape[2]) * u.pix,
         flux=histogram_data * u.ct,
     )
+    ts.meta.update({"ORIGFILE": f"{filename.name}"})
     return ts, specs, pixel_ids
 
 
@@ -440,11 +455,14 @@ def parse_cmd_response_packets(filename: Path):
     cmd_resp_list : astropy.time.TimeSeries or None
         A list of register read responses.
     """
+    filename = Path(filename)
     with open(filename, "rb") as mixed_file:
         stream_by_apid = split_by_apid(mixed_file)
     packet_bytes = stream_by_apid.get(APID["cmd_resp"], None)
     if packet_bytes is None:
         return None
+    else:
+        log.info(f"{filename.name}: Found read data")
     packet_definition = packet_definition_cmd_response()
     pkt = ccsdspy.FixedLength(packet_definition)
     data = pkt.load(packet_bytes, include_primary_header=True)
@@ -457,6 +475,7 @@ def parse_cmd_response_packets(filename: Path):
         "seqcount": data["CCSDS_SEQUENCE_COUNT"],
     }
     ts = TimeSeries(time=timestamps, data=data)
+    ts.meta.update({"ORIGFILE": f"{filename.name}"})
     return ts
 
 
