@@ -121,7 +121,7 @@ def process_file(filename: Path, overwrite=False) -> list:
         if parsed_data["housekeeping"] is not None:
             hk_data = parsed_data["housekeeping"]
             # send data to AWS Timestream for Grafana dashboard
-            aws_db.record_housekeeping(hk_data, "housekeeping", "meddea")
+            aws_db.record_housekeeping(hk_data)
             hk_table = Table(hk_data)
 
             primary_hdr = get_primary_header()
