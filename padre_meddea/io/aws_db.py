@@ -14,21 +14,16 @@ def record_spectra(ts, spectra, ids):
     asic_nums, channel_nums = util.parse_pixelids(ids)
     # TODO: need to check that the pixelids have not changed during this time period
 
-    # create timeseries for each spectrum
     NUM_LC_PER_SPEC = 4
     ADC_RANGES = np.linspace(0, 512, NUM_LC_PER_SPEC + 1, dtype=np.uint16)
-
+    ts = TimeSeries(time=ts.time)
     for i, (this_asic, this_chan) in enumerate(zip(asic_nums[0], channel_nums[0])):
         this_col = (
-            f"Det{this_asic}{util.pixel_to_str(util.channel_to_pixel(this_chan))}"
+            f"Det{this_asic}{util.pixel_to_str(util.channel_to_pixel(this_chan))[:-1]}"  # remove L or S
         )
-        log.info(
-            f"Sending spectrum {i:02} {this_col} lightcurve to timestream to table spec{i:02}"
-        )
-        ts = TimeSeries(time=ts.time)
         for j in range(NUM_LC_PER_SPEC):
-            this_lc = spectra.data[:, i, ADC_RANGES[j] : ADC_RANGES[j + 1]]
-            ts[f"channel{j}"] = this_lc
+            this_lc = np.sum(spectra.data[:, i, ADC_RANGES[j] : ADC_RANGES[j + 1]], axis=1)
+            ts[f"{this_col.lower()}_chan{j}"] = this_lc
     record_timeseries(ts, "spectra", "meddea")
     create_annotation(ts.time[0], f"{ts.meta['ORIGFILE']}", ["meta"])
 
