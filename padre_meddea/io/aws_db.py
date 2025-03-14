@@ -27,7 +27,7 @@ def record_spectra(ts, spectra, ids):
         )
         ts = TimeSeries(time=ts.time)
         for j in range(NUM_LC_PER_SPEC):
-            this_lc = spectra[:, i, ADC_RANGES[j] : ADC_RANGES[j + 1]]
+            this_lc = spectra.data[:, i, ADC_RANGES[j] : ADC_RANGES[j + 1]]
             ts[f"channel{j}"] = this_lc
     record_timeseries(ts, "spectra", "meddea")
     create_annotation(ts.time[0], f"{ts.meta['ORIGFILE']}", ["meta"])

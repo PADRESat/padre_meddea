@@ -59,7 +59,7 @@ def process_file(filename: Path, overwrite=False) -> list:
         # Before we process, validate the file with CCSDS
         custom_validators = [validation.validate_packet_checksums]
         validation_findings = validation.validate(
-            file_path, custom_validators=custom_validators
+            file_path, valid_apids=list(padre_meddea.APID.values()), custom_validators=custom_validators
         )
         for finding in validation_findings:
             log.warning(f"Validation Finding for File : {filename} : {finding}")
