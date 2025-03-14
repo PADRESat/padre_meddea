@@ -209,6 +209,7 @@ def process_file(filename: Path, overwrite=False) -> list:
             output_files.append(path)
         if parsed_data["spectra"] is not None:
             ts, spectra, ids = parsed_data["spectra"]
+            aws_db.record_spectra(ts, spectra, ids)
             asic_nums, channel_nums = util.parse_pixelids(ids)
             # asic_nums = (ids & 0b11100000) >> 5
             # channel_nums = ids & 0b00011111
@@ -234,14 +235,14 @@ def process_file(filename: Path, overwrite=False) -> list:
                     value,
                     get_std_comment(this_keyword),
                 )
-            spec_hdu = fits.ImageHDU(data=spectra, name="SPEC")
+            spec_hdu = fits.ImageHDU(data=spectra.data, name="SPEC")
             spec_hdu.add_checksum()
 
             data_table = Table()
             data_table["pkttimes"] = ts["pkttimes"]
             data_table["pktclock"] = ts["pktclock"]
-            data_table["asic"] = asic_nums[0]
-            data_table["channel"] = channel_nums[0]
+            data_table["asic"] = asic_nums
+            data_table["channel"] = channel_nums
             data_table["seqcount"] = ts["seqcount"]
 
             pkt_hdu = fits.BinTableHDU(data=data_table, name="PKT")
@@ -265,8 +266,6 @@ def process_file(filename: Path, overwrite=False) -> list:
 
             hdul.writeto(path, overwrite=overwrite)
             output_files.append(path)
-
-            aws_db.record_spec_ts()
 
     # add other tasks below
     return output_files

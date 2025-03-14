@@ -9,14 +9,14 @@ from padre_meddea import log
 import padre_meddea.util.util as util
 
 
-def record_spectra(ts, spectra, ids):
+def record_spectra(pkt_ts, spectra, ids):
     """Send spectrum time series data to AWS."""
     asic_nums, channel_nums = util.parse_pixelids(ids)
     # TODO: need to check that the pixelids have not changed during this time period
 
     NUM_LC_PER_SPEC = 4
     ADC_RANGES = np.linspace(0, 512, NUM_LC_PER_SPEC + 1, dtype=np.uint16)
-    ts = TimeSeries(time=ts.time)
+    ts = TimeSeries(time=pkt_ts.time)
     for i, (this_asic, this_chan) in enumerate(zip(asic_nums[0], channel_nums[0])):
         this_col = f"Det{this_asic}{util.pixel_to_str(util.channel_to_pixel(this_chan))[:-1]}"  # remove L or S
         for j in range(NUM_LC_PER_SPEC):
@@ -25,7 +25,8 @@ def record_spectra(ts, spectra, ids):
             )
             ts[f"{this_col.lower()}_chan{j}"] = this_lc
     record_timeseries(ts, "spectra", "meddea")
-    create_annotation(ts.time[0], f"{ts.meta['ORIGFILE']}", ["meta"])
+    record_timeseries(pkt_ts, "spectra_pkt", "meddea")
+    create_annotation(pkt_ts.time[0], f"{pkt_ts.meta['ORIGFILE']}", ["meta"])
 
 
 def record_photons(pkt_list, event_list):
