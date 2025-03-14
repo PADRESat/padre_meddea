@@ -18,11 +18,11 @@ def record_spectra(ts, spectra, ids):
     ADC_RANGES = np.linspace(0, 512, NUM_LC_PER_SPEC + 1, dtype=np.uint16)
     ts = TimeSeries(time=ts.time)
     for i, (this_asic, this_chan) in enumerate(zip(asic_nums[0], channel_nums[0])):
-        this_col = (
-            f"Det{this_asic}{util.pixel_to_str(util.channel_to_pixel(this_chan))[:-1]}"  # remove L or S
-        )
+        this_col = f"Det{this_asic}{util.pixel_to_str(util.channel_to_pixel(this_chan))[:-1]}"  # remove L or S
         for j in range(NUM_LC_PER_SPEC):
-            this_lc = np.sum(spectra.data[:, i, ADC_RANGES[j] : ADC_RANGES[j + 1]], axis=1)
+            this_lc = np.sum(
+                spectra.data[:, i, ADC_RANGES[j] : ADC_RANGES[j + 1]], axis=1
+            )
             ts[f"{this_col.lower()}_chan{j}"] = this_lc
     record_timeseries(ts, "spectra", "meddea")
     create_annotation(ts.time[0], f"{ts.meta['ORIGFILE']}", ["meta"])
