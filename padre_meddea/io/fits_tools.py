@@ -2,18 +2,20 @@
 This module provides a utilities to manage fits files reading and writing.
 """
 
+from pathlib import Path
 import re
 
 from astropy.io import ascii
 import astropy.io.fits as fits
 from astropy.time import Time
+from solarnet_metadata.schema import SOLARNETSchema
 
 import padre_meddea
 
-FITS_HDR0 = ascii.read(
-    padre_meddea._data_directory / "fits" / "fits_keywords_primaryhdu.csv", format="csv"
+CUSTOM_ATTRS_PATH = (
+    padre_meddea._data_directory / "fits" / "fits_keywords_primaryhdu.yaml"
 )
-FITS_HDR0.add_index("keyword")
+
 FITS_HDR_KEYTOCOMMENT = ascii.read(
     padre_meddea._data_directory / "fits" / "fits_keywords_dict.csv", format="csv"
 )
@@ -22,8 +24,10 @@ FITS_HDR_KEYTOCOMMENT.add_index("keyword")
 
 def get_std_comment(keyword: str) -> str:
     """Given a keyword, return the standard comment for a header card."""
+    # Check Keyword in Existing Structure
     if keyword.upper() in FITS_HDR_KEYTOCOMMENT["keyword"]:
         return FITS_HDR_KEYTOCOMMENT.loc[keyword]["comment"]
+    # Check if it's an iterable keyword
     for this_row in FITS_HDR_KEYTOCOMMENT:
         res = re.fullmatch(this_row["keyword"], keyword)
         if res:
@@ -32,15 +36,71 @@ def get_std_comment(keyword: str) -> str:
                 for key, value in res.groupdict().items():
                     comment = comment.replace(f"<{key}>", value)
             return comment
+    # No Match in Existing Data Structure - check SOLARNET Schema
+    # Create a Custom SOLARNET Schema
+    schema = SOLARNETSchema(schema_layers=[CUSTOM_ATTRS_PATH])
+    if keyword in schema.attribute_schema["attribute_key"]:
+        keyword_info = schema.attribute_schema["attribute_key"][keyword]
+        comment = keyword_info["human_readable"]
+        return comment
 
 
-def get_primary_header() -> fits.Header:
-    """Return a standard FITS file primary header."""
+def get_primary_header(
+    file_path: Path, data_level: str, data_type: str, procesing_step: int = 1
+) -> fits.Header:
+    """
+    Create a standard FITS primary header following SOLARNET conventions.
+
+    This function creates a new FITS header with standard metadata including the
+    current date, default PADRE attributes, processing information, data level,
+    data type, original APID, and original filename.
+
+    Parameters
+    ----------
+    file_path : Path
+        Path to the original file, used to extract the filename
+    data_level : str
+        Data processing level (e.g., 'L0', 'L1')
+    data_type : str
+        Type of data being processed
+    procesing_step : int, default 1
+        Processing step number to be added to header metadata
+
+    Returns
+    -------
+    fits.Header
+        A FITS header populated with standard metadata
+    """
+    # Create a Custom SOLARNET Schema
+    schema = SOLARNETSchema(schema_layers=[CUSTOM_ATTRS_PATH])
+
+    # Create a new header
     header = fits.Header()
     header["DATE"] = (Time.now().fits, get_std_comment("DATE"))
-    for row in FITS_HDR0:
-        this_comment = get_std_comment(row["keyword"])
-        header[row["keyword"]] = (row["value"], this_comment)
+
+    # Add PADRE Default Attributes to Header
+    for keyword, value in schema.default_attributes.items():
+        header[keyword] = (value, get_std_comment(keyword))
+
+    # Add PADRE Git Information to Header
+    header = add_process_info_to_header(header, n=procesing_step)
+
+    # Add Data Level
+    header["LEVEL"] = (data_level, get_std_comment("LEVEL"))
+
+    # Add Data Type
+    header["DATATYPE"] = (data_type, get_std_comment("DATATYPE"))
+
+    # Add Original APID
+    header["ORIGAPID"] = (
+        padre_meddea.APID[data_type],
+        get_std_comment("ORIGAPID"),
+    )
+
+    # Add Original File Name
+    file_path = Path(file_path)
+    header["ORIGFILE"] = (file_path.name, get_std_comment("ORIGFILE"))
+
     return header
 
 

@@ -15,7 +15,7 @@ from astropy.timeseries import TimeSeries
 
 import padre_meddea
 from padre_meddea import log
-from padre_meddea.io import file_tools, fits_tools
+from padre_meddea.io import file_tools
 from padre_meddea.util import util, validation
 import padre_meddea.io.aws_db as aws_db
 
@@ -76,15 +76,9 @@ def process_file(filename: Path, overwrite=False) -> list:
 
             event_list = Table(event_list)
             event_list.remove_column("time")
-            primary_hdr = get_primary_header()
-            primary_hdr = add_process_info_to_header(primary_hdr)
-            primary_hdr["LEVEL"] = (0, get_std_comment("LEVEL"))
-            primary_hdr["DATATYPE"] = ("event_list", get_std_comment("DATATYPE"))
-            primary_hdr["ORIGAPID"] = (
-                padre_meddea.APID["photon"],
-                get_std_comment("ORIGAPID"),
-            )
-            primary_hdr["ORIGFILE"] = (file_path.name, get_std_comment("ORIGFILE"))
+
+            # Get FITS Primary Header Template
+            primary_hdr = get_primary_header(file_path, "l0", "photon")
 
             for this_keyword in ["DATE-BEG", "DATE-END", "DATE-AVG"]:
                 primary_hdr[this_keyword] = (
@@ -126,15 +120,8 @@ def process_file(filename: Path, overwrite=False) -> list:
             aws_db.record_housekeeping(hk_data)
             hk_table = Table(hk_data)
 
-            primary_hdr = get_primary_header()
-            primary_hdr = add_process_info_to_header(primary_hdr)
-            primary_hdr["LEVEL"] = (0, get_std_comment("LEVEL"))
-            primary_hdr["DATATYPE"] = ("housekeeping", get_std_comment("DATATYPE"))
-            primary_hdr["ORIGAPID"] = (
-                padre_meddea.APID["housekeeping"],
-                get_std_comment("ORIGAPID"),
-            )
-            primary_hdr["ORIGFILE"] = (file_path.name, get_std_comment("ORIGFILE"))
+            # Get FITS Primary Header Template
+            primary_hdr = get_primary_header(file_path, "l0", "housekeeping")
 
             date_beg = calc_time(hk_data["timestamp"][0])
             primary_hdr["DATEREF"] = (date_beg.fits, get_std_comment("DATEREF"))
@@ -215,15 +202,9 @@ def process_file(filename: Path, overwrite=False) -> list:
             # channel_nums = ids & 0b00011111
             # TODO check that asic_nums and channel_nums do not change
 
-            primary_hdr = get_primary_header()
-            primary_hdr = add_process_info_to_header(primary_hdr)
-            primary_hdr["LEVEL"] = (0, get_std_comment("LEVEL"))
-            primary_hdr["DATATYPE"] = ("spectrum", get_std_comment("DATATYPE"))
-            primary_hdr["ORIGAPID"] = (
-                padre_meddea.APID["spectrum"],
-                get_std_comment("ORIGAPID"),
-            )
-            primary_hdr["ORIGFILE"] = (file_path.name, get_std_comment("ORIGFILE"))
+            # Get FITS Primary Header Template
+            primary_hdr = get_primary_header(file_path, "l0", "spectrum")
+
             dates = {
                 "DATE-BEG": ts.time[0].fits,
                 "DATE-END": ts.time[-1].fits,
