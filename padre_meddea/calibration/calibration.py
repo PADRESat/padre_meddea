@@ -22,7 +22,6 @@ import padre_meddea.io.aws_db as aws_db
 from padre_meddea.util.util import create_science_filename, calc_time
 from padre_meddea.io.file_tools import read_raw_file
 from padre_meddea.io.fits_tools import (
-    add_process_info_to_header,
     get_primary_header,
     get_std_comment,
 )
