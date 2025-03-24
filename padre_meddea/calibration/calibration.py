@@ -77,7 +77,7 @@ def process_file(filename: Path, overwrite=False) -> list:
             event_list.remove_column("time")
 
             # Get FITS Primary Header Template
-            primary_hdr = get_primary_header(file_path, "l0", "photon")
+            primary_hdr = get_primary_header(file_path, "l1", "photon")
 
             for this_keyword in ["DATE-BEG", "DATE-END", "DATE-AVG"]:
                 primary_hdr[this_keyword] = (
@@ -120,7 +120,7 @@ def process_file(filename: Path, overwrite=False) -> list:
             hk_table = Table(hk_data)
 
             # Get FITS Primary Header Template
-            primary_hdr = get_primary_header(file_path, "l0", "housekeeping")
+            primary_hdr = get_primary_header(file_path, "l1", "housekeeping")
 
             date_beg = calc_time(hk_data["timestamp"][0])
             primary_hdr["DATEREF"] = (date_beg.fits, get_std_comment("DATEREF"))
@@ -202,7 +202,7 @@ def process_file(filename: Path, overwrite=False) -> list:
             # TODO check that asic_nums and channel_nums do not change
 
             # Get FITS Primary Header Template
-            primary_hdr = get_primary_header(file_path, "l0", "spectrum")
+            primary_hdr = get_primary_header(file_path, "l1", "spectrum")
 
             dates = {
                 "DATE-BEG": ts.time[0].fits,

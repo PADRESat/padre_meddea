@@ -6,12 +6,16 @@ from pathlib import Path
 import re
 from typing import List, Tuple
 
+import git
+import ccsdspy
 from astropy.io import ascii
 import astropy.io.fits as fits
 from astropy.time import Time
+import solarnet_metadata
 from solarnet_metadata.schema import SOLARNETSchema
 
 import padre_meddea
+from padre_meddea import log
 
 CUSTOM_ATTRS_PATH = (
     padre_meddea._data_directory / "fits" / "fits_keywords_primaryhdu.yaml"
@@ -21,6 +25,22 @@ FITS_HDR_KEYTOCOMMENT = ascii.read(
     padre_meddea._data_directory / "fits" / "fits_keywords_dict.csv", format="csv"
 )
 FITS_HDR_KEYTOCOMMENT.add_index("keyword")
+
+# Dict[str, Tuple[str, str, str]]
+# Lib <n><a>: (Library Name, Library Version, Library URL)
+PRLIBS = {
+    "1A": (
+        "padre_meddea",
+        padre_meddea.__version__,
+        "https://github.com/PADRESat/padre_meddea.git",
+    ),
+    "1B": ("ccsdspy", ccsdspy.__version__, "https://github.com/CCSDSPy/ccsdspy.git"),
+    "1C": (
+        "solarnet_metadata",
+        solarnet_metadata.__version__,
+        "https://github.com/IHDE-Alliance/solarnet_metadata.git",
+    ),
+}
 
 
 def get_std_comment(keyword: str) -> str:
@@ -151,13 +171,18 @@ def add_process_info_to_header(header: fits.Header, n: int = 1) -> fits.Header:
     if n < 1 or n > 10:
         raise ValueError(f"Processing number, n, must be in range 1<=n<=9. Got {n}")
 
+    # Pipeline-Level Metadata
     header[f"PRSTEP{n}"] = get_prstep(n)
     header[f"PRPROC{n}"] = get_prproc(n)
     header[f"PRPVER{n}"] = get_prpver(n)
-    header[f"PRLIB{n}A"] = get_prlib(n, "A")
-    header[f"PRVER{n}A"] = get_prver(n, "A")
-    header[f"PRHSH{n}A"] = get_prhsh(n, "A")
-    # header[f"PRBRA{n}A"] = get_prbra(n, "A")
+
+    # Library-Level Metadata
+    # Get Libraries used for the Given Level
+    level_libraries = [key[1] for key in PRLIBS.keys() if key[0] == str(n)]
+    for a in level_libraries:
+        header[f"PRLIB{n}{a}"] = get_prlib(n, a)
+        header[f"PRVER{n}{a}"] = get_prver(n, a)
+        header[f"PRHSH{n}{a}"] = get_prhsh(n, a)
 
     #  primary_hdr["PRLOG1"] add log information, need to do this after the fact
     #  primary_hdr["PRENV1"] add information about processing env, need to do this after the fact
@@ -268,14 +293,11 @@ def get_prlib(n: int = 1, a: str = "A") -> Tuple[str, str]:
     tuple
         A tuple of (processing_library_description, standard_comment)
     """
-    match a:
-        case "A":
-            value = "padre_meddea"
-        case _:
-            raise ValueError(f"Library Version Undefined for a={a}")
-
-    comment = get_std_comment(f"PRLIB{n}{a}")
-    return value, comment
+    prlib, _, _ = PRLIBS.get(f"{n}{a}", (None, None, None))
+    if prlib:
+        return prlib, get_std_comment(f"PRLIB{n}{a}")
+    else:
+        raise ValueError(f"Library Undefined for n={n} and a={a}")
 
 
 def get_prver(n: int = 1, a: str = "A") -> Tuple[str, str]:
@@ -296,14 +318,11 @@ def get_prver(n: int = 1, a: str = "A") -> Tuple[str, str]:
     tuple
         A tuple of (processing_version, standard_comment)
     """
-    match a:
-        case "A":
-            value = padre_meddea.__version__
-        case _:
-            raise ValueError(f"Library Version Undefined for a={a}")
-
-    comment = get_std_comment(f"PRVER{n}{a}")
-    return value, comment
+    _, prver, _ = PRLIBS.get(f"{n}{a}", (None, None, None))
+    if prver:
+        return prver, get_std_comment(f"PRVER{n}{a}")
+    else:
+        raise ValueError(f"Library Undefined for n={n} and a={a}")
 
 
 def get_prhsh(n: int = 1, a: str = "A") -> Tuple[str, str]:
@@ -324,32 +343,42 @@ def get_prhsh(n: int = 1, a: str = "A") -> Tuple[str, str]:
     tuple
         A tuple of (processing_hash, standard_comment)
     """
-    try:
-        import git
-        from git import InvalidGitRepositoryError
+    lib, version, url = PRLIBS.get(f"{n}{a}", (None, None, None))
+    if not url:
+        raise ValueError(f"Library Undefined for n={n} and a={a}")
 
+    try:
+        # Try Locally
         match a:
             case "A":
                 repo = git.Repo(padre_meddea.__file__, search_parent_directories=True)
-                value = repo.head.object.hexsha
+                hexsha = repo.head.object.hexsha
             case _:
-                raise ValueError(f"Library Version Undefined for a={a}")
-
-        comment = get_std_comment(f"PRHSH{n}{a}")
-    except ModuleNotFoundError:
-        value = None
-        comment = None
-    except InvalidGitRepositoryError:
-        value = None
-        comment = None
+                raise ModuleNotFoundError(f"Library Version Undefined for a={a}")
+    except (ModuleNotFoundError, git.InvalidGitRepositoryError) as e:
+        # Not Available Locally - Use the Remote
+        remote_info = git.cmd.Git().ls_remote(url)
+        remote_info = remote_info.split()
+        # formatted as Dict[tag, hexsha]
+        remote_tags = {
+            remote_info[i + 1]: remote_info[i] for i in range(0, len(remote_info), 2)
+        }
+        # Look for Tag
+        hexsha = None
+        if "dev" not in version:
+            version_formattings = [f"v{version}", f"{version}"]
+            # Search Various Version Formats
+            for version_format in version_formattings:
+                hexsha = remote_tags.get(f"refs/tags/{version_format}", None)
+                if hexsha is not None:
+                    break
+        if hexsha is None:
+            log.warning(f"Version {version} not found in Tags for {url}. Using HEAD.")
+            hexsha = remote_tags.get("HEAD", None)
 
     # header[f"PRBRA{n}A"] = (
     #    repo.active_branch.name,
     #    get_std_comment(f"PRBRA{n}A"),
     # )
-    # commits = list(repo.iter_commits("main", max_count=1))
-    # header[f"PRVER{n}B"] = (
-    #    Time(commits[0].committed_datetime).fits,
-    #    get_std_comment(f"PRVER{n}B"),
-    # )
-    return value, comment
+    comment = get_std_comment(f"PRHSH{n}{a}")
+    return hexsha, comment
