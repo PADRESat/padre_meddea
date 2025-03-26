@@ -3,6 +3,8 @@ import os
 from pathlib import Path
 
 from astropy.time import Time
+import astropy.io
+import numpy as np
 
 try:
     from ._version import version as __version__
@@ -33,6 +35,18 @@ _package_directory = Path(__file__).parent
 _data_directory = _package_directory / "data"
 _test_files_directory = _package_directory / "data" / "test"
 
+register_table = astropy.io.ascii.read(
+    _data_directory / "register_table.csv",
+    converters={"address_hex": str},
+    format="csv",
+)
+register_table.add_index("name")
+register_table["address"] = [
+    int(addr, 16) for addr in list(register_table["address_hex"])
+]
+register_table.add_index("address")
+# TODO add ASIC registers for det 1, 2, 3 to register table
+
 # the ratio of detector area for large pixels versus small pixels
 RATIO_TOTAL_LARGE_TO_SMALL_PIX = 0.947
 
@@ -61,6 +75,9 @@ peaking_time = [
     10.06,
     10.73,
 ]
+
+# the bin edges for the histogram data product
+HIST_BINS = np.arange(0, 4097, 8, dtype=np.uint16)
 
 APID = {
     "spectrum": 0xA2,  # decimal 162

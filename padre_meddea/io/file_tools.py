@@ -26,6 +26,7 @@ import padre_meddea
 from padre_meddea import log
 from padre_meddea import EPOCH, APID
 import padre_meddea.util.util as util
+import padre_meddea.util.cmd_util as cmd_util
 
 __all__ = ["read_file", "read_raw_file", "read_fits"]
 
@@ -475,6 +476,7 @@ def parse_cmd_response_packets(filename: Path):
         "seqcount": data["CCSDS_SEQUENCE_COUNT"],
     }
     ts = TimeSeries(time=timestamps, data=data)
+    ts = cmd_util.add_address_name(ts)
     ts.meta.update({"ORIGFILE": f"{filename.name}"})
     return ts
 
