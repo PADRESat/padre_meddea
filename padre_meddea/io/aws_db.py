@@ -26,22 +26,25 @@ def record_spectra(pkt_ts, spectra, ids):
             ts[f"{this_col.lower()}_chan{j}"] = this_lc
     record_timeseries(ts, "spectra", "meddea")
     record_timeseries(pkt_ts, "spectra_pkt", "meddea")
-    create_annotation(pkt_ts.time[0], f"{pkt_ts.meta['ORIGFILE']}", ["meta"])
+    create_annotation(
+        pkt_ts.time[0].to_datetime(),
+        f"{pkt_ts.meta['ORIGFILE']}",
+        ["meta"],
+        dashboard_name="MEDDEA Housekeeping",
+        panel_name="Command Count",
+    )
 
 
 def record_photons(pkt_list, event_list):
     """Send photon time series data to AWS."""
     record_timeseries(pkt_list, "photon_pkt", "meddea")
-    create_annotation(pkt_list.time[0], f"{pkt_list.meta['ORIGFILE']}", ["meta"])
 
 
 def record_housekeeping(hk_ts):
     """Send the housekeeping time series to AWS."""
     record_timeseries(hk_ts, "housekeeping", "meddea")
-    create_annotation(hk_ts.time[0], f"{hk_ts.meta['ORIGFILE']}", ["meta"])
 
 
 def record_cmd(cmd_ts):
     """Send command time series to AWS."""
     record_timeseries(cmd_ts, "cmd_resp", "meddea")
-    create_annotation(cmd_ts.time[0], f"{cmd_ts.meta['ORIGFILE']}", ["meta"])
