@@ -176,12 +176,6 @@ def is_consecutive(arr: np.array) -> bool:
         return result
 
 
-def verify_file(filename: Path):
-    packet_bytes = split_packet_bytes(filename)
-    # for i in range(num):
-    #    checksum = np.bitwise_xor.reduce(np.frombuffer(packet_bytes[i], dtype=np.uint16))
-
-
 def parse_ph_flags(ph_flags):
     """Given the photon flag field, parse into its individual components.
     The flags are stored as follows
