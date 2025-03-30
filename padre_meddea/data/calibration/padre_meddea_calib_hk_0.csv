@@ -1,0 +1,15 @@
+name,cal_func,cal_params,phys_unit
+fp_temp,poly,"-7.09802295E-13,7.66830550E-08,-3.75100311E-03,4.76443005E+01",deg_C
+dib_temp,poly,"-2.30984324147617E-12,2.19923164121208E-7,-8.0360785693563E-3,1.38564006682943E+2",deg_C
+hvps_temp,poly,"-2.09989019049292E-12,1.99856414598901E-7,-7.3346158267138E-3,1.03967411298627E+2",deg_C
+hvps_vsense,poly,"-0.0101,1.291",volt
+hvps_csense,poly,"1.6914E-04,-4.1556E-03",nanoamp
+csense_15v,poly,"-0.010776,446.17",milliamp
+csense_33vd,poly,"-0.010776,446.17",milliamp
+csense_33va,poly,"-0.010776,446.17",milliamp
+hvps_setpoint,poly,"-0.1471,-0.5394",volt
+hvps_setpoint_inv,poly,"-6.799,-3.6483",ct
+heater_setpoint,poly,"-7.09802295E-13,7.66830550E-08,-3.75100311E-03,4.76443005E+01",deg_C
+threshold,poly,"1,0",ct
+heater_pwm_duty_cycle,poly,"0.0016,0",percent
+pulser_setpoint,poly,"1e-6,0.4014,33.172",volt

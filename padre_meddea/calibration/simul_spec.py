@@ -104,7 +104,7 @@ def barium_spectrum(fwhm: u.keV):
 
 
 @custom_model
-def flare_spectrum(x: u.keV):
+def flare_spectrum(x: u.keV, factor=1):
     """Provides the average spectrum of an X4.8 flare in x-rays.
 
     The minimum energy available is 3.5 keV and the highest is 14950 keV.
@@ -118,7 +118,6 @@ def flare_spectrum(x: u.keV):
     -------
     model : ~astropy.modeling.models
     """
-    factor = 1
     # NOTE: it may be better to interpolate the log of the spectrum for high accuracy
     func = interpolate.interp1d(
         flare_spectrum_data["Bin mean (keV)"].value,

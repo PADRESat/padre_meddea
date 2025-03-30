@@ -6,7 +6,9 @@ import os
 from pathlib import Path
 import tempfile
 
-from astropy.io import fits, ascii
+import numpy as np
+
+from astropy.io import fits
 from astropy.time import Time
 from astropy.table import Table
 import astropy.units as u
@@ -26,11 +28,11 @@ from scipy.signal import find_peaks
 
 import pandas as pd
 
-from swxsoc.util.util import record_timeseries
-
 import padre_meddea
 from padre_meddea import log
 from padre_meddea.io import file_tools, fits_tools
+from padre_meddea.util import util, validation
+import padre_meddea.io.aws_db as aws_db
 
 from padre_meddea.util.util import create_science_filename, calc_time
 from padre_meddea.io.file_tools import read_raw_file
@@ -76,6 +78,16 @@ def process_file(filename: Path, overwrite=False) -> list:
     file_path = Path(filename)
 
     if file_path.suffix == ".bin":
+        # Before we process, validate the file with CCSDS
+        custom_validators = [validation.validate_packet_checksums]
+        validation_findings = validation.validate(
+            file_path,
+            valid_apids=list(padre_meddea.APID.values()),
+            custom_validators=custom_validators,
+        )
+        for finding in validation_findings:
+            log.warning(f"Validation Finding for File : {filename} : {finding}")
+
         parsed_data = read_raw_file(file_path)
         if parsed_data["photons"] is not None:  # we have event list data
             event_list, pkt_list = parsed_data["photons"]
@@ -96,6 +108,8 @@ def process_file(filename: Path, overwrite=False) -> list:
                 )
 
             empty_primary_hdu = fits.PrimaryHDU(header=primary_hdr)
+            pkt_list = Table(pkt_list)
+            pkt_list.remove_column("time")
             pkt_hdu = fits.BinTableHDU(pkt_list, name="PKT")
             pkt_hdu.add_checksum()
             hit_hdu = fits.BinTableHDU(event_list, name="SCI")
@@ -124,7 +138,7 @@ def process_file(filename: Path, overwrite=False) -> list:
         if parsed_data["housekeeping"] is not None:
             hk_data = parsed_data["housekeeping"]
             # send data to AWS Timestream for Grafana dashboard
-            record_timeseries(hk_data, "housekeeping")
+            aws_db.record_housekeeping(hk_data)
             hk_table = Table(hk_data)
 
             primary_hdr = get_primary_header()
@@ -168,7 +182,7 @@ def process_file(filename: Path, overwrite=False) -> list:
                     data_ts.time[0].fits,
                     get_std_comment("DATEREF"),
                 )
-                record_timeseries(data_ts, "housekeeping")
+                aws_db.record_cmd(data_ts)
                 data_table = Table(data_ts)
                 colnames_to_remove = [
                     "CCSDS_VERSION_NUMBER",
@@ -199,6 +213,13 @@ def process_file(filename: Path, overwrite=False) -> list:
                 test=True,
                 version="0.1.0",
             )
+
+            # Set the temp_dir and overwrite flag based on the environment variable
+            if lambda_environment:
+                temp_dir = Path(tempfile.gettempdir())  # Set to temp directory
+                overwrite = True  # Set overwrite to True
+                path = temp_dir / path
+
             hdul.writeto(path, overwrite=overwrite)
             output_files.append(path)
         if parsed_data["spectra"] is not None:

@@ -36,7 +36,7 @@ def calc_time(pkt_time_s, pkt_time_clk=0, ph_clk=0) -> Time:
     return result
 
 
-def channel_to_pixel(channel: int) -> int:
+def _channel_to_pixel(channel: int) -> int:
     """
     Given a channel pixel number, return the pixel number.
     """
@@ -60,9 +60,51 @@ def channel_to_pixel(channel: int) -> int:
         return CHANNEL_TO_PIX[channel]
     else:
         warnings.warn(
-            f"Found unconnected channel, {channel}. Returning channel + 12 ={channel+12}."
+            f"Found unconnected channel, {channel}. Returning channel + 12 ={channel + 12}."
         )
         return channel + 12
+
+
+channel_to_pixel = np.vectorize(_channel_to_pixel)
+
+
+def parse_pixelids(ids):
+    """
+    Given pixel id infomration, return the asic numbers and channel numbers
+    """
+    asic_nums = (ids & 0b11100000) >> 5
+    channel_nums = ids & 0b00011111
+    return asic_nums, channel_nums
+
+
+def get_pixel_str(asic_num: int, pixel_num: int):
+    return f"Det{str(asic_num)}{pixel_to_str(pixel_num)}"
+
+
+def pixelid_to_str(ids):
+    """
+    Given unparsed pixel ids, return strings for each
+    """
+    asic_nums, channel_nums = parse_pixelids(ids)
+    pixel_nums = [channel_to_pixel(this_chan) for this_chan in channel_nums]
+    result = [
+        get_pixel_str(this_asic, this_pixel)
+        for this_asic, this_pixel in zip(asic_nums, pixel_nums)
+    ]
+    return result
+
+
+def pixel_to_str(pixel_num: int) -> str:
+    """
+    Given a pixel number, return a standardized string.
+    """
+    if not (0 <= pixel_num <= 11):
+        raise ValueError("Pixel integer number must be 0 to 11.")
+    if 0 <= pixel_num <= 7:
+        pixel_size = "L"
+    elif 8 <= pixel_num <= 12:
+        pixel_size = "S"
+    return f"Pixel{pixel_num}{pixel_size}"
 
 
 def has_baseline(filename: Path, packet_count=10) -> bool:
@@ -113,6 +155,10 @@ def str_to_fits_keyword(keyword: str) -> str:
 def is_consecutive(arr: np.array) -> bool:
     """Return True if the packet sequence numbers are all consecutive integers, has no missing numbers."""
     MAX_SEQCOUNT = 2**14 - 1  # 16383
+
+    # Ensure arr is at least 1D
+    arr = np.atleast_1d(arr)
+
     # check if seqcount has wrapped around
     indices = np.where(arr == MAX_SEQCOUNT)
     if len(indices[0]) == 0:  # no wrap
@@ -128,3 +174,24 @@ def is_consecutive(arr: np.array) -> bool:
         this_arr = arr[last_index + 1 :]
         result = result & np.all(np.diff(this_arr) == 1)
         return result
+
+
+def verify_file(filename: Path):
+    packet_bytes = split_packet_bytes(filename)
+    # for i in range(num):
+    #    checksum = np.bitwise_xor.reduce(np.frombuffer(packet_bytes[i], dtype=np.uint16))
+
+
+def parse_ph_flags(ph_flags):
+    """Given the photon flag field, parse into its individual components.
+    The flags are stored as follows
+    [15] Int.Time Overflow, [14:12] decimation level, [11:0] # dropped photons
+
+    Returns
+    -------
+    decim_lvl, dropped_count, int_time_overflow
+    """
+    decim_lvl = (ph_flags >> 12) & 0b0111
+    dropped_count = ph_flags & 2047
+    int_time_overflow = ph_flags & 32768
+    return decim_lvl, dropped_count, int_time_overflow
