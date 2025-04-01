@@ -283,13 +283,12 @@ def read_calibration_file(calib_filename: Path):
 
 
 # include tools for calibration. 
-# do not define functions that operate on files or filenames. 
-# these functions should only operate on objects...
-# what about plotting functions? I have complicated plotting routines that work on arrays/lists... 
+# add function to plot single spectrum. 
+# add function to plot timeseries.
 
 # testing updated spectrum plotting tools. 
 
-def get_spec(event_list, asic, pixel): 
+def get_spec(event_list, asic, pixel, baseline_sub=False): 
     """
     Reads the contents of an event list and returns the baseline-subtracted energy spectrum (in ADC channel space). 
 
@@ -309,10 +308,13 @@ def get_spec(event_list, asic, pixel):
     """
     # slice the event_list: 
     sliced_list=event_list[(event_list['asic']==asic) & (event_list['pixel']==pixel)]
-    # baseline subtraction: 
-    energy=np.array(sliced_list['atod'], dtype='float64')
-    baseline=np.array(sliced_list['baseline'], dtype='float64')
-    data, bins=np.histogram(((energy-baseline)+np.mean(baseline)), bins=np.arange(0,2**12-1))
+    if baseline_sub==True: 
+        # baseline subtraction: 
+        energy=np.array(sliced_list['atod'], dtype='float64')
+        baseline=np.array(sliced_list['baseline'], dtype='float64')
+        data, bins=np.histogram(((energy-baseline)+np.mean(baseline)), bins=np.arange(0,2**12-1))
+    else: 
+        data, bins=np.histogram(sliced_list['atod'], bins=np.arange(0,2**12-1))
     spectrum=Spectrum1D(flux=u.Quantity(data, 'count'), spectral_axis=u.Quantity(bins, 'pix'))
     return spectrum
 
@@ -343,7 +345,8 @@ def get_spec_arr(asics, pixels, event_list):
     return spectra
 
 # for each ASIC, plot the spectra on top of each other. 
-def plot_spec(asics, pixels, spectra, hdu, save=False):
+#def plot_spec(asics, pixels, spectra, hdu, save=False):
+def plot_spec(asics, pixels, spectra, save=False):
     """
     Plots the measured spectra for each pixel, for each ASIC in a series of individual plots (in ADC channel space). 
 
@@ -368,12 +371,13 @@ def plot_spec(asics, pixels, spectra, hdu, save=False):
             plt.plot(this_spectrum.spectral_axis, this_spectrum.flux, label=f'Pixel: {this_pixel}')
         plt.legend()
         plt.title(f'ASIC {this_asic}')
-        plt.suptitle(f'{hdu.filename()}')
-        if save==True: 
-            plt.savefig(f'{hdu.filename()}_{this_asic}_plot.png')
+        #plt.suptitle(f'{hdu.filename()}')
+        #if save==True: 
+        #    plt.savefig(f'{hdu.filename()}_{this_asic}_plot.png')
         plt.show()
 
-def plot_subspec(asics, pixels, spectra, hdu, save=False):
+#def plot_subspec(asics, pixels, spectra, hdu, save=False):
+def plot_subspec(asics, pixels, spectra, save=False):
     """
     Plots the measured spectra for each pixel, for each ASIC in a series of subplots (in ADC channel space). 
 
@@ -403,8 +407,8 @@ def plot_subspec(asics, pixels, spectra, hdu, save=False):
         fig.tight_layout()
         plt.suptitle(f'ASIC {this_asic}')
         #plt.suptitle(f'{hdu.filename()}')
-        if save==True: 
-            plt.savefig(f'{hdu.filename()}_{this_asic}.png')
+        #if save==True: 
+        #    plt.savefig(f'{hdu.filename()}_{this_asic}.png')
         plt.show()
 
 def find_rois(spectrum, prominence, width, distance):
