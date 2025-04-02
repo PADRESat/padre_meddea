@@ -10,6 +10,8 @@ import numpy as np
 
 from astropy.io import fits
 from astropy.time import Time
+import astropy.timeseries as timeseries
+import datetime
 from astropy.table import Table
 import astropy.units as u
 from astropy.modeling import models
@@ -23,6 +25,7 @@ from specutils.manipulation import extract_region
 from specutils.fitting import estimate_line_parameters
 from specutils.fitting import fit_lines
 from specutils.spectra import SpectralRegion
+from specutils import analysis
 
 from scipy.signal import find_peaks
 
@@ -53,7 +56,9 @@ __all__ = [
     "plot_subspec",
     "find_rois",
     "cal_spec",
-    "energy_cal"]
+    "energy_cal",
+    "gauss_fit",
+    "plot_lightcurve"]
 
 
 def process_file(filename: Path, overwrite=False) -> list:
@@ -283,14 +288,11 @@ def read_calibration_file(calib_filename: Path):
 
 
 # include tools for calibration. 
-# add function to plot single spectrum. 
 # add function to plot timeseries.
-
-# testing updated spectrum plotting tools. 
 
 def get_spec(event_list, asic, pixel, baseline_sub=False): 
     """
-    Reads the contents of an event list and returns the baseline-subtracted energy spectrum (in ADC channel space). 
+    Reads the contents of an event list and returns the energy spectrum (in ADC channel space). 
 
     Parameters
     ----------
@@ -300,6 +302,8 @@ def get_spec(event_list, asic, pixel, baseline_sub=False):
         ASIC number.
     pixel: int
         Pixel number. 
+    baseline_sub: Boolean
+        If set to True, subtracts the baseline. If set to False, does not subtract the baseline.
 
     Returns
     -------
@@ -326,8 +330,10 @@ def get_spec_arr(asics, pixels, event_list):
     ----------
     asics: arr
         Array of ASICs to iterate over. We typically use asics=np.arange(4).
+
     pixels: arr
         Array of pixels to iterate over. We typically use pixels=np.arange(12). 
+
     event_list: Timeseries object
         Photon event list.
 
@@ -412,7 +418,7 @@ def plot_subspec(asics, pixels, spectra, save=False):
         plt.show()
 
 def find_rois(spectrum, prominence, width, distance):
-    '''
+    """
     Find the regions of interest (ROIs) in ADC Channel space over which to perform the energy calibration. 
 
     Parameters
@@ -431,7 +437,7 @@ def find_rois(spectrum, prominence, width, distance):
 
     rois: 
 
-    '''
+    """
     line_centers, properties=find_peaks(spectrum.data, prominence=prominence, width=width, distance=distance)
     rois = []
     for j in range(len(properties["widths"])):
@@ -447,7 +453,7 @@ def cal_spec(spectrum, line_centers=None, rois=None, plot=None):
     ----------
     spectrum: Spectrum1D object
 
-    line_centers_keV: arr
+    line_centers: arr
         Centroids of the spectral lines in energy space. 
 
     Returns
@@ -472,24 +478,123 @@ def cal_spec(spectrum, line_centers=None, rois=None, plot=None):
         plt.legend()
     return result.convert()
 
-# global variable.
-# move this further up. 
-ba133_line_centers=[30.973, 34.920, 80]
+def gauss_fit(spectrum, fit, line_centers, rois): 
+    """
+    Parameters
+    ----------
+    spectrum: Spectrum1D object
+        Spectrum to be fitted. 
 
-# energy calibration, lpix
-def energy_cal(asics, pixels, spectra, prominence, width, distance):
-    '''
-    Parameters: 
-    '''
-    for this_asic in asics:
-        for this_pixel in pixels[0:8]:
-            #spectrum=get_spec(event_list=event_list, asic=this_asic, pixel=this_pixel)
-            spectrum=spectra[this_asic][this_pixel]
+    fit: function
+        Function that converts from ADC Channel space to energy space
 
-            spectrum.flux[0:800]=[0*u.ct for i in spectrum.spectral_axis[0:800]]
-            spectrum.flux[3800:4200]=[0*u.ct for i in spectrum.spectral_axis[3800:4200]]
+    line_centers: array
+        Centers of lines to be fitted in ADC Channel space. 
 
-            line_centers, rois=find_rois(spectrum, prominence=200, width=10, distance=100) # hard-coded for now
-            fit=cal_spec(spectrum, line_centers=ba133_line_centers, rois=rois, plot=True)
-        plt.title(f'ASIC {this_asic}, Lpix')
+    rois: array
+        Regions of interest in ADC channel space. 
+
+    Returns
+    -------
+    means: array
+        Mean values of the Gaussian fit. 
+
+    stddevs: array
+        Standard deviations from the Gaussian fit. 
+
+    fwhms: array
+        FWHM values from the Gaussian fit. 
+
+    fwhms2: array
+        FWHM values from 
+
+    amplitudes: array 
+
+    """
+    means = []
+    stddevs = []
+    fwhms = [] # from specutils.fitting.fit_lines (the Gaussian fit).
+    fwhms2 = [] # from specutils.analysis.fwhm. 
+    amplitudes=[]
+    for this_line_center, this_roi in zip(line_centers, rois):
+        #roi_lower=this_roi[0] # uncomment if you want to use the full ROI, not just the upper RHS.
+        roi_lower=roi_lower=this_line_center # uncomment if you want to use the upper RHS of the ROI. 
+        roi_upper=this_roi[1]
+        
+        this_region=SpectralRegion(roi_lower*u.pix, roi_upper*u.pix) # in ADC space
+        sub_spec=extract_region(spectrum, this_region)
+        params=estimate_line_parameters(sub_spec, models.Gaussian1D())
+        g_init=models.Gaussian1D(amplitude=params.amplitude, mean=params.mean, stddev=params.stddev)
+        g_fit=fit_lines(sub_spec, g_init)  
+        means.append(fit(g_fit.mean.value))
+        stddevs.append(fit(g_fit.stddev.value))
+        amplitudes.append(g_fit.amplitude.value) 
+
+        fwhm=fit(g_fit.mean.value+g_fit.fwhm.value/2.)-fit(g_fit.mean.value-g_fit.fwhm.value/2.) # "fit" cannot be applied to a width; it must be applied to individual values.
+        fwhms.append(fwhm)
+        # alternatively, calculate the fwhm from the Gaussian fit (using analysis.fwhm).
+        fwhm2=2*(fit(analysis.fwhm(sub_spec).value+analysis.fwhm(sub_spec).value/2.)-fit(analysis.fwhm(sub_spec).value-analysis.fwhm(sub_spec).value/2.)) # "fit" cannot be applied to a width; it must be applied to individual values.
+        fwhms2.append(fwhm2)
+
+        energy_axis=fit(spectrum.spectral_axis.value)
+        
+        # plot the measured spectrum and the Gaussian fits for each spectral line on top.
+        plt.plot(energy_axis, spectrum.flux)
+        plt.axvspan(fit(roi_lower), fit(roi_upper), facecolor='green', alpha=0.1)
+        plt.plot(energy_axis, g_fit(spectrum.spectral_axis), label=f'{fwhm}, {fwhm2}')
+        plt.plot(fit(g_fit.mean.value), g_fit.amplitude.value, 'ro')
+        plt.legend()
         plt.show()
+
+        # plot the zoomed in spectrum and the Gaussian fits for each line on top.
+        idx=(energy_axis>fit(roi_lower))*(energy_axis<fit(roi_upper))
+        print(idx)
+        plt.plot(energy_axis[idx], spectrum.flux[idx])
+        plt.axvspan(fit(roi_lower), fit(roi_upper), facecolor='green', alpha=0.1)
+        plt.plot(energy_axis[idx], g_fit(spectrum.spectral_axis[idx]), label=f'{fwhm}, {fwhm2}')
+        plt.plot(fit(g_fit.mean.value), g_fit.amplitude.value, 'ro')
+        plt.legend()
+        plt.show()
+    return means, stddevs, fwhms, fwhms2, amplitudes 
+
+def plot_lightcurve(event_list, asics, pixels, int_time, energy_range, plot=False): 
+    """
+    Parameters
+    ----------
+    event_list: Timeseries object
+
+    asics: array
+        Array of asics to iterate over.
+
+    pixels: array
+        Array of pixels to iterate over.
+
+    int_time: Integer
+        Integration time in seconds.
+
+    energy_range: array
+        Range of energies to plot.
+    
+    plot: Boolean
+        If True, then display a plot of lightcurves.
+
+    Returns
+    -------
+        Array of lightcurves. 
+        
+    """
+    lightcurves=[]
+    for this_asic in asics:
+        lightcurves.append([])
+        for this_pixel in pixels: 
+            this_event_list=event_list[(event_list['asic']==this_asic) & (event_list['pixel']==this_pixel)]
+            this_event_list=this_event_list[(this_event_list['atod']>=energy_range[0]) & (this_event_list['atod']<=energy_range[-1])] 
+            this_lightcurve=timeseries.aggregate_downsample(time_series=this_event_list, time_bin_size=int_time, time_bin_start=this_event_list['time'][0], aggregate_func=np.sum)
+            lightcurves[this_asic].append(this_lightcurve)
+            if plot==True: 
+                plt.plot(this_lightcurve['time_bin_start'].to_datetime(), this_lightcurve['count'])
+                plt.title(f'ASIC {this_asic}m Pixel {this_pixel}')
+                plt.xlabel('Time [m:s]')
+                plt.ylabel(f'Counts [{int_time} bin]')
+                plt.show()
+    return lightcurves
