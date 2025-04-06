@@ -28,6 +28,8 @@ from specutils.spectra import SpectralRegion
 from specutils import analysis
 
 from scipy.signal import find_peaks
+from scipy.ndimage import gaussian_filter1d
+from scipy import signal
 
 import pandas as pd
 
@@ -58,7 +60,8 @@ __all__ = [
     "cal_spec",
     "energy_cal",
     "gauss_fit",
-    "plot_lightcurve"]
+    "plot_lightcurve",
+    "timing"]
 
 
 def process_file(filename: Path, overwrite=False) -> list:
@@ -290,7 +293,7 @@ def read_calibration_file(calib_filename: Path):
 # include tools for calibration. 
 # add function to plot timeseries.
 
-def get_spec(event_list, asic, pixel, baseline_sub=False): 
+def get_spec(event_list, asic, pixel, step, baseline_sub=False): 
     """
     Reads the contents of an event list and returns the energy spectrum (in ADC channel space). 
 
@@ -298,10 +301,16 @@ def get_spec(event_list, asic, pixel, baseline_sub=False):
     ----------
     event_list: Timeseries object
         Photon event list. 
+
     asic: int
-        ASIC number.
+        ASIC number. If set to None, returns spectrum across all asics. 
+
     pixel: int
-        Pixel number. 
+        Pixel number. If set to None, returns spectrum across all pixels.
+
+    step: int
+        Binning step size. 
+
     baseline_sub: Boolean
         If set to True, subtracts the baseline. If set to False, does not subtract the baseline.
 
@@ -310,19 +319,24 @@ def get_spec(event_list, asic, pixel, baseline_sub=False):
     spectrum: Spectrum1D object
         Baseline-subtracted energy spectrum. 
     """
-    # slice the event_list: 
+
     sliced_list=event_list[(event_list['asic']==asic) & (event_list['pixel']==pixel)]
+    if asic==None: 
+        sliced_list=event_list[(event_list['pixel']==pixel)]
+    if pixel==None:
+        sliced_list=event_list[(event_list['asic']==asic)]
+    if (asic==None) & (pixel==None):
+        sliced_list=event_list
     if baseline_sub==True: 
-        # baseline subtraction: 
         energy=np.array(sliced_list['atod'], dtype='float64')
         baseline=np.array(sliced_list['baseline'], dtype='float64')
-        data, bins=np.histogram(((energy-baseline)+np.mean(baseline)), bins=np.arange(0,2**12-1))
+        data, bins=np.histogram(((energy-baseline)+np.mean(baseline)), bins=np.arange(0,2**12-1,step))
     else: 
-        data, bins=np.histogram(sliced_list['atod'], bins=np.arange(0,2**12-1))
+        data, bins=np.histogram(sliced_list['atod'], bins=np.arange(0,2**12-1,step))
     spectrum=Spectrum1D(flux=u.Quantity(data, 'count'), spectral_axis=u.Quantity(bins, 'pix'))
     return spectrum
 
-def get_spec_arr(asics, pixels, event_list):
+def get_spec_arr(asics, pixels, event_list, step, baseline_sub):
     """
     Reads the contents of an event list and returns a multi-dimensional array of spectra. 
     
@@ -346,8 +360,11 @@ def get_spec_arr(asics, pixels, event_list):
     for this_asic in asics: 
         spectra.append([])
         for this_pixel in pixels: 
-            this_spectrum=get_spec(event_list=event_list, asic=this_asic, pixel=this_pixel)
-            spectra[this_asic].append(this_spectrum)
+            if baseline_sub==True: 
+                this_spectrum=get_spec(event_list, asic=this_asic, pixel=this_pixel, step=step, baseline_sub=True)
+                spectra[this_asic].append(this_spectrum)
+            else:
+                spectra[this_asic].append(this_spectrum)
     return spectra
 
 # for each ASIC, plot the spectra on top of each other. 
@@ -398,8 +415,6 @@ def plot_subspec(asics, pixels, spectra, save=False):
     spectra: arr
         Multi-dimensional array. Each element of the array corresponds to a an ASIC and contains 12 spectra, each corresponding to a pixel. Each spectrum is itself a Spectrum1D object.
 
-    hdu: fits header data unit.
-
     Returns
     -------
     """
@@ -445,6 +460,7 @@ def find_rois(spectrum, prominence, width, distance):
         rois.append(roi)
     return line_centers, rois
 
+'''
 def cal_spec(spectrum, line_centers=None, rois=None, plot=None):
     """
     Takes a spectrum object and the centroids of its spectral lines (in energy space) and returns a function that converts from ADC Channel space to energy space. 
@@ -477,6 +493,78 @@ def cal_spec(spectrum, line_centers=None, rois=None, plot=None):
         plt.xlabel("Channel")
         plt.legend()
     return result.convert()
+'''
+
+def cal_spec(line_centers, line_energies, plot=False):
+    '''
+    Parameters
+
+    line_centers: arr
+        Locations of centers of lines in ADC channel space. 
+
+    line_energies: arr
+        Locations of centers of lines in energy space. 
+
+    plot: Boolean
+        if True, plots the calibration fit. 
+
+    Returns
+    
+    result: function
+        Fitting function. 
+    '''
+    result=Polynomial.fit(line_centers, line_energies, deg=1)
+    if plot:
+        plt.plot(line_centers, line_energies, "x")
+        plt.plot(line_centers, result(line_centers), "-", label=f"{result.convert()}")
+        plt.ylabel("Energy [keV]")
+        plt.xlabel("Channel")
+        plt.legend()
+    return result.convert()
+
+def auto_cal(raw_spectra, sm_spectra, asics, pixels, ba133_line_centers, plot=False):
+    '''
+    Parameters
+
+    raw_spectra: arr
+        Array of raw spectra.
+    sm_spectra: arr
+        Array of smoothed spectra. The Gaussian filter works on this array. 
+    asics: arr
+        Array of ASICs. 
+    pixels: arr
+        Array of pixels. 
+    ba133_line_centers: arr
+        Locations of the Ba133 lines in energy space. 
+
+    Returns: 
+    gain: arr
+        Array of coefficients. 
+
+    '''
+    gain=[] #save the coefficients from the energy calibration.
+    for this_asic in asics: 
+        gain.append([])
+        for this_raw_spectrum, this_sm_spectrum, this_pixel in zip(raw_spectra[this_asic], sm_spectra[this_asic], pixels):
+            filtered_spec=gaussian_filter1d(this_sm_spectrum.flux, sigma=0.1)
+            tMax=signal.argrelmax(filtered_spec)[0]
+            tMin=signal.argrelmin(filtered_spec)[0]
+            if plot==True: 
+                plt.plot(this_sm_spectrum.flux, label = 'raw')
+                #plt.plot(filtered_spec, label = 'filtered')
+                plt.plot(tMax, filtered_spec[tMax], 'o', mfc= 'none', label = 'max')
+                plt.legend()
+                #plt.show()
+            line_centers=np.array(this_sm_spectrum.spectral_axis[tMax].value)
+            #print(line_centers)
+            fit=cal_spec(line_centers=line_centers, line_energies=ba133_line_centers, plot=False)
+            #print(fit)
+        gain[this_asic].append(fit)
+        plt.plot(fit(this_raw_spectrum.spectral_axis.value), this_raw_spectrum.flux)
+    plt.title(f'ASIC {this_asic}, Lpix')
+    plt.show()
+    return gain
+
 
 def gauss_fit(spectrum, fit, line_centers, rois): 
     """
@@ -598,3 +686,38 @@ def plot_lightcurve(event_list, asics, pixels, int_time, energy_range, plot=Fals
                 plt.ylabel(f'Counts [{int_time} bin]')
                 plt.show()
     return lightcurves
+
+def timing(event_list, plot_hist=False):
+    """
+    Take an event_list and find the average event rate and the minimum time interval between consecutive events. 
+
+    Parameters
+    ----------
+    event_list: Timeseries object
+
+    plot_hist: Boolean
+        If True, plot the histogram of the unique times in the event_list.
+
+    Returns
+    -------
+    
+    """
+    time=np.asarray([pd.to_datetime(l).timestamp() for l in np.unique(event_list['time'].value)]) # s
+    deltat=np.gradient(np.unique(time))
+
+    print(deltat)
+    if plot_hist==True: 
+        plt.hist(deltat, bins=50)
+        #plt.title(f'{Time Gradient}')
+        plt.ylim([0,1])
+        plt.xlabel('Time Between Events [s]')
+        plt.ylabel('# Events')
+        plt.autoscale(enable=True, axis='both', tight=None)
+        plt.show()
+        
+    avg_event_rate = np.around(1/np.average(deltat.mean()),3)
+    print(f'Average Event Rate: {avg_event_rate} ct/s')   
+    toto=np.unique(np.sort(deltat))
+    min_delta_t=np.min(toto[toto!=0])*1E6
+    print(f'Minimum nonzero time interval between two triggers: %4.2f µs'%(min_delta_t))
+    return deltat, avg_event_rate, min_delta_t
