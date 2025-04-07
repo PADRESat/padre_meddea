@@ -10,7 +10,7 @@ from astropy.modeling import models
 from astropy.time import Time
 from astropy.nddata import StdDevUncertainty
 from astropy.table import Table
-from astropy.timeseries import TimeSeries, aggregate_downsample
+from astropy.timeseries import TimeSeries, BinnedTimeSeries, aggregate_downsample
 
 from specutils import Spectrum1D, SpectralRegion
 from specutils.manipulation import extract_region
@@ -82,7 +82,10 @@ class PhotonList:
         """
         if bins is None:
             bins = np.arange(0, 2**12 - 1)
-        this_event_list = self._slice_event_list(asic_num, pixel_num)
+        if (asic_num is None) and (pixel_num is None):
+            this_event_list = self.event_list
+        else:
+            this_event_list = self._slice_event_list(asic_num, pixel_num)
         data, new_bins = np.histogram(this_event_list["atod"], bins=bins)
         # the spectral axis is at the center of the bins
         result = Spectrum1D(
@@ -118,7 +121,7 @@ class PhotonList:
         if (asic_num is None) and (pixel_num is None):
             this_event_list = self.event_list
         else:
-            this_event_list = self.slice_event_list(asic_num, pixel_num)
+            this_event_list = self._slice_event_list(asic_num, pixel_num)
         this_event_list = TimeSeries(
             time=self.event_list.time[::step]
         )  # not sure why this is necessary
@@ -128,6 +131,30 @@ class PhotonList:
         )
         ts["count"] *= step
         return ts
+
+    def data_rate(self) -> BinnedTimeSeries:
+        """Return a BinnedTimeseries of the data rate.
+
+        Returns
+        -------
+        data_rate : BinnedTimeSeries
+        """
+        # correct the ccsds packet length by adding ccsds header and adding missing 1
+        pkt_length = (self.pkt_list["pktlength"] + 3 * 2 + 1) * u.byte
+        good_times = (
+            self.pkt_list.time > self.pkt_list.time[0]
+        )  # to protect against bad times
+
+        data_rate = TimeSeries(
+            time=self.pkt_list.time[good_times],
+            data={"packet_size": pkt_length[good_times]},
+        )
+        data_rate_ts = aggregate_downsample(
+            data_rate, time_bin_size=1 * u.s, aggregate_func=np.sum
+        )
+        data_rate_ts.rename_column("packet_size", "data_rate")
+        data_rate_ts["data_rate"] = data_rate_ts["data_rate"] / u.s
+        return data_rate_ts
 
     def _slice_event_list(self, asic_num: int, pixel_num: int) -> TimeSeries:
         """Slice the event list to only contain events from asic_num and pixel_num"""
