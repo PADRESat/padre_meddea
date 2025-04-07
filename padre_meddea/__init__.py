@@ -2,9 +2,11 @@
 import os
 from pathlib import Path
 
+import numpy as np
+
 from astropy.time import Time
 import astropy.io
-import numpy as np
+from astropy.table import vstack
 
 try:
     from ._version import version as __version__
@@ -45,7 +47,58 @@ register_table["address"] = [
     int(addr, 16) for addr in list(register_table["address_hex"])
 ]
 register_table.add_index("address")
-# TODO add ASIC registers for det 1, 2, 3 to register table
+asic_ind = (register_table["address"] >= 0x0020) * (register_table["address"] <= 0x0044)
+
+
+def shift_asic_reg_addr(asic_num: int, addr: int):
+    """Shift a raw asic register address to the correct address.
+
+    Parameters
+    ----------
+    asic_num : int
+        The asic number
+    addr : int
+        The raw asic register address
+    Return
+    ------
+    int
+      The shifted register address
+    """
+    base = 0x40 * asic_num
+    return base + addr
+
+
+def unshift_asic_reg_addr(asic_num: int, addr: int):
+    """Unshift a shifted asic register address to the raw address.
+
+    Parameters
+    ----------
+    asic_num : int
+        The asic number
+    addr : int
+        The shifted asic register address
+    Return
+    ------
+    int
+      The unshifted asic register address
+    """
+    base = 0x40 * asic_num
+    return addr - base
+
+
+for this_asic in range(4):
+    this_register_asic_table = register_table[asic_ind].copy()
+    for this_row in this_register_asic_table:
+        this_row["name"] = this_row["name"].replace("asic", f"asic{this_asic}")
+        this_row["address"] = shift_asic_reg_addr(this_asic, this_row["address"])
+        this_row["address_hex"] = f"{this_row['address']:04x}"
+    if this_asic == 0:
+        register_asic_table = this_register_asic_table
+    else:
+        register_asic_table = vstack([register_asic_table, this_register_asic_table])
+
+register_table = register_table[~asic_ind]
+register_table = vstack([register_table, register_asic_table])
 
 # the ratio of detector area for large pixels versus small pixels
 RATIO_TOTAL_LARGE_TO_SMALL_PIX = 0.947
