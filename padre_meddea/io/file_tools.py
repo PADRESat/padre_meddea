@@ -258,6 +258,7 @@ def parse_ph_packets(filename: Path):
     pkt_times = util.calc_time(ph_data["TIME_S"], ph_data["TIME_CLOCKS"])
     pkt_list = TimeSeries(time=pkt_times)
     pkt_list["seqcount"] = ph_data["CCSDS_SEQUENCE_COUNT"]
+    pkt_list["pktlength"] = ph_data["CCSDS_PACKET_LENGTH"]
     pkt_list["pkttimes"] = ph_data["TIME_S"]
     pkt_list["pktclock"] = ph_data["TIME_CLOCKS"]
     pkt_list["livetime"] = ph_data["LIVE_TIME"]
