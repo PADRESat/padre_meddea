@@ -27,7 +27,7 @@ classifiers = [
 dependencies = [
   'astropy==6.1.*',
   'numpy==2.2.*',
-  'sunpy==6.0.*',
+  'sunpy==6.1.*',
   'roentgen',
   'specutils==1.*',
   'ccsdspy==1.4.*',
