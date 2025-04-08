@@ -1,0 +1,21 @@
+attribute_key:
+  AUTHOR:
+    default: Steven D. Christe
+  CREATOR:
+    default: padre_meddea
+  DETECTOR: 
+    default: meddea
+  INFO_URL:
+    default: https://padre-meddea.readthedocs.io/en/latest/user-guide/data.html
+  OBSRVTRY:
+    default: PADRE
+  TIMESYS:
+    default: UTC
+  TELESCOP:
+    default: PADRE/MeDDEA
+  INSTRUME:
+    default: MeDDEA
+  MISSION:
+    default: PADRE
+  ORIGIN:
+    default: NASA/GSFC
