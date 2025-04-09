@@ -58,7 +58,7 @@ __all__ = [
     "plot_subspec",
     "find_rois",
     "cal_spec",
-    "energy_cal",
+    "auto_cal",
     "gauss_fit",
     "plot_lightcurve",
     "timing"]
@@ -288,11 +288,6 @@ def read_calibration_file(calib_filename: Path):
 
 
 
-
-
-# include tools for calibration. 
-# add function to plot timeseries.
-
 def get_spec(event_list, asic, pixel, step, baseline_sub=False): 
     """
     Reads the contents of an event list and returns the energy spectrum (in ADC channel space). 
@@ -367,8 +362,7 @@ def get_spec_arr(asics, pixels, event_list, step, baseline_sub):
                 spectra[this_asic].append(this_spectrum)
     return spectra
 
-# for each ASIC, plot the spectra on top of each other. 
-#def plot_spec(asics, pixels, spectra, hdu, save=False):
+# for each ASIC, plot the spectra on top of each other.
 def plot_spec(asics, pixels, spectra, save=False):
     """
     Plots the measured spectra for each pixel, for each ASIC in a series of individual plots (in ADC channel space). 
@@ -399,7 +393,7 @@ def plot_spec(asics, pixels, spectra, save=False):
         #    plt.savefig(f'{hdu.filename()}_{this_asic}_plot.png')
         plt.show()
 
-#def plot_subspec(asics, pixels, spectra, hdu, save=False):
+# plot spectra in nidividual subplots.
 def plot_subspec(asics, pixels, spectra, save=False):
     """
     Plots the measured spectra for each pixel, for each ASIC in a series of subplots (in ADC channel space). 
@@ -432,6 +426,8 @@ def plot_subspec(asics, pixels, spectra, save=False):
         #    plt.savefig(f'{hdu.filename()}_{this_asic}.png')
         plt.show()
 
+# this works, but not reliably. 
+# inputs to "find_peaks" must be hard-coded, which is not good practice.
 def find_rois(spectrum, prominence, width, distance):
     """
     Find the regions of interest (ROIs) in ADC Channel space over which to perform the energy calibration. 
@@ -460,6 +456,7 @@ def find_rois(spectrum, prominence, width, distance):
         rois.append(roi)
     return line_centers, rois
 
+# trying something new...
 '''
 def cal_spec(spectrum, line_centers=None, rois=None, plot=None):
     """
@@ -522,7 +519,8 @@ def cal_spec(line_centers, line_energies, plot=False):
         plt.legend()
     return result.convert()
 
-def auto_cal(raw_spectra, sm_spectra, asics, pixels, ba133_line_centers, plot=False):
+
+def auto_cal(raw_spectra, sm_spectra, asics, pixels, line_centers, plot=False):
     '''
     Parameters
 
@@ -534,8 +532,8 @@ def auto_cal(raw_spectra, sm_spectra, asics, pixels, ba133_line_centers, plot=Fa
         Array of ASICs. 
     pixels: arr
         Array of pixels. 
-    ba133_line_centers: arr
-        Locations of the Ba133 lines in energy space. 
+    line_centers: arr
+        Locations of the spectral lines used for calibration in energy space. 
 
     Returns: 
     gain: arr
@@ -559,10 +557,12 @@ def auto_cal(raw_spectra, sm_spectra, asics, pixels, ba133_line_centers, plot=Fa
             #print(line_centers)
             fit=cal_spec(line_centers=line_centers, line_energies=ba133_line_centers, plot=False)
             #print(fit)
-        gain[this_asic].append(fit)
-        plt.plot(fit(this_raw_spectrum.spectral_axis.value), this_raw_spectrum.flux)
-    plt.title(f'ASIC {this_asic}, Lpix')
-    plt.show()
+            gain[this_asic].append(fit)
+            #plt.plot(fit(this_raw_spectrum.spectral_axis.value), this_raw_spectrum.flux)
+            #for this_line_energy in ba133_line_centers: 
+            #    plt.axvline(this_line_energy, color='grey', linestyle='dashed', alpha=0.05)
+        #plt.title(f'ASIC {this_asic}')
+        #plt.show()
     return gain
 
 
@@ -645,6 +645,7 @@ def gauss_fit(spectrum, fit, line_centers, rois):
         plt.show()
     return means, stddevs, fwhms, fwhms2, amplitudes 
 
+
 def plot_lightcurve(event_list, asics, pixels, int_time, energy_range, plot=False): 
     """
     Parameters
@@ -671,6 +672,9 @@ def plot_lightcurve(event_list, asics, pixels, int_time, energy_range, plot=Fals
         Array of lightcurves. 
         
     """
+    # add a column to use to tally up the counts for the lightcurve.
+    # remember to add a column to the oevent_list to use to tally up the counts to evaluate the lightcurve. 
+    # event_list['count']=np.ones(len(event_list), dtype=np.uint8)  
     lightcurves=[]
     for this_asic in asics:
         lightcurves.append([])
@@ -686,6 +690,7 @@ def plot_lightcurve(event_list, asics, pixels, int_time, energy_range, plot=Fals
                 plt.ylabel(f'Counts [{int_time} bin]')
                 plt.show()
     return lightcurves
+
 
 def timing(event_list, plot_hist=False):
     """
