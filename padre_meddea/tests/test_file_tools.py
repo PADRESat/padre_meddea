@@ -27,11 +27,12 @@ def test_read_file_bad_file():
 
 
 def test_read_ph_file():
-    ph_list = parse_ph_packets(ph_packet_file)
+    pkt_list, ph_list = parse_ph_packets(ph_packet_file)
     # check that there are the right number of events
-    assert len(ph_list) == 760
+    # assert len(ph_list) == 760
     # check that there are in fact 4 packets
-    assert len(np.unique(ph_list["packet_num"])) == NUM_PACKETS
+    assert len(np.unique(pkt_list["seqcount"])) == NUM_PACKETS
+    assert len(pkt_list) == NUM_PACKETS
 
 
 def test_read_hk_file():

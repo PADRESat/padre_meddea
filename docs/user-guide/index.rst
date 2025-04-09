@@ -12,7 +12,10 @@ For more details checkout the :ref:`reference`.
 
    Brief Tour <tour>
    data
+   raw
    level0
-   spectrum
+   simul_spectrum
+   amptek
+   raw_spectrum_data
    customization
    logger
