@@ -3,7 +3,7 @@
 import numpy as np
 from astropy.timeseries import TimeSeries
 
-from swxsoc.util.util import record_timeseries, create_annotation
+from swxsoc.util.util import record_timeseries#, create_annotation
 
 from padre_meddea import log
 import padre_meddea.util.util as util
