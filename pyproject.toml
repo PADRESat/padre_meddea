@@ -26,12 +26,12 @@ classifiers = [
 ]
 dependencies = [
   'astropy==6.1.*',
-  'numpy==2.2.*',
-  'sunpy==6.0.*',
+  'numpy==2.*',
+  'sunpy==6.*',
   'roentgen',
-  'specutils==1.15.*',
+  'specutils==1.*',
   'ccsdspy==1.4.*',
-  'matplotlib==3.9.*',
+  'matplotlib==3.10.*',
   'swxsoc @ git+https://github.com/swxsoc/swxsoc.git@main',
   'gitpython==3.1.*',
   'solarnet_metadata @ git+https://github.com/IHDE-Alliance/solarnet_metadata.git@solarnet_metadata_package',
