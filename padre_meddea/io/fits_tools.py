@@ -8,6 +8,7 @@ from typing import List, Tuple
 
 import git
 import ccsdspy
+from astropy import units as u
 from astropy.io import ascii
 import astropy.io.fits as fits
 from astropy.time import Time
@@ -43,7 +44,7 @@ PRLIBS = {
 }
 
 
-def get_std_comment(keyword: str) -> str:
+def get_comment(keyword: str) -> str:
     """Given a keyword, return the standard comment for a header card."""
     # Check Keyword in Existing Structure
     if keyword.upper() in FITS_HDR_KEYTOCOMMENT["keyword"]:
@@ -97,30 +98,27 @@ def get_primary_header(
 
     # Create a new header
     header = fits.Header()
-    header["DATE"] = (Time.now().fits, get_std_comment("DATE"))
+    header["DATE"] = (Time.now().fits, get_comment("DATE"))
 
     # Add PADRE Default Attributes to Header
     for keyword, value in schema.default_attributes.items():
-        header[keyword] = (value, get_std_comment(keyword))
+        header[keyword] = (value, get_comment(keyword))
 
-    # Add PADRE Git Information to Header
+    # Data Description Keywords
+    header["BUNIT"] = get_bunit(data_level, data_type)
+
+    # Pipeline processing keywords
     header = add_process_info_to_header(header, n=procesing_step)
+    header["LEVEL"] = (data_level, get_comment("LEVEL"))
 
-    # Add Data Level
-    header["LEVEL"] = (data_level, get_std_comment("LEVEL"))
-
-    # Add Data Type
-    header["DATATYPE"] = (data_type, get_std_comment("DATATYPE"))
-
-    # Add Original APID
+    # PADRE Custom Keywords
+    header["DATATYPE"] = (data_type, get_comment("DATATYPE"))
     header["ORIGAPID"] = (
         padre_meddea.APID[data_type],
-        get_std_comment("ORIGAPID"),
+        get_comment("ORIGAPID"),
     )
-
-    # Add Original File Name
     file_path = Path(file_path)
-    header["ORIGFILE"] = (file_path.name, get_std_comment("ORIGFILE"))
+    header["ORIGFILE"] = (file_path.name, get_comment("ORIGFILE"))
 
     return header
 
@@ -149,6 +147,52 @@ def validate_fits_header(header: fits.Header) -> List[str]:
     validation_findings = schema.validate(header_dict)
 
     return validation_findings
+
+
+# =============================================================================
+# Mandatory data description keywords (sections 15.4, 5.1, 5.2, 5.6.2)
+# =============================================================================
+
+
+def get_bunit(data_level: str, data_type: str) -> Tuple[str, str]:
+    """
+    Get the bunit and comment for a given data level and data type.
+
+    Parameters
+    ----------
+    data_level : str
+        Data Processing step (e.g., 'L0', 'L1')
+    data_type : str
+        Type of data being processed
+
+    Returns
+    -------
+    tuple
+        A tuple of (bunit, comment)
+    """
+    bunit = None
+    match data_level.lower():
+        case "l0":
+            bunit = u.dimensionless_unscaled.to_string()
+        case "l1":
+            match data_type.lower():
+                case "photon":
+                    bunit = u.count
+                case "housekeeping":
+                    bunit = u.count
+                case "spectrum":
+                    bunit = u.count
+                case _:
+                    raise ValueError(f"Units Undefined for Data Type: {data_type}")
+        case _:
+            raise ValueError(f"Units Undefined for Data Level: {data_level}")
+    comment = get_comment("BUNIT")
+    return bunit.to_string(), comment
+
+
+# =============================================================================
+# Optional pipeline processing keywords (sections 18, 8, 8.1, 8.2)
+# =============================================================================
 
 
 def add_process_info_to_header(header: fits.Header, n: int = 1) -> fits.Header:
@@ -226,7 +270,7 @@ def get_prstep(n: int = 1) -> Tuple[str, str]:
             value = "PROCESS L3 to L4"
         case _:
             raise ValueError(f"Processing Undefined for n={n}")
-    comment = get_std_comment(f"PRSTEP{n}")
+    comment = get_comment(f"PRSTEP{n}")
     return value, comment
 
 
@@ -250,7 +294,7 @@ def get_prproc(n: int = 1) -> Tuple[str, str]:
     match n:
         case _:
             value = "padre_meddea.calibration.process_file"
-    comment = get_std_comment(f"PRPROC{n}")
+    comment = get_comment(f"PRPROC{n}")
     return value, comment
 
 
@@ -271,7 +315,7 @@ def get_prpver(n: int = 1) -> Tuple[str, str]:
         A tuple of (processing_version, standard_comment)
     """
     value = padre_meddea.__version__
-    comment = get_std_comment(f"PRPVER{n}")
+    comment = get_comment(f"PRPVER{n}")
     return value, comment
 
 
@@ -295,7 +339,7 @@ def get_prlib(n: int = 1, a: str = "A") -> Tuple[str, str]:
     """
     prlib, _, _ = PRLIBS.get(f"{n}{a}", (None, None, None))
     if prlib:
-        return prlib, get_std_comment(f"PRLIB{n}{a}")
+        return prlib, get_comment(f"PRLIB{n}{a}")
     else:
         raise ValueError(f"Library Undefined for n={n} and a={a}")
 
@@ -320,7 +364,7 @@ def get_prver(n: int = 1, a: str = "A") -> Tuple[str, str]:
     """
     _, prver, _ = PRLIBS.get(f"{n}{a}", (None, None, None))
     if prver:
-        return prver, get_std_comment(f"PRVER{n}{a}")
+        return prver, get_comment(f"PRVER{n}{a}")
     else:
         raise ValueError(f"Library Undefined for n={n} and a={a}")
 
@@ -380,5 +424,5 @@ def get_prhsh(n: int = 1, a: str = "A") -> Tuple[str, str]:
     #    repo.active_branch.name,
     #    get_std_comment(f"PRBRA{n}A"),
     # )
-    comment = get_std_comment(f"PRHSH{n}{a}")
+    comment = get_comment(f"PRHSH{n}{a}")
     return hexsha, comment

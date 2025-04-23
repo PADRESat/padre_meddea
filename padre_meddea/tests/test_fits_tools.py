@@ -21,7 +21,7 @@ def test_comment_lookup_hdr0():
     # Create a Custom SOLARNET Schema
     schema = SOLARNETSchema(schema_layers=[CUSTOM_ATTRS_PATH])
     for attr in schema.default_attributes:
-        comment = get_std_comment(attr)
+        comment = get_comment(attr)
         assert comment is not None
         assert isinstance(comment, str)
 
@@ -61,4 +61,4 @@ def test_get_primary_header():
     ],
 )
 def test_get_std_comment(test_input, expected):
-    assert get_std_comment(test_input) == expected
+    assert get_comment(test_input) == expected

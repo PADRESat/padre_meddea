@@ -1,8 +1,14 @@
 attribute_key:
   AUTHOR:
     default: Steven D. Christe
+  CAMERA:
+    required: optional
+  CAMPAIGN:
+    required: optional
   CREATOR:
     default: padre_meddea
+  DATATAGS:
+    default: ""
   DETECTOR: 
     default: meddea
   INFO_URL:

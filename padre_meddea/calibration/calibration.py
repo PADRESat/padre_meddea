@@ -23,7 +23,7 @@ from padre_meddea.util.util import create_science_filename, calc_time
 from padre_meddea.io.file_tools import read_raw_file
 from padre_meddea.io.fits_tools import (
     get_primary_header,
-    get_std_comment,
+    get_comment,
 )
 
 __all__ = [
@@ -82,17 +82,9 @@ def process_file(filename: Path, overwrite=False) -> list:
             for this_keyword in ["DATE-BEG", "DATE-END", "DATE-AVG"]:
                 primary_hdr[this_keyword] = (
                     event_list.meta.get(this_keyword, ""),
-                    get_std_comment(this_keyword),
+                    get_comment(this_keyword),
                 )
-
-            empty_primary_hdu = fits.PrimaryHDU(header=primary_hdr)
-            pkt_list = Table(pkt_list)
-            pkt_list.remove_column("time")
-            pkt_hdu = fits.BinTableHDU(pkt_list, name="PKT")
-            pkt_hdu.add_checksum()
-            hit_hdu = fits.BinTableHDU(event_list, name="SCI")
-            hit_hdu.add_checksum()
-            hdul = fits.HDUList([empty_primary_hdu, hit_hdu, pkt_hdu])
+            primary_hdr["DATEREF"] = (primary_hdr["DATE-BEG"], get_comment("DATEREF"))
 
             path = create_science_filename(
                 "meddea",
@@ -102,6 +94,16 @@ def process_file(filename: Path, overwrite=False) -> list:
                 test=True,
                 version="0.1.0",
             )
+            primary_hdr["FILENAME"] = (path, get_comment("FILENAME"))
+
+            empty_primary_hdu = fits.PrimaryHDU(header=primary_hdr)
+            pkt_list = Table(pkt_list)
+            pkt_list.remove_column("time")
+            pkt_hdu = fits.BinTableHDU(pkt_list, name="PKT")
+            pkt_hdu.add_checksum()
+            hit_hdu = fits.BinTableHDU(event_list, name="SCI")
+            hit_hdu.add_checksum()
+            hdul = fits.HDUList([empty_primary_hdu, hit_hdu, pkt_hdu])
 
             # Set the temp_dir and overwrite flag based on the environment variable
             if lambda_environment:
@@ -123,7 +125,7 @@ def process_file(filename: Path, overwrite=False) -> list:
             primary_hdr = get_primary_header(file_path, "l1", "housekeeping")
 
             date_beg = calc_time(hk_data["timestamp"][0])
-            primary_hdr["DATEREF"] = (date_beg.fits, get_std_comment("DATEREF"))
+            primary_hdr["DATEREF"] = (date_beg.fits, get_comment("DATEREF"))
 
             hk_table["seqcount"] = hk_table["CCSDS_SEQUENCE_COUNT"]
             colnames_to_remove = [
@@ -141,6 +143,16 @@ def process_file(filename: Path, overwrite=False) -> list:
                 if this_col in hk_table.colnames:
                     hk_table.remove_column(this_col)
 
+            path = create_science_filename(
+                "meddea",
+                time=date_beg,
+                level="l1",
+                descriptor="hk",
+                test=True,
+                version="0.1.0",
+            )
+            primary_hdr["FILENAME"] = (path, get_comment("FILENAME"))
+
             empty_primary_hdu = fits.PrimaryHDU(header=primary_hdr)
             hk_hdu = fits.BinTableHDU(data=hk_table, name="HK")
             hk_hdu.add_checksum()
@@ -151,7 +163,7 @@ def process_file(filename: Path, overwrite=False) -> list:
                 this_header = fits.Header()
                 this_header["DATEREF"] = (
                     data_ts.time[0].fits,
-                    get_std_comment("DATEREF"),
+                    get_comment("DATEREF"),
                 )
                 aws_db.record_cmd(data_ts)
                 data_table = Table(data_ts)
@@ -175,15 +187,6 @@ def process_file(filename: Path, overwrite=False) -> list:
                 this_header = fits.Header()
                 cmd_hdu = fits.BinTableHDU(data=None, header=this_header, name="READ")
             hdul = fits.HDUList([empty_primary_hdu, hk_hdu, cmd_hdu])
-
-            path = create_science_filename(
-                "meddea",
-                time=date_beg,
-                level="l1",
-                descriptor="hk",
-                test=True,
-                version="0.1.0",
-            )
 
             # Set the temp_dir and overwrite flag based on the environment variable
             if lambda_environment:
@@ -209,12 +212,23 @@ def process_file(filename: Path, overwrite=False) -> list:
                 "DATE-END": ts.time[-1].fits,
                 "DATE-AVG": ts.time[len(ts.time) // 2].fits,
             }
-            primary_hdr["DATEREF"] = (dates["DATE-BEG"], get_std_comment("DATEREF"))
+            primary_hdr["DATEREF"] = (dates["DATE-BEG"], get_comment("DATEREF"))
             for this_keyword, value in dates.items():
                 primary_hdr[this_keyword] = (
                     value,
-                    get_std_comment(this_keyword),
+                    get_comment(this_keyword),
                 )
+
+            path = create_science_filename(
+                "meddea",
+                time=dates["DATE-BEG"],
+                level="l1",
+                descriptor="spec",
+                test=True,
+                version="0.1.0",
+            )
+            primary_hdr["FILENAME"] = (path, get_comment("FILENAME"))
+
             spec_hdu = fits.ImageHDU(data=spectra.data, name="SPEC")
             spec_hdu.add_checksum()
 
@@ -229,14 +243,6 @@ def process_file(filename: Path, overwrite=False) -> list:
             pkt_hdu.add_checksum()
             empty_primary_hdu = fits.PrimaryHDU(header=primary_hdr)
             hdul = fits.HDUList([empty_primary_hdu, spec_hdu, pkt_hdu])
-            path = create_science_filename(
-                "meddea",
-                time=dates["DATE-BEG"],
-                level="l1",
-                descriptor="spec",
-                test=True,
-                version="0.1.0",
-            )
 
             # Set the temp_dir and overwrite flag based on the environment variable
             if lambda_environment:
