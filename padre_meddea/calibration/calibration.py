@@ -431,7 +431,7 @@ def concatenate_file(files_to_combine: list[Path], existing_file: Path = None) -
                 # TODO: Do we need to do any checks on the HDUs here?
                 new_hdul.append(hdu.copy())
 
-    ## TODO: Do we need to validate the concatenated file?
+    # TODO: Do we need to validate the concatenated file?
     # # Before we process, validate the file with CCSDS
     # custom_validators = [validation.validate_packet_checksums]
     # validation_findings = validation.validate(
