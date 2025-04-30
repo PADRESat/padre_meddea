@@ -320,3 +320,131 @@ def read_calibration_file(calib_filename: Path):
     # if can't read the file
 
     return None
+
+
+def concatenate_file(files_to_combine: list[Path], existing_file: Path = None) -> Path:
+    """
+    Concatenate multiple FITS files into a single daily FITS file.
+
+    Parameters
+    ----------
+    files_to_combine : list of Path
+        List of FITS files to combine. Assumed to have the same structure and datatype.
+    existing_file : Path, optional
+        Existing daily FITS file to append to.
+
+    Returns
+    -------
+    output_file : Path
+        Path to the concatenated daily FITS file.
+    """
+    # Check if the input files are provided
+    if not files_to_combine:
+        raise ValueError("No input files provided for concatenation.")
+
+    # Sort the files by DATE-BEG for proper time ordering
+    # TODO: Is Date-Beg the best way to sort or would it be Date-Avg/Date-ref?
+    files_to_combine = sorted(
+        files_to_combine, key=lambda f: fits.getheader(f)["DATE-BEG"]
+    )
+
+    # Combine files_to_combine and existing_file if provided
+    all_files = files_to_combine.copy()
+    if existing_file:
+        if existing_file in files_to_combine:
+            log.warning(f"{existing_file} already in files_to_combine, skipping.")
+        else:
+            # Insert the existing file at the beginning of the list
+            all_files.insert(0, existing_file)
+
+    # Use metadata from the first file to construct the output name
+    lambda_environment = os.getenv("LAMBDA_ENVIRONMENT")
+    datatype = "daily"
+    instrument = fits.getheader(all_files[0])["INSTRUME"].lower()
+
+    # Extract dates from all files
+    all_times = []
+    for fits_file in all_files:
+        hdr = fits.getheader(fits_file)
+        for key in ("DATE-BEG", "DATE-END"):
+            if key in hdr:
+                all_times.append(Time(hdr[key]))
+
+    # TODO: This is an assumption and might be oversimplified for how to handle the concatenated times
+    # Also this could change the time of the daily file to be the first time in the list, if another time range is provided afterwards
+    date_beg = min(all_times)
+    date_end = max(all_times)
+    date_avg = date_beg + (date_end - date_beg) / 2
+
+    # TODO: What should the descriptor be for the concatenated file? I assumed `daily`
+    output_path = create_science_filename(
+        instrument,
+        time=date_beg,
+        level="l1",
+        descriptor=datatype,
+        version="0.1.0",
+        test=True,
+    )
+
+    # Set the temp_dir and overwrite flag based on the environment variable
+    if lambda_environment:
+        temp_dir = Path(tempfile.gettempdir())  # Set to temp directory
+        output_path = temp_dir / output_path
+
+    # Start new FITS or append to existing starting with primary header
+    if existing_file:
+        log.info(f"Appending new partials to existing daily file: {existing_file}")
+        base_hdr = fits.getheader(existing_file).copy()
+    else:
+        log.info(f"Creating new daily file: {output_path}")
+        base_hdr = fits.getheader(files_to_combine[0]).copy()
+
+        # TODO: These updates are assumptions, we can add/remove them as needed
+        base_hdr["DATATYPE"] = ("daily", get_std_comment("DATATYPE"))
+        base_hdr["PRSTEP1"] = ("Concatenate Daily Files", get_std_comment("PRSTEP1"))
+        base_hdr["PRPROC1"] = (
+            "padre_meddea.calibration.concatenate_file",
+            get_std_comment("PRPROC1"),
+        )
+
+    # TODO: Is DATEREF the same as DATE-BEG or should it start from the beginning of the day? Also should this be done if we are appending to an existing file?
+    for key, value in [
+        ("DATE-BEG", date_beg),
+        ("DATE-END", date_end),
+        ("DATE-AVG", date_avg),
+        ("DATEREF", date_beg),
+    ]:
+        base_hdr[key] = (value.fits, get_std_comment(key))
+
+    new_hdul = fits.HDUList([fits.PrimaryHDU(header=base_hdr)])
+
+    # Append HDUs from partial files only (skip existing daily)
+    for file_path in all_files:
+        with fits.open(file_path) as partial_hdul:
+            log.info(f"Appending file: {file_path}")
+            # Check if the file is empty
+            if len(partial_hdul) == 0:
+                log.warning(f"File {file_path} is empty, skipping.")
+                continue
+
+            for hdu in partial_hdul[1:]:
+                # TODO: Do we need to do any checks on the HDUs here?
+                new_hdul.append(hdu.copy())
+
+    ## TODO: Do we need to validate the concatenated file?
+    # # Before we process, validate the file with CCSDS
+    # custom_validators = [validation.validate_packet_checksums]
+    # validation_findings = validation.validate(
+    #     output_path,
+    #     valid_apids=list(padre_meddea.APID.values()),
+    #     custom_validators=custom_validators,
+    # )
+    # for finding in validation_findings:
+    #     log.warning(f"Validation Finding for File : {output_path} : {finding}")
+
+    # Write out
+    new_hdul.writeto(output_path, overwrite=True)
+
+    log.info(f"Created concatenated file: {output_path}")
+
+    return output_path
