@@ -189,3 +189,35 @@ def parse_ph_flags(ph_flags):
     dropped_count = ph_flags & 2047
     int_time_overflow = ph_flags & 32768
     return decim_lvl, dropped_count, int_time_overflow
+
+
+def threshold_to_energy(threshold_value: int) -> u.Quantity:
+    """Given a threshold value return the threshold energy.
+
+    If given a threshold of 63, the pixel is disabled.
+        In that case, return the maximum detectable energy of 100 keV
+
+    Parameters
+    ----------
+    threshold_value : int
+        The threshold value
+
+    Returns
+    -------
+    threshold_energy : u.Quantity
+        The energy value of the threshold.
+    """
+    MAX_ENERGY = 100 * u.keV
+    max_threshold = 63
+    if (0 > threshold_value) or (threshold_value > max_threshold):
+        raise ValueError("Threshold value should be between 0 and 63.")
+    if threshold_value == 63:
+        return MAX_ENERGY
+    msb = 0.8 * u.keV
+    lsb = 0.2 * u.keV
+    lsb_array = np.arange(-3, 60, 1)
+    lsb_array[lsb_array > 52] = 52
+    msb_array = np.zeros(max_threshold)
+    msb_array[-8:] = np.arange(0, 8)
+    threshold_energy = msb_array * msb + lsb_array * lsb
+    return threshold_energy[threshold_value]
