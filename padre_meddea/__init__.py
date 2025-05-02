@@ -7,6 +7,7 @@ import numpy as np
 from astropy.time import Time
 import astropy.io
 from astropy.table import vstack
+import astropy.units as u
 
 try:
     from ._version import version as __version__
@@ -99,6 +100,7 @@ for this_asic in range(4):
 
 register_table = register_table[~asic_ind]
 register_table = vstack([register_table, register_asic_table])
+register_table.add_index("address")
 
 # the ratio of detector area for large pixels versus small pixels
 RATIO_TOTAL_LARGE_TO_SMALL_PIX = 0.947
@@ -140,5 +142,6 @@ APID = {
 }
 
 EPOCH = Time("2000-01-01 00:00", scale="utc")
+MAX_PH_DATA_RATE = 100 * u.kilobyte / u.s
 
 log.debug(f"padre_meddea version: {__version__}")
