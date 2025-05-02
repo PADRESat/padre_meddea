@@ -9,7 +9,7 @@ import numpy as np
 import astropy.units as u
 from astropy.timeseries import TimeSeries
 from astropy.io import ascii
-from astropy.table import Table
+from astropy.table import Table, vstack
 from astropy.time import Time
 
 import ccsdspy
@@ -57,9 +57,85 @@ def read_file(filename: Path):
     return result
 
 
+def read_raw(files: list):
+    """
+    Read a list of raw files and concatenate all of the data.
+    This is a wrapper around read_raw_file.
+
+    Parameters
+    ----------
+    files : list
+        A list of files to read
+
+    Returns
+    -------
+    data : dict
+        A dictionary of data arrays.
+    """
+    ph_pkt_list = None
+    event_list = None
+    hk_ts = None
+    spec_pkt_list = None
+    specs = None
+    pixel_ids = None
+    cmd_ts = None
+
+    for i, f in enumerate(files):
+        result = read_raw_file(f)
+        if result["photons"]:
+            if ph_pkt_list is None:
+                ph_pkt_list, event_list = result["photons"]
+            else:
+                ph_pkt_list = vstack([ph_pkt_list, result["photons"][0]])
+                event_list = vstack([event_list, result["photons"][1]])
+        elif result["housekeeping"]:
+            if hk_ts is None:
+                hk_ts = result["housekeeping"]
+            else:
+                hk_ts = vstack([hk_ts, result["housekeeping"]])
+        elif result["spectra"]:
+            if spec_pkt_list is None:
+                spec_pkt_list, specs, pixel_ids = result["spectra"]
+                specs_data = specs.data
+            else:
+                spec_pkt_list = vstack([spec_pkt_list, result["spectra"][0]])
+                pixel_ids = np.concatenate([pixel_ids, result["spectra"][2]])
+                specs_data = np.concatenate([specs_data, result["spectra"][1].data])
+
+                # to do concatenate specs and pixel_ids use np.concatenate maybe???
+        elif result["cmd_resp"]:
+            if cmd_ts is None:
+                cmd_ts = result["cmd_resp"]
+            else:
+                cmd_ts = vstack([cmd_ts, result["cmd_resp"]])
+
+    # now sort all of the lists
+    # if ph_pkt_list:
+    #    ph_pkt_list.sort()
+    #    event_list.sort()
+    # if spec_pkt_list:
+    #    ind = np.argsort(spec_pkt_list.time.jd)
+    #    spec_pkt_list = spec_pkt_list[ind]
+    #    pixel_ids = pixel_ids[ind, :]
+    #    specs_data = specs_data[ind, :, :]
+    specs = Spectrum1D(spectral_axis=specs.spectral_axis, flux=specs_data * u.ct)
+    # if hk_ts:
+    #    hk_ts.sort()
+    # if cmd_ts:
+    #    cmd_ts.sort()
+
+    result = {
+        "photons": (ph_pkt_list, event_list) if ph_pkt_list else None,
+        "housekeeping": hk_ts if hk_ts else None,
+        "spectra": (spec_pkt_list, specs, pixel_ids) if spec_pkt_list else None,
+        "cmd_resp": cmd_ts if cmd_ts else None,
+    }
+    return result
+
+
 def read_raw_file(filename: Path):
     """
-    Read a level 0 data file.
+    Read a raw binary data file containing CCSDS packets.
 
     Parameters
     ---------
