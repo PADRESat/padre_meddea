@@ -95,6 +95,24 @@ class PhotonList:
         )
         return result
 
+    def calspectrum(self, asic_num: int, pixel_num: int, bins=None):
+        if "energy" not in self.event_list.keys():
+            raise ValueError("Spectrum is not calibrated.")
+        if bins is None:
+            bins = np.arange(0, 100, 0.2)
+        if (asic_num is None) and (pixel_num is None):
+            this_event_list = self.event_list
+        else:
+            this_event_list = self._slice_event_list(asic_num, pixel_num)
+        data, new_bins = np.histogram(this_event_list["energy"], bins=bins)
+        # the spectral axis is at the center of the bins
+        spec = Spectrum1D(
+            flux=u.Quantity(data, "count"),
+            spectral_axis=u.Quantity(bins, "keV"),
+            uncertainty=StdDevUncertainty(np.sqrt(data) * u.count),
+        )
+        return spec
+
     def lightcurve(
         self, asic_num: int, pixel_num: int, int_time: u.Quantity[u.s], step: int = 10
     ) -> TimeSeries:
@@ -163,6 +181,19 @@ class PhotonList:
         )
         return self.event_list[ind]
 
+    def fast_calibrate(self, calfile):
+        """Apply a fast linear calibration.
+        Adds a new energy column to the event_list."""
+        lin_cal_params = np.load(calfile)
+        self.event_list["energy"] = np.zeros(len(self.event_list["atod"]))
+        for this_asic in range(4):
+            for this_pixel in range(12):
+                ind = (self.event_list["asic"] == this_asic) * (
+                    self.event_list["pixel"] == this_pixel
+                )
+                cal_func = np.poly1d(lin_cal_params[this_asic, this_pixel, :])
+                self.event_list["energy"][ind] = cal_func(self.event_list["atod"][ind])
+
 
 class SpectrumList:
     """
@@ -199,13 +230,50 @@ class SpectrumList:
         self.pkt_spec = pkt_spec
         self.specs = specs
         self._pixel_ids = pixel_ids
-        if np.all(np.unique(pixel_ids) == sorted(pixel_ids[0])):
-            self.pixel_ids = pixel_ids[0]
-            self.pixel_str = pixelid_to_str(pixel_ids[0])
-            self.asics, self.channel_nums = parse_pixelids(pixel_ids[0])
+        if len(np.unique(pixel_ids)) > 24:
+            print("Found too many unique pixel IDs.")
+            print("Forcing to default set")
+            self.pixel_ids = pixel_ids
+            default_pixel_ids = np.array(
+                [
+                    51738,
+                    51720,
+                    51730,
+                    51712,
+                    51733,
+                    51715,
+                    51770,
+                    51752,
+                    51762,
+                    51744,
+                    51765,
+                    51747,
+                    51802,
+                    51784,
+                    51794,
+                    51776,
+                    51797,
+                    51779,
+                    51834,
+                    51816,
+                    51826,
+                    51808,
+                    51829,
+                    51811,
+                ],
+                dtype=np.uint16,
+            )
+            self.pixel_str = pixelid_to_str(default_pixel_ids)
+            self.asics, self.channel_nums = parse_pixelids(default_pixel_ids)
             self.pixel_nums = channel_to_pixel(self.channel_nums)
         else:
-            raise ValueError("Found change in pixel ids")
+            if np.all(np.unique(pixel_ids) == sorted(pixel_ids[0, :])):
+                self.pixel_ids = pixel_ids
+                self.pixel_str = pixelid_to_str(pixel_ids[0])
+                self.asics, self.channel_nums = parse_pixelids(pixel_ids[0])
+                self.pixel_nums = channel_to_pixel(self.channel_nums)
+            else:
+                raise ValueError("Found change in pixel ids")
         self.index = len(pkt_spec)
 
     def spectrum(self, asic_num: int, pixel_num: int):
