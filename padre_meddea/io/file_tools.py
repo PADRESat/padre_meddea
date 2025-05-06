@@ -118,7 +118,8 @@ def read_raw(files: list):
     #    spec_pkt_list = spec_pkt_list[ind]
     #    pixel_ids = pixel_ids[ind, :]
     #    specs_data = specs_data[ind, :, :]
-    specs = Spectrum1D(spectral_axis=specs.spectral_axis, flux=specs_data * u.ct)
+    if spec_pkt_list:
+        specs = Spectrum1D(spectral_axis=specs.spectral_axis, flux=specs_data * u.ct)
     # if hk_ts:
     #    hk_ts.sort()
     # if cmd_ts:
