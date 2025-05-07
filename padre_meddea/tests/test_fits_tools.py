@@ -36,8 +36,8 @@ def test_get_primary_header():
     assert "DATE" in primary_hdr
     assert "LEVEL" in primary_hdr
     assert primary_hdr["LEVEL"] == test_data_level
-    assert "DATATYPE" in primary_hdr
-    assert primary_hdr["DATATYPE"] == test_data_type
+    assert "BTYPE" in primary_hdr
+    assert primary_hdr["BTYPE"] == test_data_type
     assert "ORIGAPID" in primary_hdr
     assert primary_hdr["ORIGAPID"] == padre_meddea.APID[test_data_type]
     assert "ORIGFILE" in primary_hdr

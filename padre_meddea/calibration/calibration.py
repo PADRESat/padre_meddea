@@ -23,6 +23,7 @@ from padre_meddea.util.util import create_science_filename, calc_time
 from padre_meddea.io.file_tools import read_raw_file
 from padre_meddea.io.fits_tools import (
     get_primary_header,
+    get_obs_header,
     get_comment,
 )
 
@@ -99,9 +100,11 @@ def process_file(filename: Path, overwrite=False) -> list:
             empty_primary_hdu = fits.PrimaryHDU(header=primary_hdr)
             pkt_list = Table(pkt_list)
             pkt_list.remove_column("time")
-            pkt_hdu = fits.BinTableHDU(pkt_list, name="PKT")
+            pkt_header = get_obs_header()
+            pkt_hdu = fits.BinTableHDU(pkt_list, header=pkt_header, name="PKT")
             pkt_hdu.add_checksum()
-            hit_hdu = fits.BinTableHDU(event_list, name="SCI")
+            hit_header = get_obs_header()
+            hit_hdu = fits.BinTableHDU(event_list, header=hit_header, name="SCI")
             hit_hdu.add_checksum()
             hdul = fits.HDUList([empty_primary_hdu, hit_hdu, pkt_hdu])
 
@@ -154,14 +157,17 @@ def process_file(filename: Path, overwrite=False) -> list:
             primary_hdr["FILENAME"] = (path, get_comment("FILENAME"))
 
             empty_primary_hdu = fits.PrimaryHDU(header=primary_hdr)
-            hk_hdu = fits.BinTableHDU(data=hk_table, name="HK")
+
+            # Create HK HDU
+            hk_header = get_obs_header()
+            hk_hdu = fits.BinTableHDU(data=hk_table, header=hk_header, name="HK")
             hk_hdu.add_checksum()
 
             # add command response data if it exists  in the same fits file
+            cmd_header = get_obs_header()
             if parsed_data["cmd_resp"] is not None:
                 data_ts = parsed_data["cmd_resp"]
-                this_header = fits.Header()
-                this_header["DATEREF"] = (
+                cmd_header["DATEREF"] = (
                     data_ts.time[0].fits,
                     get_comment("DATEREF"),
                 )
@@ -181,11 +187,12 @@ def process_file(filename: Path, overwrite=False) -> list:
                 for this_col in colnames_to_remove:
                     if this_col in hk_table.colnames:
                         data_table.remove_column(this_col)
-                cmd_hdu = fits.BinTableHDU(data=data_table, name="READ")
+                cmd_hdu = fits.BinTableHDU(
+                    data=data_table, header=cmd_header, name="READ"
+                )
                 cmd_hdu.add_checksum()
             else:  # if None still end an empty Binary Table
-                this_header = fits.Header()
-                cmd_hdu = fits.BinTableHDU(data=None, header=this_header, name="READ")
+                cmd_hdu = fits.BinTableHDU(data=None, header=cmd_header, name="READ")
             hdul = fits.HDUList([empty_primary_hdu, hk_hdu, cmd_hdu])
 
             # Set the temp_dir and overwrite flag based on the environment variable
@@ -229,7 +236,8 @@ def process_file(filename: Path, overwrite=False) -> list:
             )
             primary_hdr["FILENAME"] = (path, get_comment("FILENAME"))
 
-            spec_hdu = fits.ImageHDU(data=spectra.data, name="SPEC")
+            spec_header = get_obs_header()
+            spec_hdu = fits.ImageHDU(data=spectra.data, header=spec_header, name="SPEC")
             spec_hdu.add_checksum()
 
             data_table = Table()
@@ -239,8 +247,10 @@ def process_file(filename: Path, overwrite=False) -> list:
             data_table["channel"] = channel_nums
             data_table["seqcount"] = ts["seqcount"]
 
-            pkt_hdu = fits.BinTableHDU(data=data_table, name="PKT")
+            pkt_header = get_obs_header()
+            pkt_hdu = fits.BinTableHDU(data=data_table, header=pkt_header, name="PKT")
             pkt_hdu.add_checksum()
+
             empty_primary_hdu = fits.PrimaryHDU(header=primary_hdr)
             hdul = fits.HDUList([empty_primary_hdu, spec_hdu, pkt_hdu])
 

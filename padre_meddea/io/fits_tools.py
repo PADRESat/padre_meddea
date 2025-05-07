@@ -104,7 +104,11 @@ def get_primary_header(
     for keyword, value in schema.default_attributes.items():
         header[keyword] = (value, get_comment(keyword))
 
+    # FITS Standard Keywords
+    header["EXTEND"] = ("T", get_comment("EXTEND"))
+
     # Data Description Keywords
+    header["BTYPE"] = (data_type, get_comment("BTYPE"))
     header["BUNIT"] = get_bunit(data_level, data_type)
 
     # Pipeline processing keywords
@@ -112,7 +116,6 @@ def get_primary_header(
     header["LEVEL"] = (data_level, get_comment("LEVEL"))
 
     # PADRE Custom Keywords
-    header["DATATYPE"] = (data_type, get_comment("DATATYPE"))
     header["ORIGAPID"] = (
         padre_meddea.APID[data_type],
         get_comment("ORIGAPID"),
@@ -123,30 +126,23 @@ def get_primary_header(
     return header
 
 
-def validate_fits_header(header: fits.Header) -> List[str]:
-    """Validate a fits header against the SOLARNET schema.
+def get_obs_header():
+    """
+    Create a standard FITS header for the observation.
 
-    Parameters
-    ----------
-    header : fits.Header
-        The fits header to validate
+    This function creates a new FITS header with standard metadata including the
+    current date, default PADRE attributes, processing information, data level,
+    data type, original APID, and original filename.
 
     Returns
     -------
-    errors : List[str]
-        A list of errors found during validation
+    fits.Header
+        A FITS header populated with standard metadata
     """
-    warning = "Header Validation Finding:"
-    # Create a Custom SOLARNET Schema
-    schema = SOLARNETSchema(schema_layers=[CUSTOM_ATTRS_PATH])
-
-    header_dict = {}
-    for card in header.cards:
-        header_dict[card.keyword] = (card.value, card.comment)
-    # Run Validation
-    validation_findings = schema.validate(header_dict)
-
-    return validation_findings
+    # Create a new header
+    header = fits.Header()
+    header["OBS_HDU"] = (1, get_comment("OBS_HDU"))
+    return header
 
 
 # =============================================================================
@@ -173,7 +169,7 @@ def get_bunit(data_level: str, data_type: str) -> Tuple[str, str]:
     bunit = None
     match data_level.lower():
         case "l0":
-            bunit = u.dimensionless_unscaled.to_string()
+            bunit = u.dimensionless_unscaled
         case "l1":
             match data_type.lower():
                 case "photon":
