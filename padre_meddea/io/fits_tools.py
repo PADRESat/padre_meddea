@@ -395,7 +395,7 @@ def get_prhsh(n: int = 1, a: str = "A") -> Tuple[str, str]:
                 hexsha = repo.head.object.hexsha
             case _:
                 raise ModuleNotFoundError(f"Library Version Undefined for a={a}")
-    except (ModuleNotFoundError, git.InvalidGitRepositoryError) as e:
+    except (ValueError, ModuleNotFoundError, git.InvalidGitRepositoryError) as _:
         # Not Available Locally - Use the Remote
         remote_info = git.cmd.Git().ls_remote(url)
         remote_info = remote_info.split()
