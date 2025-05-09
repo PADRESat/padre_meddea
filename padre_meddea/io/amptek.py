@@ -113,7 +113,9 @@ def read_mca(filename: Path, count_rate=False):
                 hdr.append((str_to_fits_keyword(keyword), value, description))
             if in_status_section and not (line.count("<<") == 1):
                 keyword = line.split(":")[0]
-                value = line.split(":")[1].strip()
+                value = (
+                    line.split(":")[1].strip().encode("ascii", "ignore").decode("ascii")
+                )
                 try:
                     value = float(value)
                 except ValueError:
