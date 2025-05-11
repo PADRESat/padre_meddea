@@ -85,7 +85,7 @@ def process_file(filename: Path, overwrite=False) -> list:
     output_files = []
     file_path = Path(filename)
 
-    if file_path.suffix == ".bin":
+    if file_path.suffix.lower() in [".bin", ".dat"]:
         # Before we process, validate the file with CCSDS
         custom_validators = [validation.validate_packet_checksums]
         validation_findings = validation.validate(
