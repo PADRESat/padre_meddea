@@ -321,10 +321,13 @@ def read_calibration_file(calib_filename: Path):
 
     return None
 
-def concatenate_daily_fits(files_to_combine: list[Path], existing_file: Path = None, outfile: Path = None) -> Path:
+
+def concatenate_daily_fits(
+    files_to_combine: list[Path], existing_file: Path = None, outfile: Path = None
+) -> Path:
     """
     Concatenate multiple FITS files into a single daily FITS file, properly combining headers and data.
-    
+
     Parameters
     ----------
     files_to_combine : list of Path
@@ -333,7 +336,7 @@ def concatenate_daily_fits(files_to_combine: list[Path], existing_file: Path = N
         Existing daily FITS file to append to.
     outfile : Path, optional
         Output file path. If None, will generate automatically.
-        
+
     Returns
     -------
     output_file : Path
@@ -342,28 +345,26 @@ def concatenate_daily_fits(files_to_combine: list[Path], existing_file: Path = N
     from astropy.time import Time
     import numpy as np
     import logging
-    
+
     log = logging.getLogger(__name__)
-    
+
     # Validate input
     if not files_to_combine and not existing_file:
         raise ValueError("No input files provided for concatenation.")
-    
+
     # Combine with existing file if provided
     all_files = []
     if existing_file:
         all_files.append(existing_file)
     all_files.extend(files_to_combine)
-    
+
     # Remove duplicates while preserving order
     seen = set()
     all_files = [f for f in all_files if not (f in seen or seen.add(f))]
-    
+
     # Sort files by observation time
-    all_files = sorted(
-        all_files, key=lambda f: fits.getheader(f)["DATE-BEG"]
-    )
-    
+    all_files = sorted(all_files, key=lambda f: fits.getheader(f)["DATE-BEG"])
+
     # Calculate time range for the output file
     all_times = []
     for fits_file in all_files:
@@ -371,41 +372,39 @@ def concatenate_daily_fits(files_to_combine: list[Path], existing_file: Path = N
         for key in ("DATE-BEG", "DATE-END"):
             if key in hdr:
                 all_times.append(Time(hdr[key]))
-    
-    date_beg = Time(min(all_times).datetime.replace(hour=0, minute=0, second=0, microsecond=0))
+
+    date_beg = Time(
+        min(all_times).datetime.replace(hour=0, minute=0, second=0, microsecond=0)
+    )
     date_end = max(all_times)
     date_avg = date_beg + (date_end - date_beg) / 2
-    
+
     # Determine output path if not provided
     if outfile is None:
         instrument = fits.getheader(all_files[0])["INSTRUME"].lower()
         data_type = fits.getheader(all_files[0])["DATATYPE"]
         if "_" in data_type:
             data_type = data_type.replace("_", "")
-        
+
         outfile = create_science_filename(
-            instrument,
-            time=date_beg,
-            level="l1",
-            descriptor=data_type,
-            version="0.1.0"        
+            instrument, time=date_beg, level="l1", descriptor=data_type, version="0.1.0"
         )
-        
+
         # Handle temp directory if in Lambda environment
         if os.getenv("LAMBDA_ENVIRONMENT"):
             temp_dir = Path(tempfile.gettempdir())
             outfile = temp_dir / outfile
-    
+
     # Initialize the HDU structure from the first file
     with fits.open(all_files[0]) as first_hdul:
         hdu_dict = {}
-        
+
         # Process each HDU in the first file
         for i, hdu in enumerate(first_hdul):
             if isinstance(hdu, fits.PrimaryHDU):
                 # Start with the primary header
                 base_header = hdu.header.copy()
-                
+
                 # Update time-related headers
                 for key, value in [
                     ("DATE-BEG", date_beg),
@@ -414,32 +413,34 @@ def concatenate_daily_fits(files_to_combine: list[Path], existing_file: Path = N
                     ("DATEREF", date_beg),
                 ]:
                     base_header[key] = (value.fits, get_std_comment(key))
-                
+
                 hdu_dict[i] = {"header": base_header, "data": None, "type": "primary"}
-                
+
             elif isinstance(hdu, fits.BinTableHDU):
                 hdu_dict[i] = {
                     "header": hdu.header.copy(),
                     "data": Table.read(hdu),
                     "type": "bintable",
-                    "name": hdu.name
+                    "name": hdu.name,
                 }
             elif isinstance(hdu, fits.ImageHDU):
                 hdu_dict[i] = {
                     "header": hdu.header.copy(),
                     "data": hdu.data.copy(),
                     "type": "image",
-                    "name": hdu.name
+                    "name": hdu.name,
                 }
-    
+
     # Process additional files
     for file_path in all_files[1:]:
         with fits.open(file_path) as hdul:
             for i, hdu in enumerate(hdul):
                 if i not in hdu_dict:
-                    log.warning(f"File {file_path} has unexpected HDU at index {i}, skipping.")
+                    log.warning(
+                        f"File {file_path} has unexpected HDU at index {i}, skipping."
+                    )
                     continue
-                    
+
                 if hdu_dict[i]["type"] == "primary":
                     # For primary HDU, we just need to check consistency
                     pass
@@ -450,28 +451,31 @@ def concatenate_daily_fits(files_to_combine: list[Path], existing_file: Path = N
                 elif hdu_dict[i]["type"] == "image":
                     # Concatenate image data (assuming along first axis)
                     hdu_dict[i]["data"] = np.concatenate(
-                        [hdu_dict[i]["data"], hdu.data],
-                        axis=0
+                        [hdu_dict[i]["data"], hdu.data], axis=0
                     )
-    
+
     # Construct the output HDUList
     hdu_list = []
     for i in sorted(hdu_dict.keys()):
         hdu_info = hdu_dict[i]
-        
+
         if hdu_info["type"] == "primary":
             hdu_list.append(fits.PrimaryHDU(header=hdu_info["header"]))
         elif hdu_info["type"] == "bintable":
-            new_hdu = fits.BinTableHDU(hdu_info["data"], header=hdu_info["header"], name=hdu_info["name"])
+            new_hdu = fits.BinTableHDU(
+                hdu_info["data"], header=hdu_info["header"], name=hdu_info["name"]
+            )
             new_hdu.add_checksum()
             hdu_list.append(new_hdu)
         elif hdu_info["type"] == "image":
-            new_hdu = fits.ImageHDU(hdu_info["data"], header=hdu_info["header"], name=hdu_info["name"])
+            new_hdu = fits.ImageHDU(
+                hdu_info["data"], header=hdu_info["header"], name=hdu_info["name"]
+            )
             hdu_list.append(new_hdu)
-    
+
     # Write the output file
     hdul = fits.HDUList(hdu_list)
     hdul.writeto(outfile, overwrite=True)
     log.info(f"Created concatenated daily file: {outfile}")
-    
+
     return outfile
