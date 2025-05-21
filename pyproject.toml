@@ -9,7 +9,10 @@ name = "padre_meddea"
 description = "A Python package to process and analyze data from the PADRE MEDDEA instrument."
 readme = "README.rst"
 dynamic = ["version"]
-authors = [{name = "Steven Christe", email="steven.christe@nasa.gov"}]
+authors = [
+  {name = "Steven Christe", email="steven.christe@nasa.gov"}, 
+  {name = "Damian Barrous-Dume", email="dbarrous@navteca.com"}
+]
 license = {file = "LICENSE.rst"}
 requires-python = ">=3.10"
 keywords = ["nasa mission", "space weather"]
