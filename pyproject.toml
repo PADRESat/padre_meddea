@@ -10,7 +10,8 @@ description = "A Python package to process and analyze data from the PADRE MEDDE
 readme = "README.rst"
 dynamic = ["version"]
 authors = [
-  {name = "Steven Christe", email="steven.christe@nasa.gov"}, 
+  {name = "Steven Christe", email="steven.christe@nasa.gov"},
+  {name = "Andrew Robbertz", email="a.robbertz@gmail.com"},
   {name = "Damian Barrous-Dume", email="dbarrous@navteca.com"}
 ]
 license = {file = "LICENSE.rst"}
@@ -37,6 +38,7 @@ dependencies = [
   'matplotlib==3.10.*',
   'swxsoc @ git+https://github.com/swxsoc/swxsoc.git@main',
   'gitpython==3.1.*',
+  'solarnet_metadata @ git+https://github.com/IHDE-Alliance/solarnet_metadata.git@solarnet_metadata_package',
 ]
 
 [project.optional-dependencies]
