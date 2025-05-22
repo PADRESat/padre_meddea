@@ -27,8 +27,8 @@ def get_calib_func(hk_name: str) -> callable:
     -------
     f: callable that returns physical quantities
     """
-    unit_str = cal_table.loc[hk_name]["phys_unit"]
     f = get_hk_cal_func(hk_name)
+    unit_str = cal_table.loc[hk_name]["phys_unit"]
 
     def g(x):
         return u.Quantity(f(x), unit_str)
@@ -70,12 +70,9 @@ def get_hk_cal_inv_func(hk_name: str, x: float) -> float:
     The ADC value that converts into the given physical value.
     """
     f = get_hk_cal_func(hk_name)
-    # TODO: add tests and use calibration data to find closer point
-    # find closest point using calibration data
-    # from padre_meddea_gse import _data_directory
-    # calib_directory = _data_directory / "calibration"
-    # calib_data = ascii.read(calib_directory / "hvps_temp.csv")
-    return fsolve(f - x, 0.0)
+    result = fsolve(f - x, 0.0)
+    print(f"error = {x - get_hk_cal_func(hk_name)(result)}")
+    return result
 
 
 def calibrate_hk_value(hk_name: str, value: int):

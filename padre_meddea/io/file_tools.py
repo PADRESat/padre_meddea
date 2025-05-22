@@ -26,6 +26,7 @@ import padre_meddea
 from padre_meddea import log
 from padre_meddea import EPOCH, APID
 import padre_meddea.util.util as util
+from padre_meddea.housekeeping import housekeeping as hk
 
 __all__ = ["read_file", "read_raw_file", "read_fits"]
 
@@ -73,7 +74,7 @@ def read_raw_file(filename: Path):
 
     result = {
         "photons": parse_ph_packets(filename),
-        "housekeeping": parse_hk_packets(filename),
+        "housekeeping": hk.parse_hk_packets(filename),
         "spectra": parse_spectrum_packets(filename),
         "cmd_resp": parse_cmd_response_packets(filename),
     }
@@ -350,38 +351,6 @@ def parse_ph_packets(filename: Path):
     return pkt_list, event_list
 
 
-def parse_hk_packets(filename: Path):
-    """Given a binary file, read only the housekeeping packets and return a timeseries.
-
-    Parameters
-    ----------
-    filename : Path
-        A file to read
-
-    Returns
-    -------
-    hk_list : astropy.time.TimeSeries or None
-        A list of housekeeping data
-    """
-    filename = Path(filename)
-    with open(filename, "rb") as mixed_file:
-        stream_by_apid = split_by_apid(mixed_file)
-    packet_bytes = stream_by_apid.get(APID["housekeeping"], None)
-    if packet_bytes is None:
-        return None
-    else:
-        log.info(f"{filename.name}: Found housekeeping data")
-    packet_definition = packet_definition_hk()
-    pkt = ccsdspy.FixedLength(packet_definition)
-    hk_data = pkt.load(packet_bytes, include_primary_header=True)
-    hk_timestamps = [
-        dt.timedelta(seconds=int(this_t)) + EPOCH for this_t in hk_data["timestamp"]
-    ]
-    hk_data = TimeSeries(time=hk_timestamps, data=hk_data)
-    hk_data.meta.update({"ORIGFILE": f"{filename.name}"})
-    return hk_data
-
-
 def parse_spectrum_packets(filename: Path):
     """Given a binary file, read only the spectrum packets and return the data.
 
@@ -477,17 +446,6 @@ def parse_cmd_response_packets(filename: Path):
     ts = TimeSeries(time=timestamps, data=data)
     ts.meta.update({"ORIGFILE": f"{filename.name}"})
     return ts
-
-
-def packet_definition_hk():
-    """Return the packet definiton for the housekeeping packets."""
-    hk_table = ascii.read(padre_meddea._data_directory / "hk_packet_def.csv")
-    hk_table.add_index("name")
-    p = [PacketField(name="timestamp", data_type="uint", bit_length=32)]
-    for this_hk in hk_table["name"]:
-        p += [PacketField(name=this_hk, data_type="uint", bit_length=16)]
-    p += [PacketField(name="CHECKSUM", data_type="uint", bit_length=16)]
-    return p
 
 
 def packet_definition_hist():
