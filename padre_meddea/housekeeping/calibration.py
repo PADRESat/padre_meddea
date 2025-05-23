@@ -50,6 +50,7 @@ def _get_calibration_func(hk_name: str):
 
                 def f(x):
                     return params[0] * np.log(x) + params[1]
+
             case "bspline":
                 f = fit_bspline(hk_name)
     else:
