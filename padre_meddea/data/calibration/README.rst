@@ -1,14 +1,14 @@
 Calibration directory
 =====================
 
-This directory contains calibration files included with the package source
-code distribution.
+This directory contains science calibration files included with the package source code distribution.
+For housekeeping calibration information, see the housekeeping directory.
 
 Naming Convention
 -----------------
 Filenames are structed as followed
 
-  MEDDEA_<instrument>_calib_<start time>_<end_time>
+  padre_meddea_<instrument>_calib_<start time>_<end_time>
 
 For example,
 

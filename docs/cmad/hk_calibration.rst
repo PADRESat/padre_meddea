@@ -5,39 +5,135 @@ This section describes the calibration of the non-science data values such as ho
 
 hvps_temp
 ^^^^^^^^^
+The temperature of the High Voltage Power supply.
 
 .. plot::
 
+   import numpy as np
    import matplotlib.pyplot as plt
-   from astropy.io import ascii
+   from astropy.visualization import quantity_support
+   import astropy.units as u
 
-   from padre_meddea.calibration import calib_hk
-   calib_directory = calib_hk._calibdata_directory
-   calib_data = ascii.read(calib_directory / "hvps_temp.csv")
-   f = calib_hk.get_hk_cal_func('hvps_temp')
-   adc = calib_data['adc']
-   plt.plot(adc, calib_data['deg_C'], 'x')
-   plt.plot(adc, f(adc), '-')
-   plt.title('hvps_temp')
+   quantity_support()
+
+   hk_name = "hvps_temp"
+
+   import padre_meddea.housekeeping.calibration as calib_hk
+   from padre_meddea.housekeeping.housekeeping import hk_definitions
+
+   data = calib_hk.get_calibration_data(hk_name)
+
+   low_limit = u.Quantity(
+      hk_definitions.loc[hk_name]["low_limit"], hk_definitions.loc[hk_name]["unit_str"]
+   )
+   high_limit = u.Quantity(
+      hk_definitions.loc[hk_name]["high_limit"], hk_definitions.loc[hk_name]["unit_str"]
+   )
+
+   adc_low = calib_hk.inverse_calibrate(hk_name, low_limit)[0]
+   adc_high = calib_hk.inverse_calibrate(hk_name, high_limit)[0]
+
+   f = calib_hk.get_calibration_func(hk_name)
+   fit_x = np.arange(data["adc"].min(), data["adc"].max(), 100)
+
+   plt.plot(data["adc"], data["value"], "x", label="data")
+   plt.plot(fit_x, f(fit_x), label="fit")
+   plt.axvline(adc_low, color="blue")
+   plt.axvline(adc_high, color="red")
+   plt.axhline(low_limit, label=f"limits {low_limit:0.2f} {adc_high:0.0f}", color="blue")
+   plt.axhline(high_limit, label=f"limits {high_limit:0.2f} {adc_low:0.0f}", color="red")
+   plt.title(hk_name)
+   plt.legend()
+   
 
 
-hvps_setpoint
-^^^^^^^^^^^^^^
+dib_temp
+^^^^^^^^^
+The temperature of the Detector Interface Board (DIB).
 
 .. plot::
 
+   import numpy as np
    import matplotlib.pyplot as plt
-   from astropy.io import ascii
+   from astropy.visualization import quantity_support
+   import astropy.units as u
 
-   from padre_meddea.calibration import calib_hk
-   calib_directory = calib_hk._calibdata_directory
+   quantity_support()
 
-   calib_data = ascii.read(calib_directory / "hvps_setpoint.csv")
-   f = calib_hk.get_hk_cal_func('hvps_setpoint')
-   adc = calib_data['adc']
-   plt.plot(adc, calib_data['volt'], 'x')
-   plt.plot(adc, f(adc), '-')
-   plt.title('hvps_setpoint')
+   hk_name = "dib_temp"
+
+   import padre_meddea.housekeeping.calibration as calib_hk
+   from padre_meddea.housekeeping.housekeeping import hk_definitions
+
+   data = calib_hk.get_calibration_data(hk_name)
+
+   low_limit = u.Quantity(
+      hk_definitions.loc[hk_name]["low_limit"], hk_definitions.loc[hk_name]["unit_str"]
+   )
+   high_limit = u.Quantity(
+      hk_definitions.loc[hk_name]["high_limit"], hk_definitions.loc[hk_name]["unit_str"]
+   )
+
+   adc_low = calib_hk.inverse_calibrate(hk_name, low_limit)[0]
+   adc_high = calib_hk.inverse_calibrate(hk_name, high_limit)[0]
+
+   f = calib_hk.get_calibration_func(hk_name)
+   fit_x = np.arange(data["adc"].min(), data["adc"].max(), 100)
+
+   plt.plot(data["adc"], data["value"], "x", label="data")
+   plt.plot(fit_x, f(fit_x), label="fit")
+   plt.axvline(adc_low, color="blue")
+   plt.axvline(adc_high, color="red")
+   plt.axhline(low_limit, label=f"limits {low_limit:0.2f} {adc_high:0.0f}", color="blue")
+   plt.axhline(high_limit, label=f"limits {high_limit:0.2f} {adc_low:0.0f}", color="red")
+   plt.title(hk_name)
+   plt.legend()
+   
+
+
+
+fp_temp
+^^^^^^^
+The temperature of the focal or detector plane.
+
+.. plot::
+
+   import numpy as np
+   import matplotlib.pyplot as plt
+   from astropy.visualization import quantity_support
+   import astropy.units as u
+
+   quantity_support()
+
+   hk_name = "fp_temp"
+
+   import padre_meddea.housekeeping.calibration as calib_hk
+   from padre_meddea.housekeeping.housekeeping import hk_definitions
+
+   data = calib_hk.get_calibration_data(hk_name)
+
+   low_limit = u.Quantity(
+      hk_definitions.loc[hk_name]["low_limit"], hk_definitions.loc[hk_name]["unit_str"]
+   )
+   high_limit = u.Quantity(
+      hk_definitions.loc[hk_name]["high_limit"], hk_definitions.loc[hk_name]["unit_str"]
+   )
+
+   adc_low = calib_hk.inverse_calibrate(hk_name, low_limit)[0]
+   adc_high = calib_hk.inverse_calibrate(hk_name, high_limit)[0]
+
+   f = calib_hk.get_calibration_func(hk_name)
+   fit_x = np.arange(data["adc"].min(), data["adc"].max(), 100)
+
+   plt.plot(data["adc"], data["value"], "x", label="data")
+   plt.plot(fit_x, f(fit_x), label="fit")
+   plt.axvline(adc_low, color="blue")
+   plt.axvline(adc_high, color="red")
+   plt.axhline(low_limit, label=f"limits {low_limit:0.2f} {adc_high:0.0f}", color="blue")
+   plt.axhline(high_limit, label=f"limits {high_limit:0.2f} {adc_low:0.0f}", color="red")
+   plt.title(hk_name)
+   plt.legend()
+   
 
 
 hvps_vsense
@@ -45,18 +141,42 @@ hvps_vsense
 
 .. plot::
 
+   import numpy as np
    import matplotlib.pyplot as plt
-   from astropy.io import ascii
+   from astropy.visualization import quantity_support
+   import astropy.units as u
 
-   from padre_meddea.calibration import calib_hk
-   calib_directory = calib_hk._calibdata_directory
+   quantity_support()
 
-   calib_data = ascii.read(calib_directory / "hvps_vsense.csv")
-   f = calib_hk.get_hk_cal_func('hvps_vsense')
-   adc = calib_data['adc']
-   plt.plot(adc, calib_data['volt'], 'x')
-   plt.plot(adc, f(adc), '-')
-   plt.title('hvps_vsense')
+   hk_name = "hvps_vsense"
+
+   import padre_meddea.housekeeping.calibration as calib_hk
+   from padre_meddea.housekeeping.housekeeping import hk_definitions
+
+   data = calib_hk.get_calibration_data(hk_name)
+
+   low_limit = u.Quantity(
+      hk_definitions.loc[hk_name]["low_limit"], hk_definitions.loc[hk_name]["unit_str"]
+   )
+   high_limit = u.Quantity(
+      hk_definitions.loc[hk_name]["high_limit"], hk_definitions.loc[hk_name]["unit_str"]
+   )
+
+   adc_low = calib_hk.inverse_calibrate(hk_name, low_limit)[0]
+   adc_high = calib_hk.inverse_calibrate(hk_name, high_limit)[0]
+
+   f = calib_hk.get_calibration_func(hk_name)
+   fit_x = np.arange(data["adc"].min(), data["adc"].max(), 100)
+
+   plt.plot(data["adc"], data["value"], "x", label="data")
+   plt.plot(fit_x, f(fit_x), label="fit")
+   plt.axvline(adc_low, color="blue")
+   plt.axvline(adc_high, color="red")
+   plt.axhline(low_limit, label=f"limits {low_limit:0.2f} {adc_high:0.0f}", color="blue")
+   plt.axhline(high_limit, label=f"limits {high_limit:0.2f} {adc_low:0.0f}", color="red")
+   plt.title(hk_name)
+   plt.legend()
+   
 
 
 hvps_csense
@@ -64,73 +184,197 @@ hvps_csense
 
 .. plot::
 
+   import numpy as np
    import matplotlib.pyplot as plt
-   from astropy.io import ascii
+   from astropy.visualization import quantity_support
+   import astropy.units as u
 
-   from padre_meddea.calibration import calib_hk
+   quantity_support()
 
-   calib_directory = calib_hk._calibdata_directory
-   calib_data = ascii.read(calib_directory / "hvps_csense.csv")
-   f = calib_hk.get_hk_cal_func('hvps_csense')
-   adc = calib_data['adc']
-   plt.plot(adc, calib_data['nanoamp'], 'x')
-   plt.plot(adc, f(adc), '-')
-   plt.title('hvps_csense')
+   hk_name = "hvps_csense"
+
+   import padre_meddea.housekeeping.calibration as calib_hk
+   from padre_meddea.housekeeping.housekeeping import hk_definitions
+
+   data = calib_hk.get_calibration_data(hk_name)
+
+   low_limit = u.Quantity(
+      hk_definitions.loc[hk_name]["low_limit"], hk_definitions.loc[hk_name]["unit_str"]
+   )
+   high_limit = u.Quantity(
+      hk_definitions.loc[hk_name]["high_limit"], hk_definitions.loc[hk_name]["unit_str"]
+   )
+
+   adc_low = calib_hk.inverse_calibrate(hk_name, low_limit)[0]
+   adc_high = calib_hk.inverse_calibrate(hk_name, high_limit)[0]
+
+   f = calib_hk.get_calibration_func(hk_name)
+   fit_x = np.arange(data["adc"].min(), data["adc"].max(), 100)
+
+   plt.plot(data["adc"], data["value"], "x", label="data")
+   plt.plot(fit_x, f(fit_x), label="fit")
+   plt.axvline(adc_high, color="blue")
+   plt.axvline(adc_low, color="red")
+   plt.axhline(low_limit, label=f"limits {low_limit:0.2f} {adc_low:0.0f}", color="blue")
+   plt.axhline(high_limit, label=f"limits {high_limit:0.2f} {adc_high:0.0f}", color="red")
+   plt.title(hk_name)
+   plt.legend()
 
 
-pulser_setpoint
-^^^^^^^^^^^^^^^^
+
+
+csense_15v
+^^^^^^^^^^
 
 .. plot::
 
+   import numpy as np
    import matplotlib.pyplot as plt
-   from astropy.io import ascii
+   from astropy.visualization import quantity_support
+   import astropy.units as u
 
-   from padre_meddea.calibration import calib_hk
-   calib_directory = calib_hk._calibdata_directory
- 
-   calib_data = ascii.read(calib_directory / "pulser_setpoint.csv")
-   f = calib_hk.get_hk_cal_func('pulser_setpoint')
-   adc = calib_data['adc']
-   plt.plot(adc, calib_data['volt'], 'x')
-   plt.plot(adc, f(adc), '-')
-   plt.title('pulser_setpoint')
+   quantity_support()
 
+   hk_name = "csense_15v"
 
-fp_temp
-^^^^^^^
+   import padre_meddea.housekeeping.calibration as calib_hk
+   from padre_meddea.housekeeping.housekeeping import hk_definitions
 
-.. plot::
+   data = calib_hk.get_calibration_data(hk_name)
 
-   import matplotlib.pyplot as plt
-   from astropy.io import ascii
+   low_limit = u.Quantity(
+      hk_definitions.loc[hk_name]["low_limit"], hk_definitions.loc[hk_name]["unit_str"]
+   )
+   high_limit = u.Quantity(
+      hk_definitions.loc[hk_name]["high_limit"], hk_definitions.loc[hk_name]["unit_str"]
+   )
 
-   from padre_meddea.calibration import calib_hk
-   calib_directory = calib_hk._calibdata_directory
-  
-   calib_data = ascii.read(calib_directory / "fp_temp.csv")
+   adc_low = calib_hk.inverse_calibrate(hk_name, low_limit)[0]
+   adc_high = calib_hk.inverse_calibrate(hk_name, high_limit)[0]
+
+   f = calib_hk.get_calibration_func(hk_name)
+   fit_x = np.arange(data["adc"].min(), data["adc"].max(), 100)
+
+   plt.plot(data["adc"], data["value"], "x", label="data")
+   plt.plot(fit_x, f(fit_x), label="fit")
+   plt.axvline(adc_low, color="blue")
+   plt.axvline(adc_high, color="red")
+   plt.axhline(low_limit, label=f"limits {low_limit:0.2f} {adc_high:0.0f}", color="blue")
+   plt.axhline(high_limit, label=f"limits {high_limit:0.2f} {adc_low:0.0f}", color="red")
+   plt.title(hk_name)
+   plt.legend()
    
-   f = calib_hk.get_hk_cal_func('fp_temp')
-   adc = calib_data['adc']
-   plt.plot(adc, calib_data['deg_C'], 'x')
-   plt.plot(adc, f(adc), '-')
-   plt.title('fp_temp')
 
 
-csense_15v, csense_33vd, csense_33va
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+csense_33vd
+^^^^^^^^^^^
 
 .. plot::
 
+   import numpy as np
    import matplotlib.pyplot as plt
-   from astropy.io import ascii
+   from astropy.visualization import quantity_support
+   import astropy.units as u
 
-   from padre_meddea.calibration import calib_hk
+   quantity_support()
+
+   hk_name = "csense_33vd"
+
+   import padre_meddea.housekeeping.calibration as calib_hk
+   from padre_meddea.housekeeping.housekeeping import hk_definitions
+
+   data = calib_hk.get_calibration_data(hk_name)
+
+   low_limit = u.Quantity(
+      hk_definitions.loc[hk_name]["low_limit"], hk_definitions.loc[hk_name]["unit_str"]
+   )
+   high_limit = u.Quantity(
+      hk_definitions.loc[hk_name]["high_limit"], hk_definitions.loc[hk_name]["unit_str"]
+   )
+
+   adc_low = calib_hk.inverse_calibrate(hk_name, low_limit)[0]
+   adc_high = calib_hk.inverse_calibrate(hk_name, high_limit)[0]
+
+   f = calib_hk.get_calibration_func(hk_name)
+   fit_x = np.arange(data["adc"].min(), data["adc"].max(), 100)
+
+   plt.plot(data["adc"], data["value"], "x", label="data")
+   plt.plot(fit_x, f(fit_x), label="fit")
+   plt.axvline(adc_low, color="blue")
+   plt.axvline(adc_high, color="red")
+   plt.axhline(low_limit, label=f"limits {low_limit:0.2f} {adc_high:0.0f}", color="blue")
+   plt.axhline(high_limit, label=f"limits {high_limit:0.2f} {adc_low:0.0f}", color="red")
+   plt.title(hk_name)
+   plt.legend()
    
-   adc = [20000, 30000, 40000]
-   mamps = [230.65, 122.89, 15.13]
-   f = calib_hk.get_hk_cal_func('csense_15v')
-   plt.plot(adc, mamps, 'x')
-   plt.plot(adc, f(adc), '-')
-   plt.title('csense_15v, csense_33vd, csense_33va')
 
+
+csense_33va
+^^^^^^^^^^^
+
+.. plot::
+
+   import numpy as np
+   import matplotlib.pyplot as plt
+   from astropy.visualization import quantity_support
+   import astropy.units as u
+
+   quantity_support()
+
+   hk_name = "csense_33va"
+
+   import padre_meddea.housekeeping.calibration as calib_hk
+   from padre_meddea.housekeeping.housekeeping import hk_definitions
+
+   data = calib_hk.get_calibration_data(hk_name)
+
+   low_limit = u.Quantity(
+      hk_definitions.loc[hk_name]["low_limit"], hk_definitions.loc[hk_name]["unit_str"]
+   )
+   high_limit = u.Quantity(
+      hk_definitions.loc[hk_name]["high_limit"], hk_definitions.loc[hk_name]["unit_str"]
+   )
+
+   adc_low = calib_hk.inverse_calibrate(hk_name, low_limit)[0]
+   adc_high = calib_hk.inverse_calibrate(hk_name, high_limit)[0]
+
+   f = calib_hk.get_calibration_func(hk_name)
+   fit_x = np.arange(data["adc"].min(), data["adc"].max(), 100)
+
+   plt.plot(data["adc"], data["value"], "x", label="data")
+   plt.plot(fit_x, f(fit_x), label="fit")
+   plt.axvline(adc_low, color="blue")
+   plt.axvline(adc_high, color="red")
+   plt.axhline(low_limit, label=f"limits {low_limit:0.2f} {adc_high:0.0f}", color="blue")
+   plt.axhline(high_limit, label=f"limits {high_limit:0.2f} {adc_low:0.0f}", color="red")
+   plt.title(hk_name)
+   plt.legend()
+   
+
+
+hvps_setpoint
+^^^^^^^^^^^^^^
+
+.. plot::
+
+   import numpy as np
+   import matplotlib.pyplot as plt
+   from astropy.visualization import quantity_support
+   import astropy.units as u
+
+   quantity_support()
+
+   hk_name = "hvps_setpoint"
+
+   import padre_meddea.housekeeping.calibration as calib_hk
+
+   data = calib_hk.get_calibration_data(hk_name)
+
+   f = calib_hk.get_calibration_func(hk_name)
+   fit_x = np.arange(data["adc"].min(), data["adc"].max(), 100)
+
+   plt.plot(data["adc"], data["value"], "x", label="data")
+   plt.plot(fit_x, f(fit_x), label="fit")
+   plt.title(hk_name)
+   plt.legend()
+   

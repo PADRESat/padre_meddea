@@ -1,0 +1,15 @@
+word,name,label,description,low_limit,high_limit,unit_str
+6,fp_temp,FP Temp,Focal Plane Temperature,-40,35,deg_C
+7,dib_temp,DIB Temp,DIB Board Temperature,-55,65,deg_C
+8,hvps_temp,HVPS Temp,HVPS Board Temperature,-55,65,deg_C
+9,hvps_vsense,HV Voltage,HVPS Voltage Sense,0,-500,volt
+10,hvps_csense,HV Current,HVPS Current Sense,0,10,nanoamp
+11,csense_15v,1.5 V Current,Current Sense for 1.5V Power Rail,0,100,milliamp
+12,csense_33vd,3.3 VD Current,Current Sense for 3.3V Digital Power Rail,0,100,milliamp
+13,csense_33va,3.3 VA Current,Current Sense for 3.3V Analog Power Rail,0,100,milliamp
+14,hit_rate,hit rate,Photon event rate for the most recent 1-sec period,0,100,count/s
+15,good_cmd_cnt,good command count,Total number of valid commands received,0,100,count
+16,error_cnt,error count,Total number of command errors,0,100,count
+17,heater_pwm_duty_cycle,heater duty cycle,Duty cyle of the heater,0,100,percent
+18,decimation_rate,decim rate,the rate of decimation,0,100,count/s
+19,error_summary,error summary flags,Error summary flags,0,100,dimensionless

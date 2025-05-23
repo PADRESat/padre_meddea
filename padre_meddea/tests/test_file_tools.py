@@ -7,7 +7,6 @@ import padre_meddea
 
 from padre_meddea.io.file_tools import (
     parse_ph_packets,
-    parse_hk_packets,
     parse_spectrum_packets,
     parse_cmd_response_packets,
     read_file,
@@ -33,11 +32,6 @@ def test_read_ph_file():
     # check that there are in fact 4 packets
     assert len(np.unique(pkt_list["seqcount"])) == NUM_PACKETS
     assert len(pkt_list) == NUM_PACKETS
-
-
-def test_read_hk_file():
-    hk_list = parse_hk_packets(hk_packet_file)
-    assert len(hk_list) == NUM_PACKETS
 
 
 def test_read_spec_file():
