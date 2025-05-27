@@ -2,10 +2,12 @@
 This module provides a utilities to manage fits files reading and writing.
 """
 
+from collections import OrderedDict
 import os
 from pathlib import Path
 import re
 from typing import List, Tuple
+import json
 import warnings
 
 import git
@@ -272,8 +274,7 @@ def concatenate_daily_fits(
     all_files.extend(files_to_combine)
 
     # Remove duplicates while preserving order
-    seen = set()
-    all_files = [f for f in all_files if not (f in seen or seen.add(f))]
+    all_files = list(OrderedDict.fromkeys(all_files))
 
     # Sort files by observation time
     all_files = sorted(all_files, key=lambda f: fits.getheader(f)["DATE-BEG"])
@@ -324,12 +325,6 @@ def concatenate_daily_fits(
                 # Start with the primary header
                 base_header = hdu.header.copy()
 
-                # Extract existing PARENTXT if this is an existing concatenated file
-                if existing_file and "PARENTXT" in base_header:
-                    existing_parent_files = [
-                        f.strip() for f in base_header["PARENTXT"].split(",")
-                    ]
-
                 # Update time-related headers
                 for key, value in [
                     ("DATE-BEG", date_beg),
@@ -339,21 +334,70 @@ def concatenate_daily_fits(
                 ]:
                     base_header[key] = (value.fits, get_comment(key))
 
+                # PARENTXT is a comma-separated list of parent files
+                # Extract existing PARENTXT if this is an existing concatenated file
+                if existing_file and "PARENTXT" in base_header:
+                    existing_parent_files = [
+                        f.strip() for f in base_header["PARENTXT"].split(",")
+                    ]
                 # Update PARENTXT with all parent files
                 all_parent_files = existing_parent_files + new_parent_files
+                
                 # Remove duplicates while preserving order
-                seen_parents = set()
-                unique_parent_files = []
-                for f in all_parent_files:
-                    if f not in seen_parents:
-                        unique_parent_files.append(f)
-                        seen_parents.add(f)
+                unique_parent_files = list(OrderedDict.fromkeys(all_parent_files))
 
                 parent_files_str = ", ".join(unique_parent_files)
                 base_header["PARENTXT"] = (
                     parent_files_str,
                     "Parent files used in concatenation",
                 )
+                # Build or update COMMENT JSON metadata withe file names and times
+                comment_raw = base_header.get("COMMENT", "")
+
+                # COMMENT may be a list of strings (FITS header lines are <=72 chars)
+                if isinstance(comment_raw, list):
+                    comment_str = "".join(comment_raw)  # Avoid actual newlines
+                else:
+                    comment_str = str(comment_raw).replace("\n", "")
+
+                file_time_list = []
+                try:
+                    file_time_list = json.loads(comment_str)
+                except json.JSONDecodeError as e:
+                    log.warning(f"Failed to parse COMMENT as JSON: {e}")
+
+                # Add new metadata entries (avoiding duplicates by filename)
+                existing_filenames = {entry["filename"] for entry in file_time_list}
+                for file_path in files_to_combine:
+                    filename = file_path.name
+                    if filename not in existing_filenames:
+                        hdr = fits.getheader(file_path)
+                        file_time_list.append(
+                            {
+                                "filename": filename,
+                                "date-beg": hdr.get("DATE-BEG", "UNKNOWN"),
+                                "date-end": hdr.get("DATE-END", "UNKNOWN"),
+                            }
+                        )
+                        existing_filenames.add(filename)
+
+                # Sort by date-beg using sorted
+                file_time_list = sorted(
+                    file_time_list,
+                    key=lambda x: (
+                        Time(x.get("date-beg", "UNKNOWN")).mjd
+                        if x.get("date-beg") != "UNKNOWN"
+                        else float("inf")
+                    ),
+                )
+
+                # Store updated JSON as string in header
+                json_str = json.dumps(file_time_list, separators=(",", ":"))
+
+                # Remove existing COMMENT keyword if present to avoid duplicates
+                while "COMMENT" in base_header:
+                    base_header.remove("COMMENT")
+                base_header["COMMENT"] = (json_str, "JSON list of contributing files")
 
                 hdu_dict[i] = {"header": base_header, "data": None, "type": "primary"}
 
@@ -418,7 +462,6 @@ def concatenate_daily_fits(
     hdul = fits.HDUList(hdu_list)
     hdul.writeto(outfile, overwrite=True)
     log.info(f"Created concatenated daily file: {outfile}")
-    log.info(f"Parent files tracked in PARENTXT: {len(unique_parent_files)} files")
 
     return Path(outfile)
 

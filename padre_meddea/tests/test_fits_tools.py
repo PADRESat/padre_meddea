@@ -1,5 +1,6 @@
 """Test for the fits_tools module"""
 
+import json
 import pytest
 from pathlib import Path
 
@@ -140,6 +141,35 @@ def test_concatenate_fits_basic(fits_input_files):
     assert output_file.exists()
     verify_fits_file(output_file, reference_files=fits_input_files)
 
+    # Verify PARENTXT keyword
+    with fits.open(output_file) as hdul:
+        primary_header = hdul[0].header
+        assert "PARENTXT" in primary_header
+        assert (
+            primary_header["PARENTXT"]
+            == "padre_meddea_l1test_eventlist_20250504T055311_v0.1.0.fits, padre_meddea_l1test_eventlist_20250504T093905_v0.1.0.fits"
+        )
+
+    # Verify COMMENT in primary header and json load
+    with fits.open(output_file) as hdul:
+        primary_header = hdul[0].header
+        assert "COMMENT" in primary_header
+        comment_raw = primary_header.get("COMMENT", "")
+        if isinstance(comment_raw, list):
+            comment_str = "".join(comment_raw)  # Avoid actual newlines
+        else:
+            comment_str = str(comment_raw).replace("\n", "")
+
+        file_time_list = json.loads(comment_str)
+
+        assert isinstance(file_time_list, list)
+        assert len(file_time_list) == 2
+        assert file_time_list[0] == {
+            "date-beg": "2025-05-04T05:53:11.353",
+            "date-end": "2025-05-04T07:37:49.299",
+            "filename": "padre_meddea_l1test_eventlist_20250504T055311_v0.1.0.fits",
+        }
+
 
 def test_concatenate_fits_with_existing(fits_input_files, extra_fits_file):
     # Test appending to an existing file
@@ -153,3 +183,28 @@ def test_concatenate_fits_with_existing(fits_input_files, extra_fits_file):
         output_file,
         reference_files=[fits_input_files[0], fits_input_files[1], extra_fits_file],
     )
+
+    # Verify PARENTXT keyword
+    with fits.open(output_file) as hdul:
+        primary_header = hdul[0].header
+        assert "PARENTXT" in primary_header
+        assert (
+            primary_header["PARENTXT"]
+            == "padre_meddea_l1test_eventlist_20250504T055311_v0.1.0.fits, padre_meddea_l1test_eventlist_20250504T093905_v0.1.0.fits, padre_meddea_l1test_eventlist_20250504T105954_v0.1.0.fits"
+        )
+
+    # Verify COMMENT in primary header and json load
+    with fits.open(output_file) as hdul:
+        primary_header = hdul[0].header
+        assert "COMMENT" in primary_header
+        comment_raw = primary_header.get("COMMENT", "")
+
+        if isinstance(comment_raw, list):
+            comment_str = "".join(comment_raw)  # Avoid actual newlines
+        else:
+            comment_str = str(comment_raw).replace("\n", "")
+        log.info(f"COMMENT: {comment_str}")
+        file_time_list = json.loads(comment_str)
+
+        assert isinstance(file_time_list, list)
+        assert len(file_time_list) == 3
