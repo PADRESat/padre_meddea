@@ -2,9 +2,11 @@
 This module provides a utilities to manage fits files reading and writing.
 """
 
+import os
 from pathlib import Path
 import re
 from typing import List, Tuple
+import warnings
 
 import git
 import ccsdspy
@@ -13,6 +15,7 @@ from astropy.io import ascii
 import astropy.io.fits as fits
 from astropy.time import Time
 from astropy.table import Table, vstack
+from astropy.utils.metadata import MergeConflictWarning
 
 import solarnet_metadata
 from solarnet_metadata.schema import SOLARNETSchema
@@ -20,6 +23,7 @@ from solarnet_metadata.schema import SOLARNETSchema
 
 import padre_meddea
 from padre_meddea import log
+from padre_meddea.util.util import create_science_filename, calc_time
 
 CUSTOM_ATTRS_PATH = (
     padre_meddea._data_directory / "fits" / "fits_keywords_primaryhdu.yaml"
@@ -255,6 +259,9 @@ def concatenate_daily_fits(
         Path to the concatenated daily FITS file.
     """
 
+    # Ignore MergeConflictWarning from astropy
+    warnings.simplefilter("ignore", MergeConflictWarning)
+
     # Combine with existing file if provided
     all_files = []
     if existing_file:
@@ -313,7 +320,7 @@ def concatenate_daily_fits(
                     ("DATE-AVG", date_avg),
                     ("DATEREF", date_beg),
                 ]:
-                    base_header[key] = (value.fits, get_std_comment(key))
+                    base_header[key] = (value.fits, get_comment(key))
 
                 hdu_dict[i] = {"header": base_header, "data": None, "type": "primary"}
 
@@ -379,7 +386,7 @@ def concatenate_daily_fits(
     hdul.writeto(outfile, overwrite=True)
     log.info(f"Created concatenated daily file: {outfile}")
 
-    return outfile
+    return Path(outfile)
 
 
 def get_prstep(n: int = 1) -> Tuple[str, str]:

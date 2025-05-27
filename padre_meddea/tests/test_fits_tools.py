@@ -1,8 +1,10 @@
 """Test for the fits_tools module"""
 
 import pytest
+from pathlib import Path
 
 import astropy.io.fits as fits
+from astropy.table import Table
 from solarnet_metadata.schema import SOLARNETSchema
 
 import padre_meddea
@@ -62,3 +64,92 @@ def test_get_primary_header():
 )
 def test_get_std_comment(test_input, expected):
     assert get_comment(test_input) == expected
+
+
+def verify_fits_file(test_file, reference_files=None):
+    actual_counts = {}
+    expected_counts = {}
+    test_file = Path(test_file)
+
+    if reference_files:
+        if isinstance(reference_files, (str, Path)):
+            reference_files = [reference_files]
+
+        for ref_file in reference_files:
+            ref_file = Path(ref_file)
+            with fits.open(ref_file) as hdul:
+                for hdu in hdul:
+                    if isinstance(hdu, fits.BinTableHDU):
+                        table = Table.read(hdu)
+                        expected_counts[hdu.name] = expected_counts.get(
+                            hdu.name, 0
+                        ) + len(table)
+
+    with fits.open(test_file) as hdul:
+        total_actual = 0
+        for hdu in hdul:
+            if isinstance(hdu, fits.BinTableHDU):
+                table = Table.read(hdu)
+                actual_len = len(table)
+                actual_counts[hdu.name] = actual_len
+                total_actual += actual_len
+
+        if expected_counts:
+            total_expected = sum(expected_counts.values())
+            assert (
+                total_actual == total_expected
+            ), f"Total rows mismatch: {total_actual} != {total_expected}"
+            for name, count in actual_counts.items():
+                if name in expected_counts:
+                    assert count == expected_counts[name], f"HDU {name} row mismatch"
+                else:
+                    raise AssertionError(f"Unexpected HDU {name} in output")
+    return True
+
+
+@pytest.fixture
+def fits_input_files():
+    fits_file1 = (
+        Path(__file__).parent.parent
+        / "data"
+        / "test"
+        / "padre_meddea_l1test_eventlist_20250504T055311_v0.1.0.fits"
+    )
+    fits_file2 = (
+        Path(__file__).parent.parent
+        / "data"
+        / "test"
+        / "padre_meddea_l1test_eventlist_20250504T093905_v0.1.0.fits"
+    )
+
+    return [fits_file1, fits_file2]
+
+
+@pytest.fixture
+def extra_fits_file():
+    return (
+        Path(__file__).parent.parent
+        / "data"
+        / "test"
+        / "padre_meddea_l1test_eventlist_20250504T105954_v0.1.0.fits"
+    )
+
+
+def test_concatenate_fits_basic(fits_input_files):
+    output_file = concatenate_daily_fits(fits_input_files)
+    assert output_file.exists()
+    verify_fits_file(output_file, reference_files=fits_input_files)
+
+
+def test_concatenate_fits_with_existing(fits_input_files, extra_fits_file):
+    # Test appending to an existing file
+    existing_file = concatenate_daily_fits([fits_input_files[0]])
+
+    output_file = concatenate_daily_fits(
+        [fits_input_files[1], extra_fits_file], existing_file=existing_file
+    )
+    assert output_file.exists()
+    verify_fits_file(
+        output_file,
+        reference_files=[fits_input_files[0], fits_input_files[1], extra_fits_file],
+    )
