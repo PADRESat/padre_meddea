@@ -342,7 +342,7 @@ def concatenate_daily_fits(
                     ]
                 # Update PARENTXT with all parent files
                 all_parent_files = existing_parent_files + new_parent_files
-                
+
                 # Remove duplicates while preserving order
                 unique_parent_files = list(OrderedDict.fromkeys(all_parent_files))
 
