@@ -16,6 +16,7 @@ import astropy.io.fits as fits
 from astropy.time import Time
 from astropy.table import Table, vstack
 from astropy.utils.metadata import MergeConflictWarning
+import numpy as np
 
 import solarnet_metadata
 from solarnet_metadata.schema import SOLARNETSchema
@@ -242,6 +243,8 @@ def concatenate_daily_fits(
     """
     Concatenate multiple FITS files into a single daily FITS file, properly combining headers and data.
 
+    The function also tracks all parent files in the PARENTXT header keyword.
+
     Note: This function assumes that there is no data stored in the PrimaryHDU of the FITS files.
 
     Parameters
@@ -303,6 +306,14 @@ def concatenate_daily_fits(
             temp_dir = Path(tempfile.gettempdir())
             outfile = temp_dir / outfile
 
+    # Prepare parent file tracking
+    new_parent_files = []
+    existing_parent_files = []
+
+    # Collect new files being added (excluding existing_file)
+    for file_path in files_to_combine:
+        new_parent_files.append(str(file_path.name))
+
     # Initialize the HDU structure from the first file
     with fits.open(all_files[0]) as first_hdul:
         hdu_dict = {}
@@ -313,6 +324,12 @@ def concatenate_daily_fits(
                 # Start with the primary header
                 base_header = hdu.header.copy()
 
+                # Extract existing PARENTXT if this is an existing concatenated file
+                if existing_file and "PARENTXT" in base_header:
+                    existing_parent_files = [
+                        f.strip() for f in base_header["PARENTXT"].split(",")
+                    ]
+
                 # Update time-related headers
                 for key, value in [
                     ("DATE-BEG", date_beg),
@@ -321,6 +338,22 @@ def concatenate_daily_fits(
                     ("DATEREF", date_beg),
                 ]:
                     base_header[key] = (value.fits, get_comment(key))
+
+                # Update PARENTXT with all parent files
+                all_parent_files = existing_parent_files + new_parent_files
+                # Remove duplicates while preserving order
+                seen_parents = set()
+                unique_parent_files = []
+                for f in all_parent_files:
+                    if f not in seen_parents:
+                        unique_parent_files.append(f)
+                        seen_parents.add(f)
+
+                parent_files_str = ", ".join(unique_parent_files)
+                base_header["PARENTXT"] = (
+                    parent_files_str,
+                    "Parent files used in concatenation",
+                )
 
                 hdu_dict[i] = {"header": base_header, "data": None, "type": "primary"}
 
@@ -385,6 +418,7 @@ def concatenate_daily_fits(
     hdul = fits.HDUList(hdu_list)
     hdul.writeto(outfile, overwrite=True)
     log.info(f"Created concatenated daily file: {outfile}")
+    log.info(f"Parent files tracked in PARENTXT: {len(unique_parent_files)} files")
 
     return Path(outfile)
 
