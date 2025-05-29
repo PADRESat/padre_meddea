@@ -239,6 +239,355 @@ def add_process_info_to_header(header: fits.Header, n: int = 1) -> fits.Header:
     return header
 
 
+def _prepare_files_list(
+    files_to_combine: list[Path], existing_file: Path = None
+) -> list[Path]:
+    """
+    Prepare and sort the list of files to be combined.
+
+    Parameters
+    ----------
+    files_to_combine : list of Path
+        List of FITS files to combine
+    existing_file : Path, optional
+        Existing daily FITS file to append to
+
+    Returns
+    -------
+    list of Path
+        Sorted list of all files to process
+    """
+    # Combine with existing file if provided
+    all_files = []
+    if existing_file:
+        all_files.append(existing_file)
+    all_files.extend(files_to_combine)
+
+    # Remove duplicates while preserving order
+    all_files = list(OrderedDict.fromkeys(all_files))
+
+    # Sort and extract times using DATE-BEG or DATE-REF as fallback
+    all_files = sorted(
+        all_files,
+        key=lambda f: fits.getheader(f).get("DATE-BEG")
+        or fits.getheader(f).get("DATEREF"),
+    )
+
+    return all_files
+
+
+def _extract_and_calculate_times(all_files: list[Path]) -> tuple[Time, Time, Time]:
+    """
+    Extract and calculate time information from FITS files.
+
+    Parameters
+    ----------
+    all_files : list of Path
+        List of FITS files to process
+
+    Returns
+    -------
+    tuple of Time
+        date_beg, date_end, date_avg
+    """
+    # Collect times from DATE-BEG, DATE-END, or DATE-REF
+    all_times = [
+        Time(val)
+        for f in all_files
+        for key in ("DATE-BEG", "DATE-END", "DATEREF")
+        if (val := fits.getheader(f).get(key))
+    ]
+
+    date_beg = Time(min(all_times).iso[0:10])
+    date_end = max(all_times)
+    date_avg = date_beg + (date_end - date_beg) / 2
+
+    return date_beg, date_end, date_avg
+
+
+def _determine_output_path(outfile: Path, first_file: Path, date_beg: Time) -> Path:
+    """
+    Determine the output file path if not provided.
+
+    Parameters
+    ----------
+    outfile : Path
+        Provided output path or None
+    first_file : Path
+        First file to extract metadata from
+    date_beg : Time
+        Beginning date for filename generation
+
+    Returns
+    -------
+    Path
+        Determined output file path
+    """
+    if outfile is not None:
+        return outfile
+
+    instrument = fits.getheader(first_file)["INSTRUME"].lower()
+    data_type = fits.getheader(first_file)["DATATYPE"]
+    if "_" in data_type:
+        data_type = data_type.replace("_", "")
+
+    outfile = create_science_filename(
+        instrument, time=date_beg, level="l1", descriptor=data_type, version="0.1.0"
+    )
+
+    # Handle temp directory if in Lambda environment
+    if os.getenv("LAMBDA_ENVIRONMENT"):
+        temp_dir = Path(tempfile.gettempdir())
+        outfile = temp_dir / outfile
+
+    return outfile
+
+
+def _prepare_parent_file_tracking(
+    files_to_combine: list[Path], existing_file: Path = None
+) -> tuple[list[str], list[str]]:
+    """
+    Prepare parent file tracking information.
+
+    Parameters
+    ----------
+    files_to_combine : list of Path
+        New files being added
+    existing_file : Path, optional
+        Existing file that may contain parent information
+
+    Returns
+    -------
+    tuple of list[str]
+        new_parent_files, existing_parent_files
+    """
+    new_parent_files = [str(file_path.name) for file_path in files_to_combine]
+    existing_parent_files = []
+
+    if existing_file and "PARENTXT" in fits.getheader(existing_file):
+        header = fits.getheader(existing_file)
+        existing_parent_files = [f.strip() for f in header["PARENTXT"].split(",")]
+
+    return new_parent_files, existing_parent_files
+
+
+def _initialize_hdu_structure(
+    first_file: Path,
+    date_beg: Time,
+    date_end: Time,
+    date_avg: Time,
+    all_parent_files: list[str],
+    files_to_combine: list[Path],
+) -> dict:
+    """
+    Initialize the HDU dictionary structure from the first file.
+
+    Parameters
+    ----------
+    first_file : Path
+        First FITS file to use as template
+    date_beg, date_end, date_avg : Time
+        Calculated time values
+    all_parent_files : list[str]
+        Combined list of parent files
+    files_to_combine : list[Path]
+        Files being combined for metadata
+
+    Returns
+    -------
+    dict
+        HDU dictionary structure
+    """
+    hdu_dict = {}
+
+    with fits.open(first_file) as first_hdul:
+        for i, hdu in enumerate(first_hdul):
+            if isinstance(hdu, fits.PrimaryHDU):
+                base_header = hdu.header.copy()
+
+                # Update time-related headers
+                for key, value in [
+                    ("DATE-BEG", date_beg),
+                    ("DATE-END", date_end),
+                    ("DATE-AVG", date_avg),
+                    ("DATEREF", date_beg),
+                ]:
+                    base_header[key] = (value.fits, get_comment(key))
+
+                # Update PARENTXT
+                parent_files_str = ", ".join(all_parent_files)
+                base_header["PARENTXT"] = (
+                    parent_files_str,
+                    "Parent files used in concatenation",
+                )
+
+                # Update COMMENT with file metadata
+                base_header = _update_comment_metadata(base_header, files_to_combine)
+
+                hdu_dict[i] = {"header": base_header, "data": None, "type": "primary"}
+
+            elif isinstance(hdu, fits.BinTableHDU):
+                hdu_dict[i] = {
+                    "header": hdu.header.copy(),
+                    "data": Table.read(hdu),
+                    "type": "bintable",
+                    "name": hdu.name,
+                }
+            elif isinstance(hdu, fits.ImageHDU):
+                hdu_dict[i] = {
+                    "header": hdu.header.copy(),
+                    "data": hdu.data.copy(),
+                    "type": "image",
+                    "name": hdu.name,
+                }
+
+    return hdu_dict
+
+
+def _update_comment_metadata(
+    header: fits.Header, files_to_combine: list[Path]
+) -> fits.Header:
+    """
+    Update COMMENT header with JSON metadata about contributing files.
+
+    Parameters
+    ----------
+    header : fits.Header
+        Header to update
+    files_to_combine : list[Path]
+        Files being combined
+
+    Returns
+    -------
+    fits.Header
+        Updated header with comment metadata
+    """
+    comment_raw = header.get("COMMENT", "")
+
+    # COMMENT may be a list of strings
+    if isinstance(comment_raw, list):
+        comment_str = "".join(comment_raw)
+    else:
+        comment_str = str(comment_raw).replace("\n", "")
+
+    file_time_list = []
+    try:
+        file_time_list = json.loads(comment_str)
+    except json.JSONDecodeError as e:
+        log.warning(f"Failed to parse COMMENT as JSON: {e}")
+
+    # Add new metadata entries
+    existing_filenames = {entry["filename"] for entry in file_time_list}
+    for file_path in files_to_combine:
+        filename = file_path.name
+        if filename not in existing_filenames:
+            hdr = fits.getheader(file_path)
+            file_time_list.append(
+                {
+                    "filename": filename,
+                    "date-beg": hdr.get("DATE-BEG", "UNKNOWN"),
+                    "date-end": hdr.get("DATE-END", "UNKNOWN"),
+                }
+            )
+            existing_filenames.add(filename)
+
+    # Sort by date-beg
+    file_time_list = sorted(
+        file_time_list,
+        key=lambda x: (
+            Time(x.get("date-beg", "UNKNOWN")).mjd
+            if x.get("date-beg") != "UNKNOWN"
+            else float("inf")
+        ),
+    )
+
+    # Store updated JSON as string in header
+    json_str = json.dumps(file_time_list, separators=(",", ":"))
+
+    # Remove existing COMMENT keyword if present
+    while "COMMENT" in header:
+        header.remove("COMMENT")
+    header["COMMENT"] = (json_str, "JSON list of contributing files")
+
+    return header
+
+
+def _process_additional_files(all_files: list[Path], hdu_dict: dict) -> dict:
+    """
+    Process additional files and combine their data with the initial structure.
+
+    Parameters
+    ----------
+    all_files : list[Path]
+        All files to process
+    hdu_dict : dict
+        Initial HDU dictionary structure
+
+    Returns
+    -------
+    dict
+        Updated HDU dictionary with combined data
+    """
+    for file_path in all_files[1:]:
+        with fits.open(file_path) as hdul:
+            for i, hdu in enumerate(hdul):
+                if i not in hdu_dict:
+                    log.warning(
+                        f"File {file_path} has unexpected HDU at index {i}, skipping."
+                    )
+                    continue
+
+                if hdu_dict[i]["type"] == "primary":
+                    # For primary HDU, we just need to check consistency
+                    pass
+                elif hdu_dict[i]["type"] == "bintable":
+                    # Vertically stack table data
+                    new_table = Table.read(hdu)
+                    hdu_dict[i]["data"] = vstack([hdu_dict[i]["data"], new_table])
+                elif hdu_dict[i]["type"] == "image":
+                    # Concatenate image data (assuming along first axis)
+                    hdu_dict[i]["data"] = np.concatenate(
+                        [hdu_dict[i]["data"], hdu.data], axis=0
+                    )
+
+    return hdu_dict
+
+
+def _write_output_file(hdu_dict: dict, outfile: Path) -> None:
+    """
+    Construct and write the output FITS file.
+
+    Parameters
+    ----------
+    hdu_dict : dict
+        Dictionary containing HDU information
+    outfile : Path
+        Output file path
+    """
+    hdu_list = []
+    for i in sorted(hdu_dict.keys()):
+        hdu_info = hdu_dict[i]
+
+        if hdu_info["type"] == "primary":
+            hdu_list.append(fits.PrimaryHDU(header=hdu_info["header"]))
+        elif hdu_info["type"] == "bintable":
+            new_hdu = fits.BinTableHDU(
+                hdu_info["data"], header=hdu_info["header"], name=hdu_info["name"]
+            )
+            new_hdu.add_checksum()
+            hdu_list.append(new_hdu)
+        elif hdu_info["type"] == "image":
+            new_hdu = fits.ImageHDU(
+                hdu_info["data"], header=hdu_info["header"], name=hdu_info["name"]
+            )
+            hdu_list.append(new_hdu)
+
+    # Write the output file
+    hdul = fits.HDUList(hdu_list)
+    hdul.writeto(outfile, overwrite=True)
+    log.info(f"Created concatenated daily file: {outfile}")
+
+
 def concatenate_daily_fits(
     files_to_combine: list[Path], existing_file: Path = None, outfile: Path = None
 ) -> Path:
@@ -263,209 +612,36 @@ def concatenate_daily_fits(
     output_file : Path
         Path to the concatenated daily FITS file.
     """
-
     # Ignore MergeConflictWarning from astropy
     warnings.simplefilter("ignore", MergeConflictWarning)
 
-    # Combine with existing file if provided
-    all_files = []
-    if existing_file:
-        all_files.append(existing_file)
-    all_files.extend(files_to_combine)
+    # Prepare and sort files
+    all_files = _prepare_files_list(files_to_combine, existing_file)
 
-    # Remove duplicates while preserving order
-    all_files = list(OrderedDict.fromkeys(all_files))
+    # Extract and calculate time information
+    date_beg, date_end, date_avg = _extract_and_calculate_times(all_files)
 
-    # Sort and extract times using DATE-BEG or DATE-REF as fallback
-    all_files = sorted(
-        all_files,
-        key=lambda f: fits.getheader(f).get("DATE-BEG")
-        or fits.getheader(f).get("DATEREF"),
-    )
-
-    # Collect times from DATE-BEG, DATE-END, or DATE-REF
-    all_times = [
-        Time(val)
-        for f in all_files
-        for key in ("DATE-BEG", "DATE-END", "DATEREF")
-        if (val := fits.getheader(f).get(key))
-    ]
-
-    date_beg = Time(min(all_times).iso[0:10])
-    date_end = max(all_times)
-    date_avg = date_beg + (date_end - date_beg) / 2
-
-    # Determine output path if not provided
-    if outfile is None:
-        instrument = fits.getheader(all_files[0])["INSTRUME"].lower()
-        data_type = fits.getheader(all_files[0])["DATATYPE"]
-        if "_" in data_type:
-            data_type = data_type.replace("_", "")
-
-        outfile = create_science_filename(
-            instrument, time=date_beg, level="l1", descriptor=data_type, version="0.1.0"
-        )
-
-        # Handle temp directory if in Lambda environment
-        if os.getenv("LAMBDA_ENVIRONMENT"):
-            temp_dir = Path(tempfile.gettempdir())
-            outfile = temp_dir / outfile
+    # Determine output path
+    outfile = _determine_output_path(outfile, all_files[0], date_beg)
 
     # Prepare parent file tracking
-    new_parent_files = []
-    existing_parent_files = []
+    new_parent_files, existing_parent_files = _prepare_parent_file_tracking(
+        files_to_combine, existing_file
+    )
+    all_parent_files = list(
+        OrderedDict.fromkeys(existing_parent_files + new_parent_files)
+    )
 
-    # Collect new files being added (excluding existing_file)
-    for file_path in files_to_combine:
-        new_parent_files.append(str(file_path.name))
-
-    # Initialize the HDU structure from the first file
-    with fits.open(all_files[0]) as first_hdul:
-        hdu_dict = {}
-
-        # Process each HDU in the first file
-        for i, hdu in enumerate(first_hdul):
-            if isinstance(hdu, fits.PrimaryHDU):
-                # Start with the primary header
-                base_header = hdu.header.copy()
-
-                # Update time-related headers
-                for key, value in [
-                    ("DATE-BEG", date_beg),
-                    ("DATE-END", date_end),
-                    ("DATE-AVG", date_avg),
-                    ("DATEREF", date_beg),
-                ]:
-                    base_header[key] = (value.fits, get_comment(key))
-
-                # PARENTXT is a comma-separated list of parent files
-                # Extract existing PARENTXT if this is an existing concatenated file
-                if existing_file and "PARENTXT" in base_header:
-                    existing_parent_files = [
-                        f.strip() for f in base_header["PARENTXT"].split(",")
-                    ]
-                # Update PARENTXT with all parent files
-                all_parent_files = existing_parent_files + new_parent_files
-
-                # Remove duplicates while preserving order
-                unique_parent_files = list(OrderedDict.fromkeys(all_parent_files))
-
-                parent_files_str = ", ".join(unique_parent_files)
-                base_header["PARENTXT"] = (
-                    parent_files_str,
-                    "Parent files used in concatenation",
-                )
-                # Build or update COMMENT JSON metadata withe file names and times
-                comment_raw = base_header.get("COMMENT", "")
-
-                # COMMENT may be a list of strings (FITS header lines are <=72 chars)
-                if isinstance(comment_raw, list):
-                    comment_str = "".join(comment_raw)  # Avoid actual newlines
-                else:
-                    comment_str = str(comment_raw).replace("\n", "")
-
-                file_time_list = []
-                try:
-                    file_time_list = json.loads(comment_str)
-                except json.JSONDecodeError as e:
-                    log.warning(f"Failed to parse COMMENT as JSON: {e}")
-
-                # Add new metadata entries (avoiding duplicates by filename)
-                existing_filenames = {entry["filename"] for entry in file_time_list}
-                for file_path in files_to_combine:
-                    filename = file_path.name
-                    if filename not in existing_filenames:
-                        hdr = fits.getheader(file_path)
-                        file_time_list.append(
-                            {
-                                "filename": filename,
-                                "date-beg": hdr.get("DATE-BEG", "UNKNOWN"),
-                                "date-end": hdr.get("DATE-END", "UNKNOWN"),
-                            }
-                        )
-                        existing_filenames.add(filename)
-
-                # Sort by date-beg using sorted
-                file_time_list = sorted(
-                    file_time_list,
-                    key=lambda x: (
-                        Time(x.get("date-beg", "UNKNOWN")).mjd
-                        if x.get("date-beg") != "UNKNOWN"
-                        else float("inf")
-                    ),
-                )
-
-                # Store updated JSON as string in header
-                json_str = json.dumps(file_time_list, separators=(",", ":"))
-
-                # Remove existing COMMENT keyword if present to avoid duplicates
-                while "COMMENT" in base_header:
-                    base_header.remove("COMMENT")
-                base_header["COMMENT"] = (json_str, "JSON list of contributing files")
-
-                hdu_dict[i] = {"header": base_header, "data": None, "type": "primary"}
-
-            elif isinstance(hdu, fits.BinTableHDU):
-                hdu_dict[i] = {
-                    "header": hdu.header.copy(),
-                    "data": Table.read(hdu),
-                    "type": "bintable",
-                    "name": hdu.name,
-                }
-            elif isinstance(hdu, fits.ImageHDU):
-                hdu_dict[i] = {
-                    "header": hdu.header.copy(),
-                    "data": hdu.data.copy(),
-                    "type": "image",
-                    "name": hdu.name,
-                }
+    # Initialize HDU structure from first file
+    hdu_dict = _initialize_hdu_structure(
+        all_files[0], date_beg, date_end, date_avg, all_parent_files, files_to_combine
+    )
 
     # Process additional files
-    for file_path in all_files[1:]:
-        with fits.open(file_path) as hdul:
-            for i, hdu in enumerate(hdul):
-                if i not in hdu_dict:
-                    log.warning(
-                        f"File {file_path} has unexpected HDU at index {i}, skipping."
-                    )
-                    continue
+    hdu_dict = _process_additional_files(all_files, hdu_dict)
 
-                if hdu_dict[i]["type"] == "primary":
-                    # For primary HDU, we just need to check consistency
-                    pass
-                elif hdu_dict[i]["type"] == "bintable":
-                    # Vertically stack table data
-                    new_table = Table.read(hdu)
-                    hdu_dict[i]["data"] = vstack([hdu_dict[i]["data"], new_table])
-                elif hdu_dict[i]["type"] == "image":
-                    # Concatenate image data (assuming along first axis)
-                    hdu_dict[i]["data"] = np.concatenate(
-                        [hdu_dict[i]["data"], hdu.data], axis=0
-                    )
-
-    # Construct the output HDUList
-    hdu_list = []
-    for i in sorted(hdu_dict.keys()):
-        hdu_info = hdu_dict[i]
-
-        if hdu_info["type"] == "primary":
-            hdu_list.append(fits.PrimaryHDU(header=hdu_info["header"]))
-        elif hdu_info["type"] == "bintable":
-            new_hdu = fits.BinTableHDU(
-                hdu_info["data"], header=hdu_info["header"], name=hdu_info["name"]
-            )
-            new_hdu.add_checksum()
-            hdu_list.append(new_hdu)
-        elif hdu_info["type"] == "image":
-            new_hdu = fits.ImageHDU(
-                hdu_info["data"], header=hdu_info["header"], name=hdu_info["name"]
-            )
-            hdu_list.append(new_hdu)
-
-    # Write the output file
-    hdul = fits.HDUList(hdu_list)
-    hdul.writeto(outfile, overwrite=True)
-    log.info(f"Created concatenated daily file: {outfile}")
+    # Write output file
+    _write_output_file(hdu_dict, outfile)
 
     return Path(outfile)
 
