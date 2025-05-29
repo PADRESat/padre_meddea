@@ -615,16 +615,23 @@ def concatenate_daily_fits(
     # Ignore MergeConflictWarning from astropy
     warnings.simplefilter("ignore", MergeConflictWarning)
 
-    # Prepare and sort files
+    # TODO: At the moment, the _prepare_files_list function only sorts files based on DATE-BEG or DATEREF. I think this is sufficient for just preparing the files for concatenation.
+    #       Since ideally we should order the data within the files when we concatenate them into multple files and then generate the date-beg, date-end, date-avg and dateref for the concatenated file.
     all_files = _prepare_files_list(files_to_combine, existing_file)
 
     # Extract and calculate time information
+    # TODO: This can be moved into _determine_output_path since this should produce multiple `outfiles_to_process` one for each day of partial data that exists in all_files.
+    #       Possibly that function can return a list of dicts (`outfiles_to_process`) with keys: 'outfile', 'date_beg', 'date_end', 'date_avg', 'partial_data' based off what was calulated by the Astropy WCS function
     date_beg, date_end, date_avg = _extract_and_calculate_times(all_files)
 
     # Determine output path
+    # TODO: See above TODO on how we can leverage this class, since at the moment it only returns the outfile Path
     outfile = _determine_output_path(outfile, all_files[0], date_beg)
 
+    # TODO: At this point forward I think a loop can be created to iteratre through `outfiles_to_process` and process each one individually to generate each of the final output files, appending them to a new `outfiles` list. Maybe past this point can also be abstracted into a new function to handle the processing of each file in the `outfiles_to_process` list?
+
     # Prepare parent file tracking
+    # TODO: This can probably be moved in to the _initialize_hdu_structure function since it is used there to create the PARENTXT header keyword since the COMMENT keyword is updated there as well.
     new_parent_files, existing_parent_files = _prepare_parent_file_tracking(
         files_to_combine, existing_file
     )
@@ -643,6 +650,7 @@ def concatenate_daily_fits(
     # Write output file
     _write_output_file(hdu_dict, outfile)
 
+    # This should return the list of Paths of `outfiles` that were successfully created,
     return Path(outfile)
 
 
