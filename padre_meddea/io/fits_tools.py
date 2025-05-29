@@ -276,16 +276,20 @@ def concatenate_daily_fits(
     # Remove duplicates while preserving order
     all_files = list(OrderedDict.fromkeys(all_files))
 
-    # Sort files by observation time
-    all_files = sorted(all_files, key=lambda f: fits.getheader(f)["DATE-BEG"])
+    # Sort and extract times using DATE-BEG or DATE-REF as fallback
+    all_files = sorted(
+        all_files,
+        key=lambda f: fits.getheader(f).get("DATE-BEG")
+        or fits.getheader(f).get("DATEREF"),
+    )
 
-    # Calculate time range for the output file
-    all_times = []
-    for fits_file in all_files:
-        hdr = fits.getheader(fits_file)
-        for key in ("DATE-BEG", "DATE-END"):
-            if key in hdr:
-                all_times.append(Time(hdr[key]))
+    # Collect times from DATE-BEG, DATE-END, or DATE-REF
+    all_times = [
+        Time(val)
+        for f in all_files
+        for key in ("DATE-BEG", "DATE-END", "DATEREF")
+        if (val := fits.getheader(f).get(key))
+    ]
 
     date_beg = Time(min(all_times).iso[0:10])
     date_end = max(all_times)

@@ -263,9 +263,11 @@ def parse_ph_packets(filename: Path):
     pkt_list["inttime"] = ph_data["INTEGRATION_TIME"]
     pkt_list["flags"] = ph_data["FLAGS"]
     # parse flag field into their own
-    pkt_list["decim_lvl"], pkt_list["drop_cnt"], pkt_list["int_time_flag"] = (
-        util.parse_ph_flags(pkt_list["flags"])
-    )
+    (
+        pkt_list["decim_lvl"],
+        pkt_list["drop_cnt"],
+        pkt_list["int_time_flag"],
+    ) = util.parse_ph_flags(pkt_list["flags"])
     pkt_list.meta.update({"ORIGFILE": f"{filename.name}"})
 
     # determine the total amount of hits in all photon packets
