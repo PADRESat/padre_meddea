@@ -5,7 +5,6 @@ import numpy as np
 import astropy.units as u
 
 import padre_meddea.housekeeping.calibration as calib_hk
-from padre_meddea.housekeeping.housekeeping import hk_definitions
 
 calibration_table = calib_hk.calibration_table
 

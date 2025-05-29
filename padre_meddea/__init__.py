@@ -3,7 +3,6 @@ import os
 from pathlib import Path
 
 from astropy.time import Time
-from astropy.io import ascii
 
 try:
     from ._version import version as __version__

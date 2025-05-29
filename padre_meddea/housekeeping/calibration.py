@@ -8,9 +8,7 @@ import astropy.units as u
 from astropy.timeseries import TimeSeries
 from astropy.table import Table, QTable
 
-from padre_meddea import _package_directory
-
-from .housekeeping import _data_directory, hk_definitions
+from .housekeeping import _data_directory
 
 calibration_table = ascii.read(_data_directory / "padre_meddea_calib_hk_0.csv")
 calibration_table.add_index("name")
@@ -59,6 +57,30 @@ def _get_calibration_func(hk_name: str):
 
 
 def fit_bspline(hk_name: str) -> callable:
+    """
+    Create a B-spline interpolation function for converting ADC values to physical values.
+    This function retrieves calibration data for a specified housekeeping parameter
+    and fits a B-spline interpolation to the ADC-to-value mapping. The returned
+    function can be used to convert raw ADC readings to calibrated physical values
+    with appropriate units.
+
+    Parameters
+    ----------
+    hk_name : str
+        Name of the housekeeping parameter for which to create the calibration function.
+
+    Returns
+    -------
+    callable
+        A function that takes ADC values as input and returns the corresponding
+        calibrated physical values as a `u.Quantity` object with appropriate units.
+
+    Notes
+    -----
+    The returned function handles unit conversion automatically based on the units
+    of the calibration data.
+    """
+
     from scipy.interpolate import make_interp_spline
 
     data = get_calibration_data(hk_name)
@@ -125,6 +147,29 @@ def calibrate_hk_ts(ts: TimeSeries) -> TimeSeries:
 
 
 def get_calibration_data(hk_name: str) -> Table:
+    """
+    Retrieve calibration data for a specific housekeeping parameter.
+    This function reads calibration data from a CSV file named after the housekeeping
+    parameter and returns it as an astropy QTable with ADC values and corresponding
+    physical values with appropriate units.
+
+    Parameters
+    ----------
+    hk_name : str
+        Name of the housekeeping parameter for which to retrieve calibration data.
+        This will be used to find the corresponding CSV file.
+    Returns
+    -------
+    astropy.table.Table
+        A table containing the calibration data with columns:
+        - 'adc': ADC values (raw digital counts)
+        - 'value': Physical values with appropriate units
+
+    Notes
+    -----
+    The calibration CSV file is expected to have at least two columns:
+    one named 'adc' and another column whose name represents the physical unit.
+    """
     calibration_data_directory = _data_directory / "calibration"
     data = ascii.read(calibration_data_directory / f"{hk_name}.csv")
     unit_str = data.colnames[-1]

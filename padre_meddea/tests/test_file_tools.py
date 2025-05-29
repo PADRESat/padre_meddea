@@ -4,7 +4,6 @@ import pytest
 import numpy as np
 
 import padre_meddea
-
 from padre_meddea.io.file_tools import (
     parse_ph_packets,
     parse_spectrum_packets,

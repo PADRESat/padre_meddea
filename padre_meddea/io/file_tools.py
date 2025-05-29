@@ -3,14 +3,10 @@ This module provides a generic file reader.
 """
 
 from pathlib import Path
-import datetime as dt
 
 import numpy as np
 import astropy.units as u
 from astropy.timeseries import TimeSeries
-from astropy.io import ascii
-from astropy.table import Table
-from astropy.time import Time
 
 import ccsdspy
 from ccsdspy import PacketField, PacketArray
@@ -22,9 +18,8 @@ import astropy.io.fits as fits
 
 from specutils import Spectrum1D
 
-import padre_meddea
 from padre_meddea import log
-from padre_meddea import EPOCH, APID
+from padre_meddea import APID
 import padre_meddea.util.util as util
 from padre_meddea.housekeeping import housekeeping as hk
 

@@ -9,7 +9,7 @@ from padre_meddea import _package_directory, _data_directory, APID, log, EPOCH
 
 import ccsdspy
 from ccsdspy.utils import split_by_apid
-from ccsdspy import PacketField, PacketArray
+from ccsdspy import PacketField
 
 _data_directory = _package_directory / "data" / "housekeeping"
 hk_definitions = ascii.read(_data_directory / "hk_packet_def.csv")
