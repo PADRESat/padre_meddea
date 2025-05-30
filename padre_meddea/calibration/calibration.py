@@ -11,7 +11,6 @@ import numpy as np
 from astropy.io import fits
 from astropy.time import Time
 from astropy.table import Table
-from astropy.timeseries import TimeSeries
 
 import padre_meddea
 from padre_meddea import log
