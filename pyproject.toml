@@ -1,7 +1,5 @@
 [build-system]
-requires = ["setuptools>=45",
-            "setuptools_scm[toml]>=6.2",
-            "wheel"]
+requires = ["setuptools>=45", "setuptools_scm[toml]>=6.2", "wheel"]
 build-backend = 'setuptools.build_meta'
 
 [project]
@@ -18,15 +16,15 @@ license = {file = "LICENSE.rst"}
 requires-python = ">=3.10"
 keywords = ["nasa mission", "space weather"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
-    "License :: OSI Approved :: Apache 2.0",
-    "Natural Language :: English",
-    "Operating System :: OS Independent",
-    "Programming Language :: Python",
-    "Programming Language :: Python :: 3.8",
-    "Intended Audience :: Science/Research",
-    "Topic :: Scientific/Engineering",
-    "Topic :: Scientific/Engineering :: Physics",
+  "Development Status :: 3 - Alpha",
+  "License :: OSI Approved :: Apache 2.0",
+  "Natural Language :: English",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.8",
+  "Intended Audience :: Science/Research",
+  "Topic :: Scientific/Engineering",
+  "Topic :: Scientific/Engineering :: Physics",
 ]
 dependencies = [
   'astropy==6.1.*',
@@ -49,27 +47,15 @@ dev = [
   'pytest-cov',
   'black',
   'flake8',
-  'coverage[toml]'
+  'coverage[toml]',
+  'pytest-doctestplus',
 ]
 
-docs = [
-  'sphinx',
-  'sphinx-automodapi',
-  'matplotlib',
-  'sphinx-copybutton',
-]
+docs = ['sphinx', 'sphinx-automodapi', 'matplotlib', 'sphinx-copybutton']
 
-test = [
-  'pytest',
-  'pytest-astropy',
-  'pytest-cov',
-  'coverage[toml]'
-]
+test = ['pytest', 'pytest-astropy', 'pytest-cov', 'coverage[toml]']
 
-style = [
-  'black',
-  'flake8'
-]
+style = ['black', 'flake8']
 
 [tool.setuptools.package-data]
 "padre_meddea.data" = ["**"]
@@ -81,13 +67,11 @@ packages = ["padre_meddea"]
 write_to = "padre_meddea/_version.py"
 
 [tool.pytest.ini_options]
-testpaths = [
-   "padre_meddea/tests",
-   "docs"
-]
+testpaths = ["padre_meddea/tests", "docs"]
 doctest_plus = "enabled"
+norecursedirs = ["_build"]
 text_file_format = "rst"
-addopts = "--doctest-rst"
+addopts = "--doctest-rst --doctest-plus --doctest-report ndiff"
 
 [tool.coverage.run]
 omit = [
@@ -98,6 +82,7 @@ omit = [
   'padre_meddea/*/tests/*',
   'padre_meddea/extern/*',
   'padre_meddea/version*',
+  'padre_meddea/docs/_build/*',
   '*/padre_meddea/__init*',
   '*/padre_meddea/conftest.py',
   '*/padre_meddea/*setup_package*',
