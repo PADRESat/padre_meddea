@@ -1139,9 +1139,7 @@ def concatenate_daily_fits(
     outfiles_to_process = get_output_files(all_files)
 
     outfiles = []
-    # NOTE: Just for testing, we'll use the eventlist descriptor
     for outfile, outfile_info in outfiles_to_process.items():
-        print(f"Output file: {outfile}")
 
         # Get updated Parent Infor for file
         files_to_combine = [
