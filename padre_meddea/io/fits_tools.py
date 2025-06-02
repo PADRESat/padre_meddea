@@ -557,9 +557,9 @@ def get_file_data_times(file_path: Path) -> Time:
             hdul["SCI"].data["pktclock"],
             hdul["SCI"].data["clocks"],
         )
-    elif file_descriptor == "hk":
+    elif file_descriptor == "hk" or file_descriptor == "housekeeping":
         times = calc_time(hdul["HK"].data["timestamp"])
-    elif file_descriptor == "spec":
+    elif file_descriptor == "spec" or file_descriptor == "spectrum":
         times = calc_time(hdul["PKT"].data["pkttimes"], hdul["PKT"].data["pktclock"])
     else:
         raise ValueError(f"File contents of {file_path} not recogized.")
@@ -894,7 +894,9 @@ def _initialize_hdu_structure(
                 )
 
                 # Update COMMENT with file metadata
-                base_header = _update_comment_metadata(base_header, files_to_combine)
+                base_header = _update_comment_metadata(
+                    base_header, all_parent_files, files_to_combine
+                )
 
                 hdu_dict[i] = {"header": base_header, "data": None, "type": "primary"}
 
@@ -917,7 +919,7 @@ def _initialize_hdu_structure(
 
 
 def _update_comment_metadata(
-    header: fits.Header, files_to_combine: list[dict]
+    header: fits.Header, parent_files: list[str], files_to_combine: list[dict]
 ) -> fits.Header:
     """
     Update COMMENT header with JSON metadata about contributing files.
@@ -926,6 +928,8 @@ def _update_comment_metadata(
     ----------
     header : fits.Header
         Header to update
+    parent_files : list[str]
+        List of parent files to include in the COMMENT metadata.
     files_to_combine : list[dict]
         List of files being combined, each as a dict with metadata
         containing 'source_file', 'start_time', 'end_time', 'start_idx', and 'end_idx'.
@@ -953,7 +957,7 @@ def _update_comment_metadata(
     existing_filenames = {entry["filename"] for entry in file_time_list}
     for source_file in files_to_combine:
         filename = source_file["source_file"].name
-        if filename not in existing_filenames:
+        if filename in parent_files and filename not in existing_filenames:
             file_time_list.append(
                 {
                     "filename": filename,

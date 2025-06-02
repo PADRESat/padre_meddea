@@ -1,11 +1,10 @@
 import json
 from pathlib import Path
 
-import pytest
 import astropy.io.fits as fits
+import pytest
 
-from padre_meddea.io.fits_tools import sort_files_list
-from padre_meddea.io.fits_tools import concatenate_daily_fits
+from padre_meddea.io.fits_tools import concatenate_daily_fits, sort_files_list
 
 data_dir = Path(__file__).parent.parent / "data/test"
 
@@ -155,9 +154,9 @@ def test_prepare_files_list_dateref_fallback():
 
 
 @pytest.mark.parametrize(
-    "input_files, additional_file, expected_parentxt, expected_first_comment",
+    "input_files, expected_outputs, expected_parentxt, additional_file, expected_additional_outputs, additional_parentext, expected_first_comment",
     [
-        # Corrected eventlist case
+        # Corrected eventlist (single-day) case
         (
             [
                 data_dir
@@ -165,11 +164,41 @@ def test_prepare_files_list_dateref_fallback():
                 data_dir
                 / "eventlist/padre_meddea_l1test_eventlist_20250504T080330_v0.1.0.fits",
             ],
+            ["padre_meddea_l1_eventlist_20250504T000000_v0.1.0.fits"],
+            "padre_meddea_l1test_eventlist_20250504T073749_v0.1.0.fits, padre_meddea_l1test_eventlist_20250504T080330_v0.1.0.fits",
             [
                 data_dir
                 / "eventlist/padre_meddea_l1test_eventlist_20250504T083234_v0.1.0.fits",
             ],
-            "padre_meddea_l1test_eventlist_20250504T073749_v0.1.0.fits, padre_meddea_l1test_eventlist_20250504T080330_v0.1.0.fits",
+            ["padre_meddea_l1_eventlist_20250504T000000_v0.1.0.fits"],
+            "padre_meddea_l1test_eventlist_20250504T073749_v0.1.0.fits, padre_meddea_l1test_eventlist_20250504T080330_v0.1.0.fits, padre_meddea_l1test_eventlist_20250504T083234_v0.1.0.fits",
+            {
+                "date-beg": "2025-05-04T07:37:49.472",
+                "date-end": "2025-05-04T08:03:30.331",
+                "filename": "padre_meddea_l1test_eventlist_20250504T073749_v0.1.0.fits",
+            },
+        ),
+        # Corrected eventlist (Multi-day) case
+        (
+            [
+                data_dir
+                / "eventlist/padre_meddea_l1test_eventlist_20250504T073749_v0.1.0.fits",
+                data_dir
+                / "eventlist/padre_meddea_l1test_eventlist_20250504T080330_v0.1.0.fits",
+                data_dir
+                / "eventlist/padre_meddea_l1test_eventlist_20250504T083234_v0.1.0.fits",
+            ],
+            ["padre_meddea_l1_eventlist_20250504T000000_v0.1.0.fits"],
+            "padre_meddea_l1test_eventlist_20250504T073749_v0.1.0.fits, padre_meddea_l1test_eventlist_20250504T080330_v0.1.0.fits, padre_meddea_l1test_eventlist_20250504T083234_v0.1.0.fits",
+            [
+                data_dir
+                / "eventlist/padre_meddea_l1test_eventlist_20250504T084605_v0.1.0.fits",
+            ],
+            [
+                "padre_meddea_l1_eventlist_20250504T000000_v0.1.0.fits",
+                "padre_meddea_l1_eventlist_20250505T000000_v0.1.0.fits",
+            ],
+            "padre_meddea_l1test_eventlist_20250504T073749_v0.1.0.fits, padre_meddea_l1test_eventlist_20250504T080330_v0.1.0.fits, padre_meddea_l1test_eventlist_20250504T083234_v0.1.0.fits, padre_meddea_l1test_eventlist_20250504T084605_v0.1.0.fits",
             {
                 "date-beg": "2025-05-04T07:37:49.472",
                 "date-end": "2025-05-04T08:03:30.331",
@@ -183,12 +212,21 @@ def test_prepare_files_list_dateref_fallback():
                 data_dir / "hk/padre_meddea_l1test_hk_20250504T055138_v0.1.0.fits",
             ],
             [
+                "padre_meddea_l1_housekeeping_20250310T000000_v0.1.0.fits",
+                "padre_meddea_l1_housekeeping_20250504T000000_v0.1.0.fits",
+            ],
+            "padre_meddea_l1test_hk_20250310T114743_v0.1.0.fits",
+            [
                 data_dir / "hk/padre_meddea_l1test_hk_20250317T105835_v0.1.0.fits",
             ],
-            "padre_meddea_l1test_hk_20250310T114743_v0.1.0.fits, padre_meddea_l1test_hk_20250504T055138_v0.1.0.fits",
+            [
+                "padre_meddea_l1_housekeeping_20250310T000000_v0.1.0.fits",
+                "padre_meddea_l1_housekeeping_20250317T000000_v0.1.0.fits",
+            ],
+            "padre_meddea_l1test_hk_20250310T114743_v0.1.0.fits",
             {
-                "date-beg": "UNKNOWN",  # This matches the actual output
-                "date-end": "UNKNOWN",  # This matches the actual output
+                "date-beg": "2025-03-10T11:47:43.000",
+                "date-end": "2025-03-10T11:47:43.000",
                 "filename": "padre_meddea_l1test_hk_20250310T114743_v0.1.0.fits",
             },
         ),
@@ -199,9 +237,18 @@ def test_prepare_files_list_dateref_fallback():
                 data_dir / "spec/padre_meddea_l1test_spec_20250317T121301_v0.1.0.fits",
             ],
             [
+                "padre_meddea_l1_spectrum_20250310T000000_v0.1.0.fits",
+                "padre_meddea_l1_spectrum_20250317T000000_v0.1.0.fits",
+            ],
+            "padre_meddea_l1test_spec_20250310T114744_v0.1.0.fits",
+            [
                 data_dir / "spec/padre_meddea_l1test_spec_20250504T153111_v0.1.0.fits",
             ],
-            "padre_meddea_l1test_spec_20250310T114744_v0.1.0.fits, padre_meddea_l1test_spec_20250317T121301_v0.1.0.fits",
+            [
+                "padre_meddea_l1_spectrum_20250310T000000_v0.1.0.fits",
+                "padre_meddea_l1_spectrum_20250504T000000_v0.1.0.fits",
+            ],
+            "padre_meddea_l1test_spec_20250310T114744_v0.1.0.fits",
             {
                 "date-beg": "2025-03-10T11:47:44.197",
                 "date-end": "2025-03-10T11:57:44.137",
@@ -211,10 +258,23 @@ def test_prepare_files_list_dateref_fallback():
     ],
 )
 def test_concatenate_fits_cases(
-    input_files, additional_file, expected_parentxt, expected_first_comment
+    input_files,
+    expected_outputs,
+    expected_parentxt,
+    additional_file,
+    expected_additional_outputs,
+    additional_parentext,
+    expected_first_comment,
 ):
     output_files = concatenate_daily_fits(input_files)
     assert all([output_file.exists() for output_file in output_files])
+    assert len(output_files) == len(expected_outputs)
+    assert all(
+        [
+            str(output_files[i]) == expected_outputs[i]
+            for i in range(len(expected_outputs))
+        ]
+    )
 
     output_file = output_files[0]
     # Check the primary header contents
@@ -223,6 +283,7 @@ def test_concatenate_fits_cases(
 
         assert "PARENTXT" in header
         assert header["PARENTXT"] == expected_parentxt
+        expected_parentxt_list = expected_parentxt.split(", ")
 
         comment_raw = header.get("COMMENT", "")
         if isinstance(comment_raw, list):
@@ -232,12 +293,19 @@ def test_concatenate_fits_cases(
 
         file_time_list = json.loads(comment_str)
         assert isinstance(file_time_list, list)
-        assert len(file_time_list) == 2
+        assert len(file_time_list) == len(expected_parentxt_list)
         assert file_time_list[0] == expected_first_comment
 
     # Add additional file checks
     output_files = concatenate_daily_fits(additional_file, existing_file=output_file)
     assert all([output_file.exists() for output_file in output_files])
+    assert len(output_files) == len(expected_additional_outputs)
+    assert all(
+        [
+            str(output_files[i]) == expected_additional_outputs[i]
+            for i in range(len(expected_additional_outputs))
+        ]
+    )
 
     output_file = output_files[0]
     # Check the primary header contents
@@ -245,10 +313,8 @@ def test_concatenate_fits_cases(
         header = hdul[0].header
 
         assert "PARENTXT" in header
-
-        # split by commas and strip whitespace
-        parentxt = header["PARENTXT"].split(", ")
-        assert len(parentxt) == 3
+        assert header["PARENTXT"] == additional_parentext
+        expected_parentxt_list = additional_parentext.split(", ")
 
         comment_raw = header.get("COMMENT", "")
         if isinstance(comment_raw, list):
@@ -258,4 +324,4 @@ def test_concatenate_fits_cases(
 
         file_time_list = json.loads(comment_str)
         assert isinstance(file_time_list, list)
-        assert len(file_time_list) == 3
+        assert len(file_time_list) == len(expected_parentxt_list)
