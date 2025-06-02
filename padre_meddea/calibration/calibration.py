@@ -78,7 +78,7 @@ def process_file(filename: Path, overwrite=False) -> list:
             event_list.remove_column("time")
 
             # Get FITS Primary Header Template
-            primary_hdr = get_primary_header(file_path, "l1", "photon")
+            primary_hdr = get_primary_header(file_path, "l0", "photon")
 
             for this_keyword in ["DATE-BEG", "DATE-END", "DATE-AVG"]:
                 primary_hdr[this_keyword] = (
@@ -90,7 +90,7 @@ def process_file(filename: Path, overwrite=False) -> list:
             path = create_science_filename(
                 "meddea",
                 time=primary_hdr["DATE-BEG"],
-                level="l1",
+                level="l0",
                 descriptor="eventlist",
                 test=True,
                 version="0.1.0",
@@ -125,7 +125,7 @@ def process_file(filename: Path, overwrite=False) -> list:
             hk_table = Table(hk_data)
 
             # Get FITS Primary Header Template
-            primary_hdr = get_primary_header(file_path, "l1", "housekeeping")
+            primary_hdr = get_primary_header(file_path, "l0", "housekeeping")
 
             date_beg = calc_time(hk_data["timestamp"][0])
             primary_hdr["DATEREF"] = (date_beg.fits, get_comment("DATEREF"))
@@ -149,7 +149,7 @@ def process_file(filename: Path, overwrite=False) -> list:
             path = create_science_filename(
                 "meddea",
                 time=date_beg,
-                level="l1",
+                level="l0",
                 descriptor="hk",
                 test=True,
                 version="0.1.0",
@@ -212,7 +212,7 @@ def process_file(filename: Path, overwrite=False) -> list:
             # TODO check that asic_nums and channel_nums do not change
 
             # Get FITS Primary Header Template
-            primary_hdr = get_primary_header(file_path, "l1", "spectrum")
+            primary_hdr = get_primary_header(file_path, "l0", "spectrum")
 
             dates = {
                 "DATE-BEG": ts.time[0].fits,
@@ -229,7 +229,7 @@ def process_file(filename: Path, overwrite=False) -> list:
             path = create_science_filename(
                 "meddea",
                 time=dates["DATE-BEG"],
-                level="l1",
+                level="l0",
                 descriptor="spec",
                 test=True,
                 version="0.1.0",
