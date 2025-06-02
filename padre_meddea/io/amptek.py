@@ -8,6 +8,8 @@ from datetime import datetime
 import numpy as np
 from numpy.polynomial.polynomial import Polynomial
 
+import matplotlib.pyplot as plt
+
 import astropy.units as u
 from astropy.nddata import StdDevUncertainty
 from astropy.io.fits import Header
@@ -158,3 +160,108 @@ def read_mca(filename: Path, count_rate=False):
         )
 
     return spectrum
+
+def plot_amptek(amptek_spec, ax=None):
+    """
+    Plot an amptek spectrum.
+
+    Parameters
+    ----------
+    amptek_spec: Spectrum1D
+        All meta data with all capitals are direct from the mca file.
+        Lower case metadata is added.
+
+    Returns
+    -------
+        A plot showing the measured spectrum. 
+    """
+    if ax is None: 
+        fig, ax=plt.subplots(layout="constrained")
+    if isinstance(amptek_spec, list):
+        for this_spec in amptek_spec:
+            ax.plot(this_spec.spectral_axis, this_spec.flux/this_spec.meta['realtime'], label=amptek_spec.meta['filename'])
+    else:
+        ax.plot(amptek_spec.spectral_axis, amptek_spec.flux/amptek_spec.meta['realtime'], label=amptek_spec.meta['filename'])
+        if amptek_spec.meta['roi']:
+            for this_roi in amptek_spec.meta['roi']:
+                ax.axvspan(this_roi.lower.value, this_roi.upper.value, alpha=0.2)
+    ax.set_label("ADC Channel")
+
+    if amptek_spec.meta['calib']:
+        ax2 = ax.twiny()
+        x = [
+            amptek_spec.meta['calib'](amptek_spec.spectral_axis.value[0]),
+            amptek_spec.meta['calib'](amptek_spec.spectral_axis.value[-1]),
+        ]
+        ax2.plot(x, [0, 0])
+        ax2.set_label("Energy (keV)")
+    ax.set_xlabel("ADC Channel")
+    ax.set_ylabel("Counts/s")
+    ax.set_yscale("log")
+    ax.legend()
+
+def plot_energy_spec(unfilt_spec, filt_spec, lower_bound, upper_bound, title): 
+    """
+    Plot an amptek spectrum that has not been attenuated (unfiltered) and an amptek spectrum that has been attenuated (filtered). 
+    This is useful for visualizing measured spectra before calculating the transmission from the measured spectra.
+
+    Parameters
+    ----------
+    unfilt_spec: Spectrum1D
+        The unfiltered measurement. 
+    
+    filt_spec: Spectrum1D
+        The filtered measurement. 
+
+    lower_bound: int
+        The minimum value of energy. 
+
+    upper_bound: int
+        The maximum value of energy. 
+
+    title: string
+        The title of the plot.
+
+    Returns
+    -------
+        A plot showing the measured unfiltered and filtered spectra. 
+    """
+    fig, ax=plt.subplots(layout="constrained")
+    energy_axis=unfilt_spec.meta['calib'](unfilt_spec.spectral_axis.value) 
+    idx=(energy_axis>lower_bound)*(energy_axis<upper_bound)
+    energy_axis=energy_axis[idx]   
+
+    fig.suptitle(title)
+    ax.plot(energy_axis, unfilt_spec.flux[idx]/unfilt_spec.meta['realtime'], label=unfilt_spec.meta['filename'])
+    ax.plot(energy_axis, filt_spec.flux[idx]/filt_spec.meta['realtime'], label=filt_spec.meta['filename'])
+    if unfilt_spec.meta['roi']:
+            for this_roi in unfilt_spec.meta['roi']:
+                ax.axvspan(unfilt_spec.meta['calib'](this_roi.lower.value), unfilt_spec.meta['calib'](this_roi.upper.value), alpha=0.2)
+    ax.legend(loc='lower right')
+    ax.set_yscale("log")
+    ax.grid()
+    ax.set_xlabel("Energy (keV)")
+    ax.set_ylabel("Counts/s")
+    ax.legend()
+    plt.show()
+
+def trans(unfilt_spec, filt_spec, mask=False):
+    """
+    Calculate the transmission function from measured data. 
+
+    Parameters
+    ----------
+    unfilt_spec: Spectrum1D
+        The unfiltered measurement. 
+    
+    filt_spec: Spectrum1D
+        The filtered measurement. 
+
+    mask: Boolean
+        Replaces 0, nan, and inf values in the calculated transmission with finite, interpolated values. 
+    """
+    transmission=(filt_spec.flux/filt_spec.meta['realtime']) / (unfilt_spec.flux/unfilt_spec.meta['realtime'])
+    if mask==True: 
+        mask=((np.isnan(transmission)) | (transmission==0) | (transmission==np.inf)) # find where the transmission contains nan, 0, or infinite values.
+        transmission[mask]=np.interp(np.flatnonzero(mask), np.flatnonzero(~mask), transmission[~mask]) 
+    return transmission
