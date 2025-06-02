@@ -2,10 +2,12 @@
 This module provides a utilities to manage fits files reading and writing.
 """
 
+import gc
 import json
 import os
 import re
 import tempfile
+import time
 import warnings
 from collections import OrderedDict
 from pathlib import Path
@@ -471,12 +473,15 @@ def sort_files_list(
     # Remove duplicates while preserving order
     all_files = list(OrderedDict.fromkeys(all_files))
 
-    # Sort and extract times using DATE-BEG or DATE-REF as fallback
-    all_files = sorted(
-        all_files,
-        key=lambda f: fits.getheader(f).get("DATE-BEG")
-        or fits.getheader(f).get("DATEREF"),
-    )
+    # Extract times using DATE-BEG or DATE-REF
+    def get_date_key(file_path):
+        hdul = fits.open(file_path)
+        header = hdul[0].header.copy()
+        hdul.close()
+        return header.get("DATE-BEG") or header.get("DATEREF")
+
+    # Sort files based on extracted times
+    all_files = sorted(all_files, key=get_date_key)
 
     return all_files
 
@@ -500,7 +505,9 @@ def get_file_header_times(file_path: Path) -> Tuple[Time, Time]:
     ValueError
         If the file does not contain DATE-BEG, DATE-END, or DATEREF keywords.
     """
-    header = fits.getheader(file_path)
+    hdul = fits.open(file_path)
+    header = hdul[0].header.copy()
+    hdul.close()
 
     # Get Start Date
     if "DATE-BEG" in header:
@@ -549,22 +556,23 @@ def get_file_data_times(file_path: Path) -> Time:
     file_meta = parse_science_filename(file_path)
     file_descriptor = file_meta["descriptor"]
     times = None
-    with fits.open(file_path) as hdul:
-        # Calculate Times based on the file descriptor
-        if file_descriptor == "eventlist":
-            times = calc_time(
-                hdul["SCI"].data["pkttimes"],
-                hdul["SCI"].data["pktclock"],
-                hdul["SCI"].data["clocks"],
-            )
-        elif file_descriptor == "hk" or file_descriptor == "housekeeping":
-            times = calc_time(hdul["HK"].data["timestamp"])
-        elif file_descriptor == "spec" or file_descriptor == "spectrum":
-            times = calc_time(
-                hdul["PKT"].data["pkttimes"], hdul["PKT"].data["pktclock"]
-            )
-        else:
-            raise ValueError(f"File contents of {file_path} not recogized.")
+
+    hdul = fits.open(file_path)
+    # Calculate Times based on the file descriptor
+    if file_descriptor == "eventlist":
+        times = calc_time(
+            hdul["SCI"].data["pkttimes"],
+            hdul["SCI"].data["pktclock"],
+            hdul["SCI"].data["clocks"],
+        )
+    elif file_descriptor == "hk" or file_descriptor == "housekeeping":
+        times = calc_time(hdul["HK"].data["timestamp"])
+    elif file_descriptor == "spec" or file_descriptor == "spectrum":
+        times = calc_time(hdul["PKT"].data["pkttimes"], hdul["PKT"].data["pktclock"])
+    else:
+        raise ValueError(f"File contents of {file_path} not recogized.")
+    # Explicitly Open and Close File - Windows Garbage Disposer cannot be trusted.
+    hdul.close()
 
     return times
 
@@ -626,8 +634,10 @@ def get_output_path(first_file: Path, date_beg: Time) -> Path:
     Path
         Determined output file path
     """
+    hdul = fits.open(first_file)
+    header = hdul[0].header.copy()
+    hdul.close()
 
-    header = fits.getheader(first_file)
     instrument = header["INSTRUME"].lower()
     data_type = header["DATATYPE"]
     if "_" in data_type:
@@ -833,9 +843,12 @@ def _prepare_parent_file_tracking(
     new_parent_files = [str(file_path.name) for file_path in files_to_combine]
     existing_parent_files = []
 
-    if existing_file and "PARENTXT" in fits.getheader(existing_file):
-        header = fits.getheader(existing_file)
-        existing_parent_files = [f.strip() for f in header["PARENTXT"].split(",")]
+    if existing_file:
+        hdul = fits.open(existing_file)
+        header = hdul[0].header.copy()
+        hdul.close()
+        if "PARENTXT" in header:
+            existing_parent_files = [f.strip() for f in header["PARENTXT"].split(",")]
 
     all_parent_files = list(
         OrderedDict.fromkeys(existing_parent_files + new_parent_files)
@@ -874,48 +887,50 @@ def _initialize_hdu_structure(
     """
     hdu_dict = {}
 
-    with fits.open(first_file) as first_hdul:
-        for i, hdu in enumerate(first_hdul):
-            if isinstance(hdu, fits.PrimaryHDU):
-                base_header = hdu.header.copy()
+    first_hdul = fits.open(first_file)
+    for i, hdu in enumerate(first_hdul):
+        if isinstance(hdu, fits.PrimaryHDU):
+            base_header = hdu.header.copy()
 
-                # Update time-related headers
-                for key, value in [
-                    ("DATE-BEG", date_beg),
-                    ("DATE-END", date_end),
-                    ("DATE-AVG", date_avg),
-                    ("DATEREF", date_beg),
-                ]:
-                    base_header[key] = (value.fits, get_comment(key))
+            # Update time-related headers
+            for key, value in [
+                ("DATE-BEG", date_beg),
+                ("DATE-END", date_end),
+                ("DATE-AVG", date_avg),
+                ("DATEREF", date_beg),
+            ]:
+                base_header[key] = (value.fits, get_comment(key))
 
-                # Update PARENTXT
-                parent_files_str = ", ".join(all_parent_files)
-                base_header["PARENTXT"] = (
-                    parent_files_str,
-                    "Parent files used in concatenation",
-                )
+            # Update PARENTXT
+            parent_files_str = ", ".join(all_parent_files)
+            base_header["PARENTXT"] = (
+                parent_files_str,
+                "Parent files used in concatenation",
+            )
 
-                # Update COMMENT with file metadata
-                base_header = _update_comment_metadata(
-                    base_header, all_parent_files, files_to_combine
-                )
+            # Update COMMENT with file metadata
+            base_header = _update_comment_metadata(
+                base_header, all_parent_files, files_to_combine
+            )
 
-                hdu_dict[i] = {"header": base_header, "data": None, "type": "primary"}
+            hdu_dict[i] = {"header": base_header, "data": None, "type": "primary"}
 
-            elif isinstance(hdu, fits.BinTableHDU):
-                hdu_dict[i] = {
-                    "header": hdu.header.copy(),
-                    "data": Table.read(hdu),
-                    "type": "bintable",
-                    "name": hdu.name,
-                }
-            elif isinstance(hdu, fits.ImageHDU):
-                hdu_dict[i] = {
-                    "header": hdu.header.copy(),
-                    "data": hdu.data.copy(),
-                    "type": "image",
-                    "name": hdu.name,
-                }
+        elif isinstance(hdu, fits.BinTableHDU):
+            hdu_dict[i] = {
+                "header": hdu.header.copy(),
+                "data": Table.read(hdu),
+                "type": "bintable",
+                "name": hdu.name,
+            }
+        elif isinstance(hdu, fits.ImageHDU):
+            hdu_dict[i] = {
+                "header": hdu.header.copy(),
+                "data": hdu.data.copy(),
+                "type": "image",
+                "name": hdu.name,
+            }
+    # Explicitly Open and Close File - Windows Garbage Disposer cannot be trusted.
+    first_hdul.close()
 
     return hdu_dict
 
@@ -1012,73 +1027,77 @@ def _process_additional_files(all_files: list[dict], hdu_dict: dict) -> dict:
         start_idx = source_file["start_idx"]
         end_idx = source_file["end_idx"]
 
-        with fits.open(source_path) as hdul:
-            for i, hdu in enumerate(hdul):
-                if i not in hdu_dict:
+        hdul = fits.open(source_path)
+        for i, hdu in enumerate(hdul):
+            if i not in hdu_dict:
+                log.warning(
+                    f"File {source_path} has unexpected HDU at index {i}, skipping."
+                )
+                continue
+
+            # TODO We will also need to update the header if necessary for all observational HDUs
+
+            if hdu_dict[i]["type"] == "primary":
+                # For primary HDU, we just need to check consistency
+                pass
+            elif hdu_dict[i]["type"] == "bintable":
+                # Vertically stack table data, but only use rows from start_idx to end_idx
+                new_table = Table.read(hdu)
+
+                # Make sure indices are within valid range
+                if end_idx >= len(new_table):
                     log.warning(
-                        f"File {source_path} has unexpected HDU at index {i}, skipping."
+                        f"File {source_path}: end_idx {end_idx} exceeds table length {len(new_table)}. "
+                        f"Using {len(new_table)-1} as end_idx."
                     )
-                    continue
+                    end_idx = len(new_table) - 1
 
-                # TODO We will also need to update the header if necessary for all observational HDUs
-
-                if hdu_dict[i]["type"] == "primary":
-                    # For primary HDU, we just need to check consistency
-                    pass
-                elif hdu_dict[i]["type"] == "bintable":
-                    # Vertically stack table data, but only use rows from start_idx to end_idx
-                    new_table = Table.read(hdu)
-
-                    # Make sure indices are within valid range
-                    if end_idx >= len(new_table):
-                        log.warning(
-                            f"File {source_path}: end_idx {end_idx} exceeds table length {len(new_table)}. "
-                            f"Using {len(new_table)-1} as end_idx."
-                        )
-                        end_idx = len(new_table) - 1
-
-                    if start_idx < 0:
-                        log.warning(
-                            f"File {source_path}: start_idx {start_idx} is negative. Using 0 as start_idx."
-                        )
-                        start_idx = 0
-
-                    # Select only the relevant rows
-                    selected_data = new_table[start_idx : end_idx + 1]
-
-                    # Stack with existing data
-                    hdu_dict[i]["data"] = vstack([hdu_dict[i]["data"], selected_data])
-
-                elif hdu_dict[i]["type"] == "image":
-                    # Concatenate image data (assuming along first axis), using only selected indices
-                    # Make sure indices are within valid range
-                    if end_idx >= hdu.data.shape[0]:
-                        log.warning(
-                            f"File {source_path}: end_idx {end_idx} exceeds image length {hdu.data.shape[0]}. "
-                            f"Using {hdu.data.shape[0]-1} as end_idx."
-                        )
-                        end_idx = hdu.data.shape[0] - 1
-
-                    if start_idx < 0:
-                        log.warning(
-                            f"File {source_path}: start_idx {start_idx} is negative. Using 0 as start_idx."
-                        )
-                        start_idx = 0
-
-                    # Select only the relevant slice of the image data
-                    selected_data = hdu.data[start_idx : end_idx + 1]
-
-                    # Concatenate with existing data
-                    hdu_dict[i]["data"] = np.concatenate(
-                        [hdu_dict[i]["data"], selected_data], axis=0
+                if start_idx < 0:
+                    log.warning(
+                        f"File {source_path}: start_idx {start_idx} is negative. Using 0 as start_idx."
                     )
+                    start_idx = 0
+
+                # Select only the relevant rows
+                selected_data = new_table[start_idx : end_idx + 1]
+
+                # Stack with existing data
+                hdu_dict[i]["data"] = vstack([hdu_dict[i]["data"], selected_data])
+
+            elif hdu_dict[i]["type"] == "image":
+                # Concatenate image data (assuming along first axis), using only selected indices
+                # Make sure indices are within valid range
+                if end_idx >= hdu.data.shape[0]:
+                    log.warning(
+                        f"File {source_path}: end_idx {end_idx} exceeds image length {hdu.data.shape[0]}. "
+                        f"Using {hdu.data.shape[0]-1} as end_idx."
+                    )
+                    end_idx = hdu.data.shape[0] - 1
+
+                if start_idx < 0:
+                    log.warning(
+                        f"File {source_path}: start_idx {start_idx} is negative. Using 0 as start_idx."
+                    )
+                    start_idx = 0
+
+                # Select only the relevant slice of the image data
+                selected_data = hdu.data[start_idx : end_idx + 1]
+
+                # Concatenate with existing data
+                hdu_dict[i]["data"] = np.concatenate(
+                    [hdu_dict[i]["data"], selected_data], axis=0
+                )
+        # Explicitly Open and Close File - Windows Garbage Disposer cannot be trusted.
+        hdul.close()
 
     return hdu_dict
 
 
-def _write_output_file(hdu_dict: dict, outfile: Path) -> None:
+def _write_output_file(
+    hdu_dict: dict, outfile: Path, retries: int = 5, delay: float = 1.0
+) -> None:
     """
-    Construct and write the output FITS file.
+    Construct and write the output FITS file with retry mechanism.
 
     Parameters
     ----------
@@ -1086,6 +1105,10 @@ def _write_output_file(hdu_dict: dict, outfile: Path) -> None:
         Dictionary containing HDU information
     outfile : Path
         Output file path
+    retries : int, optional
+        Number of retry attempts, default is 3
+    delay : float, optional
+        Delay between retries in seconds, default is 1.0
     """
     hdu_list = []
     for i in sorted(hdu_dict.keys()):
@@ -1105,11 +1128,27 @@ def _write_output_file(hdu_dict: dict, outfile: Path) -> None:
             )
             hdu_list.append(new_hdu)
 
-    # Write the output file
+    # Write the output file with retry mechanism
     hdul = fits.HDUList(hdu_list)
-    hdul.writeto(outfile, overwrite=True)
-    log.info(f"Created concatenated daily file: {outfile}")
-    return outfile
+    attempt = 0
+    while attempt < retries:
+        try:
+            log.debug(f"Writing to file: {outfile} (Attempt {attempt + 1})")
+            hdul.writeto(outfile, overwrite=True)
+            log.info(f"Created concatenated daily file: {outfile}")
+            return outfile
+        except Exception as e:
+            attempt += 1
+            log.warning(f"Failed to write file {outfile} on attempt {attempt}: {e}")
+            if attempt < retries:
+                gc.collect()  # Explicitly invoke garbage collection to release any unreferenced file handles
+                time.sleep(delay)
+            else:
+                log.error(f"Exceeded maximum retries ({retries}) for file {outfile}")
+                raise
+        finally:
+            log.debug(f"Closing file: {outfile}")
+            hdul.close()
 
 
 def concatenate_daily_fits(

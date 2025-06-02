@@ -1,5 +1,7 @@
 import json
+import os
 from pathlib import Path
+import tempfile
 
 import astropy.io.fits as fits
 import pytest
@@ -7,6 +9,12 @@ import pytest
 from padre_meddea.io.fits_tools import concatenate_daily_fits, sort_files_list
 
 data_dir = Path(__file__).parent.parent / "data/test"
+
+
+@pytest.fixture
+def temp_dir():
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        yield Path(tmpdirname)
 
 
 def test_prepare_files_list_basic():
@@ -258,6 +266,7 @@ def test_prepare_files_list_dateref_fallback():
     ],
 )
 def test_concatenate_fits_cases(
+    tmpdir,
     input_files,
     expected_outputs,
     expected_parentxt,
@@ -266,6 +275,8 @@ def test_concatenate_fits_cases(
     additional_parentext,
     expected_first_comment,
 ):
+    os.chdir(tmpdir)
+
     output_files = concatenate_daily_fits(input_files)
     assert all([output_file.exists() for output_file in output_files])
     assert len(output_files) == len(expected_outputs)
@@ -275,26 +286,29 @@ def test_concatenate_fits_cases(
             for i in range(len(expected_outputs))
         ]
     )
+    print(f"Finished First Concat with Outputs: {output_files}")
 
     output_file = output_files[0]
     # Check the primary header contents
-    with fits.open(output_file) as hdul:
-        header = hdul[0].header
+    hdul = fits.open(output_file)
+    header = hdul[0].header
 
-        assert "PARENTXT" in header
-        assert header["PARENTXT"] == expected_parentxt
-        expected_parentxt_list = expected_parentxt.split(", ")
+    assert "PARENTXT" in header
+    assert header["PARENTXT"] == expected_parentxt
+    expected_parentxt_list = expected_parentxt.split(", ")
 
-        comment_raw = header.get("COMMENT", "")
-        if isinstance(comment_raw, list):
-            comment_str = "".join(comment_raw)
-        else:
-            comment_str = str(comment_raw).replace("\n", "")
+    comment_raw = header.get("COMMENT", "")
+    if isinstance(comment_raw, list):
+        comment_str = "".join(comment_raw)
+    else:
+        comment_str = str(comment_raw).replace("\n", "")
 
-        file_time_list = json.loads(comment_str)
-        assert isinstance(file_time_list, list)
-        assert len(file_time_list) == len(expected_parentxt_list)
-        assert file_time_list[0] == expected_first_comment
+    file_time_list = json.loads(comment_str)
+    assert isinstance(file_time_list, list)
+    assert len(file_time_list) == len(expected_parentxt_list)
+    assert file_time_list[0] == expected_first_comment
+    # Explicitly Open and Close File - Windows Garbage Disposer cannot be trusted.
+    hdul.close()
 
     # Add additional file checks
     output_files = concatenate_daily_fits(additional_file, existing_file=output_file)
@@ -309,19 +323,21 @@ def test_concatenate_fits_cases(
 
     output_file = output_files[0]
     # Check the primary header contents
-    with fits.open(output_file) as hdul:
-        header = hdul[0].header
+    hdul = fits.open(output_file)
+    header = hdul[0].header
 
-        assert "PARENTXT" in header
-        assert header["PARENTXT"] == additional_parentext
-        expected_parentxt_list = additional_parentext.split(", ")
+    assert "PARENTXT" in header
+    assert header["PARENTXT"] == additional_parentext
+    expected_parentxt_list = additional_parentext.split(", ")
 
-        comment_raw = header.get("COMMENT", "")
-        if isinstance(comment_raw, list):
-            comment_str = "".join(comment_raw)
-        else:
-            comment_str = str(comment_raw).replace("\n", "")
+    comment_raw = header.get("COMMENT", "")
+    if isinstance(comment_raw, list):
+        comment_str = "".join(comment_raw)
+    else:
+        comment_str = str(comment_raw).replace("\n", "")
 
-        file_time_list = json.loads(comment_str)
-        assert isinstance(file_time_list, list)
-        assert len(file_time_list) == len(expected_parentxt_list)
+    file_time_list = json.loads(comment_str)
+    assert isinstance(file_time_list, list)
+    assert len(file_time_list) == len(expected_parentxt_list)
+    # Explicitly Open and Close File - Windows Garbage Disposer cannot be trusted.
+    hdul.close()
