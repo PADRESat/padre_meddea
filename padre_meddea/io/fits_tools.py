@@ -548,21 +548,23 @@ def get_file_data_times(file_path: Path) -> Time:
     # We need to parse times differently for Photon / Spectrum / HK
     file_meta = parse_science_filename(file_path)
     file_descriptor = file_meta["descriptor"]
-    hdul = fits.open(file_path)
-
-    # Calculate Times based on the file descriptor
-    if file_descriptor == "eventlist":
-        times = calc_time(
-            hdul["SCI"].data["pkttimes"],
-            hdul["SCI"].data["pktclock"],
-            hdul["SCI"].data["clocks"],
-        )
-    elif file_descriptor == "hk" or file_descriptor == "housekeeping":
-        times = calc_time(hdul["HK"].data["timestamp"])
-    elif file_descriptor == "spec" or file_descriptor == "spectrum":
-        times = calc_time(hdul["PKT"].data["pkttimes"], hdul["PKT"].data["pktclock"])
-    else:
-        raise ValueError(f"File contents of {file_path} not recogized.")
+    times = None
+    with fits.open(file_path) as hdul:
+        # Calculate Times based on the file descriptor
+        if file_descriptor == "eventlist":
+            times = calc_time(
+                hdul["SCI"].data["pkttimes"],
+                hdul["SCI"].data["pktclock"],
+                hdul["SCI"].data["clocks"],
+            )
+        elif file_descriptor == "hk" or file_descriptor == "housekeeping":
+            times = calc_time(hdul["HK"].data["timestamp"])
+        elif file_descriptor == "spec" or file_descriptor == "spectrum":
+            times = calc_time(
+                hdul["PKT"].data["pkttimes"], hdul["PKT"].data["pktclock"]
+            )
+        else:
+            raise ValueError(f"File contents of {file_path} not recogized.")
 
     return times
 
