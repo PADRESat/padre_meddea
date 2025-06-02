@@ -47,7 +47,7 @@ def test_calibration_fit(name):
     """
     if name in ["heater_pwm_duty_cycle"]:
         # TODO there is no data file for this
-        return True
+        assert True
     data = calib_hk.get_calibration_data(name)
     f = calib_hk.get_calibration_func(name)
     if name in ["hvps_vsense", "hvps_csense"]:
@@ -61,7 +61,7 @@ def test_calibration_fit(name):
 def test_inverse_calibrate(name):
     if name in ["heater_pwm_duty_cycle"]:
         # TODO there is no data file for this
-        return True
+        assert True
     data = calib_hk.get_calibration_data(name)
     if name in ["hvps_vsense", "hvps_csense"]:
         rtol = 2
