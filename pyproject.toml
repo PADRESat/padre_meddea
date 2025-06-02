@@ -42,7 +42,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
   'coverage>=5.0.3',
-  'pytest',
+  'pytest==8.3.5',
   'pytest-astropy',
   'pytest-cov',
   'black',
