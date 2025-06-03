@@ -1,0 +1,63 @@
+This directory contains the raw data files that were used for calibration purposes for each element of the optical path. 
+These elements include the Thermal Blanketing (Silver Teflon), 1mm Beryllium windows, and two 0.2mm Aluminum windows (0.4mm combined thickness). 
+
+Each file contains the voltage and current settings used for each measurement, the type of measurement (i.e. filtered or unfiltered), and the corresponding window through which the measurements was made. 
+
+Please refer to this calibration document for further details:
+https://docs.google.com/document/d/1MET3BjQ_a0BxfH67vQB_gVwgNtqqsfqxdSTeWtHttCQ/edit?tab=t.0
+
+Thermal Blanketing (Silver Teflon) files: 
+4 measurments were taken around the center of a single window, hence, 4 measurements in total.
+20250108_164246_25kV_40uA_silver_teflon_tape_unfilt1.mca
+20250108_172844_25kV_40uA_silver_teflon_tape_unfilt2.mca
+20250108_164933_25kV_40uA_silver_teflon_tape_win4_pos1.mca
+20250108_165817_25kV_40uA_silver_teflon_tape_win4_pos2.mca
+20250108_170749_25kV_40uA_silver_teflon_tape_win4_pos3.mca
+20250108_171847_25kV_40uA_silver_teflon_tape_win4_pos4.mca
+
+Beryllium window files: 
+4 measurements were taken around the center of each window. 
+There are 4 windows in total, hence, 16 filtered measurements in total.
+
+20241217_181453_25kV_40uA_Bewin_unfilt1.mca
+20241217_193006_25kV_40uA_Bewin_unfilt2.mca
+20241217_204644_25kV_40uA_Bewin_unfilt3.mca
+
+20241217_184701_25kV_40uA_Bewin_win1_pos4.mca
+20241217_183814_25kV_40uA_Bewin_win1_pos3.mca
+20241217_182940_25kV_40uA_Bewin_win1_pos2.mca
+20241217_182057_25kV_40uA_Bewin_win1_pos1.mca
+
+20241217_192125_25kV_40uA_Bewin_win3_pos4.mca
+20241217_191251_25kV_40uA_Bewin_win3_pos3.mca
+20241217_190414_25kV_40uA_Bewin_win3_pos2.mca
+20241217_185542_25kV_40uA_Bewin_win3_pos1.mca
+
+20241217_200208_25kV_40uA_Bewin_win4_pos4.mca
+20241217_195339_25kV_40uA_Bewin_win4_pos3.mca
+20241217_194442_25kV_40uA_Bewin_win4_pos2.mca
+20241217_193610_25kV_40uA_Bewin_win4_pos1.mca
+
+20241217_203810_25kV_40uA_Bewin_win2_pos4.mca
+20241217_202932_25kV_40uA_Bewin_win2_pos3.mca
+20241217_202039_25kV_40uA_Bewin_win2_pos2.mca
+20241217_201206_25kV_40uA_Bewin_win2_pos1.mca
+
+Aluminum window files: 
+1 measurement was taken through the center of each quadrant, hence, 4 filtered measurements in total.
+20241217_111314_25kV_40uA_Alwin1_0pt2mm_unfilt1.mca
+20241217_125110_25kV_40uA_Alwin1_0pt2mm_unfilt2.mca
+20241217_113050_25kV_40uA_Alwin1_0pt2mm_win1_center.mca
+20241217_121720_25kV_40uA_Alwin1_0pt2mm_win3_center.mca
+20241217_132330_25kV_40uA_Alwin1_0pt2mm_win4_center.mca
+20241217_132411_25kV_40uA_Alwin1_0pt2mm_win2_center.mca
+
+20241220_122138_25kV_40uA_Alwin3_0pt2mm_unfilt1.mca
+20241220_134653_25kV_40uA_Alwin3_0pt2mm_unfilt2.mca
+20241220_145155_25kV_40uA_Alwin3_0pt2mm_unfilt3.mca
+20241220_123016_25kV_40uA_Alwin3_0pt2mm_win1_center.mca
+20241220_130538_25kV_40uA_Alwin3_0pt2mm_win3_center.mca
+20241220_135423_25kV_40uA_Alwin3_0pt2mm_win4_center.mca
+20241220_142204_25kV_40uA_Alwin3_0pt2mm_win2_center.mca
+
+
