@@ -1,0 +1,39 @@
+attribute_key:
+  AUTHOR:
+    default: Steven D. Christe
+  CAMERA:
+    required: optional
+  CAMPAIGN:
+    required: optional
+  CREATOR:
+    default: padre_meddea
+  DATATAGS:
+    default: ""
+  DETECTOR: 
+    default: meddea
+  INFO_URL:
+    default: https://padre-meddea.readthedocs.io/en/latest/user-guide/data.html
+  OBSRVTRY:
+    default: PADRE
+  ORIGAPID:
+    data_type: int
+    default: null
+    description: APID(s) of the originating data
+    human_readable: APID(s) of the originating data
+    required: primary
+  ORIGFILE:
+    data_type: str
+    default: null
+    description: File name of the originating data
+    human_readable: File name of the originating data
+    required: primary
+  TIMESYS:
+    default: UTC
+  TELESCOP:
+    default: PADRE/MeDDEA
+  INSTRUME:
+    default: MeDDEA
+  MISSION:
+    default: PADRE
+  ORIGIN:
+    default: NASA/GSFC

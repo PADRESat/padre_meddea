@@ -9,7 +9,10 @@ name = "padre_meddea"
 description = "A Python package to process and analyze data from the PADRE MEDDEA instrument."
 readme = "README.rst"
 dynamic = ["version"]
-authors = [{name = "Steven Christe", email="steven.christe@nasa.gov"}]
+authors = [
+  {name = "Steven Christe", email="steven.christe@nasa.gov"},
+  {name = "Andrew Robbertz", email="a.robbertz@gmail.com"},
+]
 license = {file = "LICENSE.rst"}
 requires-python = ">=3.10"
 keywords = ["nasa mission", "space weather"]
@@ -34,6 +37,7 @@ dependencies = [
   'matplotlib==3.10.*',
   'swxsoc @ git+https://github.com/swxsoc/swxsoc.git@main',
   'gitpython==3.1.*',
+  'solarnet_metadata @ git+https://github.com/IHDE-Alliance/solarnet_metadata.git@solarnet_metadata_package',
 ]
 
 [project.optional-dependencies]

@@ -3,35 +3,52 @@
 import pytest
 
 import astropy.io.fits as fits
+from solarnet_metadata.schema import SOLARNETSchema
 
+import padre_meddea
 from padre_meddea.io.fits_tools import *
 
 
+def tests_get_padre_schema():
+    """Test getting SOLARNET Schema with PADRE Overrides"""
+    # Create a Custom SOLARNET Schema
+    schema = SOLARNETSchema(schema_layers=[CUSTOM_ATTRS_PATH])
+    assert isinstance(schema.default_attributes, dict)
+
+
 def test_comment_lookup_hdr0():
-    """Test that all keywords in fits_keyword_primaryhdu are listed in fits_keyword_dict"""
-    hdr0_keywords = list(FITS_HDR0["keyword"])
-    keyword_to_comment = list(FITS_HDR_KEYTOCOMMENT["keyword"])
-    for this_keyword in hdr0_keywords:
-        assert this_keyword in keyword_to_comment
+    """Test that all keywords in default HDU Keywords can have comments retrieved"""
+    # Create a Custom SOLARNET Schema
+    schema = SOLARNETSchema(schema_layers=[CUSTOM_ATTRS_PATH])
+    for attr in schema.default_attributes:
+        comment = get_comment(attr)
+        assert comment is not None
+        assert isinstance(comment, str)
 
 
 def test_get_primary_header():
-    assert isinstance(get_primary_header(), fits.Header)
+    test_file_path = Path("test.fits")
+    test_data_level = "L0"
+    test_data_type = "photon"
+    primary_hdr = get_primary_header(test_file_path, test_data_level, test_data_type)
+    assert isinstance(primary_hdr, fits.Header)
+    assert len(primary_hdr) > 0
+    assert "DATE" in primary_hdr
+    assert "LEVEL" in primary_hdr
+    assert primary_hdr["LEVEL"] == test_data_level
+    assert "BTYPE" in primary_hdr
+    assert primary_hdr["BTYPE"] == test_data_type
+    assert "ORIGAPID" in primary_hdr
+    assert primary_hdr["ORIGAPID"] == padre_meddea.APID[test_data_type]
+    assert "ORIGFILE" in primary_hdr
+    assert primary_hdr["ORIGFILE"] == test_file_path.name
 
-
-def test_add_process_info_to_header():
-    """Test that new header cards are added."""
-    header = get_primary_header()
-    orig_header = header.copy()
-    header = add_process_info_to_header(header)
-    # check that keywords were added
-    assert len(header) > len(orig_header)
-    orig_keywords = [this_keyword for this_keyword in orig_header]
-    # check that the cards that were added have content
-    for this_card in header.cards:
-        if this_card.keyword not in orig_keywords:
-            assert len(this_card.value) > 0
-            assert len(this_card.comment) > 0
+    # Test Process Info
+    processing_keywords = ["PRSTEP", "PRPROC", "PRPVER", "PRLIB", "PRVER", "PRHSH"]
+    assert all(
+        any(this_keyword in this_card.keyword for this_card in primary_hdr.cards)
+        for this_keyword in processing_keywords
+    )
 
 
 @pytest.mark.parametrize(
@@ -44,4 +61,4 @@ def test_add_process_info_to_header():
     ],
 )
 def test_get_std_comment(test_input, expected):
-    assert get_std_comment(test_input) == expected
+    assert get_comment(test_input) == expected
