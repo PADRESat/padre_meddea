@@ -10,6 +10,7 @@ dynamic = ["version"]
 authors = [
   {name = "Steven Christe", email="steven.christe@nasa.gov"},
   {name = "Andrew Robbertz", email="a.robbertz@gmail.com"},
+  {name = "Niharika Godbole", email="niharika.godbole@nasa.gov"},
 ]
 license = {file = "LICENSE.rst"}
 requires-python = ">=3.10"
