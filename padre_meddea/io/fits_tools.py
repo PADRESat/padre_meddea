@@ -124,7 +124,6 @@ def get_primary_header(
 
     # Data Description Keywords
     header["BTYPE"] = (data_type, get_comment("BTYPE"))
-    header["BUNIT"] = get_bunit(data_level, data_type)
 
     # Pipeline processing keywords
     header = add_process_info_to_header(header, n=procesing_step)
@@ -141,7 +140,10 @@ def get_primary_header(
     return header
 
 
-def get_obs_header():
+def get_obs_header(
+    data_level: str,
+    data_type: str,
+):
     """
     Create a standard FITS header for the observation.
 
@@ -149,14 +151,41 @@ def get_obs_header():
     current date, default PADRE attributes, processing information, data level,
     data type, original APID, and original filename.
 
+    Parameters
+    ----------
+    data_level : str
+        Data Processing step (e.g., 'L0', 'L1')
+    data_type : str
+        Type of data being processed
+
     Returns
     -------
     fits.Header
         A FITS header populated with standard metadata
     """
+    # Create a Custom SOLARNET Schema
+    schema = SOLARNETSchema(schema_layers=[CUSTOM_ATTRS_PATH])
+
     # Create a new header
     header = fits.Header()
+    header["DATE"] = (Time.now().fits, get_comment("DATE"))
+
+    # Add PADRE Default Attributes to Header
+    for keyword, value in schema.default_attributes.items():
+        header[keyword] = (value, get_comment(keyword))
+
+    # Add PADRE Default Attributes to Header
     header["OBS_HDU"] = (1, get_comment("OBS_HDU"))
+    header["SOLARNET"] = (
+        0.5,
+        get_comment("SOLARNET"),
+    )  # I'll say we're partially compliant
+    header["ORIGIN"]
+
+    # Data Description Keywords
+    header["BTYPE"] = (data_type, get_comment("BTYPE"))
+    header["BUNIT"] = get_bunit(data_level, data_type)
+
     return header
 
 
@@ -639,7 +668,7 @@ def get_output_path(first_file: Path, date_beg: Time) -> Path:
     hdul.close()
 
     instrument = header["INSTRUME"].lower()
-    data_type = header["DATATYPE"]
+    data_type = header["BTYPE"]
     if "_" in data_type:
         data_type = data_type.replace("_", "")
 
@@ -1213,6 +1242,263 @@ def concatenate_daily_fits(
         out_path = _write_output_file(hdu_dict, outfile)
 
         outfiles.append(Path(out_path))
+
+    # This should return the list of Paths of `outfiles` that were successfully created,
+    return outfiles
+
+
+# =============================================================================
+# FITS File Concatenation (RE-WRITE) Functions
+# =============================================================================
+
+
+def _get_combined_list(
+    files_to_combine: list[Path], existing_file: Path = None
+) -> list[Path]:
+    """
+    Prepare the list of files to be combined.
+
+    Parameters
+    ----------
+    files_to_combine : list of Path
+        List of FITS files to combine
+    existing_file : Path, optional
+        Existing daily FITS file to append to
+
+    Returns
+    -------
+    list of Path
+        Sorted list of all files to process
+    """
+    # Combine with existing file if provided
+    all_files = []
+    if existing_file:
+        all_files.append(existing_file)
+    all_files.extend(files_to_combine)
+
+    # Remove duplicates while preserving order
+    all_files = list(OrderedDict.fromkeys(all_files))
+
+    return all_files
+
+
+def _init_hdul_structure(
+    template_file: Path,
+) -> dict:
+    """
+    Initialize the HDUL dictionary structure from the first file.
+
+    Parameters
+    ----------
+    template_file : Path
+        First FITS file to use as template
+    date_beg, date_end, date_avg : Time
+        Calculated time values
+    all_parent_files : list[str]
+        Combined list of parent files
+
+    Returns
+    -------
+    dict
+        HDU dictionary structure formatted as:
+        {
+            0: {
+                "header": fits.Header,
+                "data": None,
+                "type": "primary"
+            },
+            1: {
+                "header": fits.Header,
+                "data": Table or np.ndarray,
+                "type": "bintable" or "image",
+                "name": str (optional)
+            },
+            ...
+        }
+
+    """
+    hdul_dict = {}
+
+    hdul = fits.open(template_file)
+    for i, hdu in enumerate(hdul):
+        if isinstance(hdu, fits.PrimaryHDU):
+            hdul_dict[i] = {
+                "header": hdu.header.copy(),
+                "data": None,
+                "type": "primary",
+            }
+        elif isinstance(hdu, fits.BinTableHDU):
+            hdul_dict[i] = {
+                "header": hdu.header.copy(),
+                "data": Table.read(hdu),
+                "type": "bintable",
+                "name": hdu.name,
+            }
+        elif isinstance(hdu, fits.ImageHDU):
+            hdul_dict[i] = {
+                "header": hdu.header.copy(),
+                "data": hdu.data.copy(),
+                "type": "image",
+                "name": hdu.name,
+            }
+    # Explicitly Open and Close File - Windows Garbage Disposer cannot be trusted.
+    hdul.close()
+
+    return hdul_dict
+
+
+def _concatenate_input_files(input_files: list[Path], hdu_dict: dict) -> dict:
+    """
+    Process additional files and combine their data with the initial structure.
+
+    Parameters
+    ----------
+    input_files : list[Path]
+        List of files being combined
+    hdu_dict : dict
+        Initial HDU dictionary structure
+
+    Returns
+    -------
+    dict
+        Updated HDU dictionary with combined data
+    """
+    for source_file in input_files:
+        hdul = fits.open(source_file)
+        for i, hdu in enumerate(hdul):
+            if i not in hdu_dict:
+                log.warning(
+                    f"File {source_file} has unexpected HDU at index {i}, skipping."
+                )
+                continue
+
+            if hdu_dict[i]["type"] == "primary":
+                # For primary HDU, we just need to check consistency
+                pass
+            elif hdu_dict[i]["type"] == "bintable":
+                # Vertically stack table data
+                new_table = Table.read(hdu)
+                hdu_dict[i]["data"] = vstack([hdu_dict[i]["data"], new_table])
+            elif hdu_dict[i]["type"] == "image":
+                # Concatenate image data (assuming along first axis)
+                hdu_dict[i]["data"] = np.concatenate(
+                    [hdu_dict[i]["data"], hdu.data], axis=0
+                )
+        # Explicitly Open and Close File - Windows Garbage Disposer cannot be trusted.
+        hdul.close()
+
+    return hdu_dict
+
+
+def get_hdu_data_times(hdu: dict) -> Time:
+    """
+    Extract time information from the data within a FITS file.
+
+    This function parses times differently based on the file descriptor (eventlist, hk, spec)
+    extracted from the filename. It accesses the appropriate HDU and data columns for
+    each file type to calculate accurate time values.
+
+    Parameters
+    ----------
+    hdu : dict
+        {
+            "header": fits.Header,
+            "data": Table or np.ndarray,
+            "type": "bintable" or "image",
+            "name": str (optional)
+        }
+
+    Returns
+    -------
+    Time
+        Astropy Time object containing the time values extracted from the file data
+
+    Raises
+    ------
+    ValueError
+        If the file descriptor is not recognized or supported
+    """
+    # Get the File Desctiptor
+    # We need to parse times differently for Photon / Spectrum / HK
+    data_type = hdu["header"].get("BTYPE", "").lower()
+
+    # Calculate Times based on the file descriptor
+    if data_type in ["eventlist", "event_list", "photon"] and hdu["name"] == "SCI":
+        times = calc_time(
+            hdu["data"]["pkttimes"],
+            hdu["data"]["pktclock"],
+            hdu["data"]["clocks"],
+        )
+    elif data_type in ["eventlist", "event_list", "photon"] and hdu["name"] == "PKT":
+        times = calc_time(hdu["data"]["pkttimes"], hdu["data"]["pktclock"])
+    elif data_type in ["hk", "housekeeping"]:
+        times = calc_time(hdu["data"]["timestamp"])
+    elif data_type in ["spec", "spectrum"]:
+        times = calc_time(hdu["data"]["pkttimes"], hdu["data"]["pktclock"])
+    else:
+        raise ValueError(f"File contents of {hdu['name']} not recogized.")
+
+    return times
+
+
+def _sort_hdul_template(hdul_dict: dict):
+
+    for i, hdu_info in hdul_dict.items():
+        if hdu_info["type"] == "primary":
+            # For primary HDU, we just need to check consistency
+            pass
+        elif hdu_info["type"] == "bintable":
+            # Get Times for Bintable Data
+            times = get_hdu_data_times(hdu_info)
+            # Get sorting indices - this tells you the order that would sort the array
+            sort_indices = times.argsort()
+            # Replace the data in the HDU with the sorted data
+            hdu_info["data"] = hdu_info["data"][sort_indices]
+        elif hdu_info["type"] == "image":
+            # Sort Image Data
+            pass
+
+    return hdul_dict
+
+
+def concatenate_files(
+    files_to_combine: list[Path],
+    existing_file: Path = None,
+) -> list[Path]:
+    """
+    Concatenate multiple FITS files into a single daily FITS file, properly combining headers and data.
+
+    The function also tracks all parent files in the PARENTXT header keyword.
+
+    Note: This function assumes that there is no data stored in the PrimaryHDU of the FITS files.
+
+    Parameters
+    ----------
+    files_to_combine : list of Path
+        List of FITS files to combine. Assumed to have the same structure.
+    existing_file : Path, optional
+        Existing daily FITS file to append to.
+
+    Returns
+    -------
+    output_file : list of Path
+        List containing the output file paths of the concatenated daily FITS files.
+    """
+    # Ignore MergeConflictWarning from astropy
+    warnings.simplefilter("ignore", MergeConflictWarning)
+
+    all_files = _get_combined_list(files_to_combine, existing_file)
+
+    # Initialize Data Structures
+    hdul_dict = _init_hdul_structure(all_files[0])
+
+    # Concatenate Input Files
+    hdul_dict = _concatenate_input_files(all_files[1:], hdul_dict)
+
+    # Sort Data Structures by Time
+    hdul_dict = _sort_hdul_template(hdul_dict)
+
+    outfiles = []
 
     # This should return the list of Paths of `outfiles` that were successfully created,
     return outfiles

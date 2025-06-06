@@ -77,7 +77,9 @@ def process_file(filename: Path, overwrite=False) -> list:
             event_list.remove_column("time")
 
             # Get FITS Primary Header Template
-            primary_hdr = get_primary_header(file_path, "l0", "photon")
+            primary_hdr = get_primary_header(
+                file_path, data_level="l0", data_type="photon"
+            )
 
             for this_keyword in ["DATE-BEG", "DATE-END", "DATE-AVG"]:
                 primary_hdr[this_keyword] = (
@@ -97,12 +99,38 @@ def process_file(filename: Path, overwrite=False) -> list:
             primary_hdr["FILENAME"] = (path, get_comment("FILENAME"))
 
             empty_primary_hdu = fits.PrimaryHDU(header=primary_hdr)
+
+            # PKT HDU
             pkt_list = Table(pkt_list)
             pkt_list.remove_column("time")
-            pkt_header = get_obs_header()
+
+            # PKT Header
+            pkt_header = get_obs_header(data_level="l0", data_type="photon")
+            pkt_header["DATE-BEG"] = (
+                event_list.meta.get("DATE-BEG", ""),
+                get_comment("DATE-BEG"),
+            )
+            pkt_header["DATEREF"] = (
+                event_list.meta.get("DATE-BEG", ""),
+                get_comment("DATEREF"),
+            )
+            pkt_header["FILENAME"] = (path, get_comment("FILENAME"))
+
             pkt_hdu = fits.BinTableHDU(pkt_list, header=pkt_header, name="PKT")
             pkt_hdu.add_checksum()
-            hit_header = get_obs_header()
+
+            # SCI HDU
+            hit_header = get_obs_header(data_level="l0", data_type="photon")
+            hit_header["DATE-BEG"] = (
+                event_list.meta.get("DATE-BEG", ""),
+                get_comment("DATE-BEG"),
+            )
+            hit_header["DATEREF"] = (
+                event_list.meta.get("DATE-BEG", ""),
+                get_comment("DATEREF"),
+            )
+            hit_header["FILENAME"] = (path, get_comment("FILENAME"))
+
             hit_hdu = fits.BinTableHDU(event_list, header=hit_header, name="SCI")
             hit_hdu.add_checksum()
             hdul = fits.HDUList([empty_primary_hdu, hit_hdu, pkt_hdu])
@@ -124,9 +152,12 @@ def process_file(filename: Path, overwrite=False) -> list:
             hk_table = Table(hk_data)
 
             # Get FITS Primary Header Template
-            primary_hdr = get_primary_header(file_path, "l0", "housekeeping")
+            primary_hdr = get_primary_header(
+                file_path, data_level="l0", data_type="housekeeping"
+            )
 
             date_beg = calc_time(hk_data["timestamp"][0])
+            primary_hdr["DATE-BEG"] = (date_beg.fits, get_comment("DATE-BEG"))
             primary_hdr["DATEREF"] = (date_beg.fits, get_comment("DATEREF"))
 
             hk_table["seqcount"] = hk_table["CCSDS_SEQUENCE_COUNT"]
@@ -158,14 +189,23 @@ def process_file(filename: Path, overwrite=False) -> list:
             empty_primary_hdu = fits.PrimaryHDU(header=primary_hdr)
 
             # Create HK HDU
-            hk_header = get_obs_header()
+            hk_header = get_obs_header(data_level="l0", data_type="housekeeping")
+            hk_header["DATE-BEG"] = (date_beg.fits, get_comment("DATE-BEG"))
+            hk_header["DATEREF"] = (date_beg.fits, get_comment("DATEREF"))
+            hk_header["FILENAME"] = (path, get_comment("FILENAME"))
+
             hk_hdu = fits.BinTableHDU(data=hk_table, header=hk_header, name="HK")
             hk_hdu.add_checksum()
 
             # add command response data if it exists  in the same fits file
-            cmd_header = get_obs_header()
+            cmd_header = get_obs_header(data_level="l0", data_type="housekeeping")
+            cmd_header["FILENAME"] = (path, get_comment("FILENAME"))
             if parsed_data["cmd_resp"] is not None:
                 data_ts = parsed_data["cmd_resp"]
+                cmd_header["DATE-BEG"] = (
+                    data_ts.time[0].fits,
+                    get_comment("DATE-BEG"),
+                )
                 cmd_header["DATEREF"] = (
                     data_ts.time[0].fits,
                     get_comment("DATEREF"),
@@ -211,7 +251,9 @@ def process_file(filename: Path, overwrite=False) -> list:
             # TODO check that asic_nums and channel_nums do not change
 
             # Get FITS Primary Header Template
-            primary_hdr = get_primary_header(file_path, "l0", "spectrum")
+            primary_hdr = get_primary_header(
+                file_path, data_level="l0", data_type="spectrum"
+            )
 
             dates = {
                 "DATE-BEG": ts.time[0].fits,
@@ -235,7 +277,12 @@ def process_file(filename: Path, overwrite=False) -> list:
             )
             primary_hdr["FILENAME"] = (path, get_comment("FILENAME"))
 
-            spec_header = get_obs_header()
+            # Spectrum HDU
+            spec_header = get_obs_header(data_level="l0", data_type="spectrum")
+            spec_header["DATE-BEG"] = (primary_hdr["DATE-BEG"], get_comment("DATE-BEG"))
+            spec_header["DATEREF"] = (primary_hdr["DATE-BEG"], get_comment("DATEREF"))
+            spec_header["FILENAME"] = (path, get_comment("FILENAME"))
+
             spec_hdu = fits.ImageHDU(data=spectra.data, header=spec_header, name="SPEC")
             spec_hdu.add_checksum()
 
@@ -246,7 +293,10 @@ def process_file(filename: Path, overwrite=False) -> list:
             data_table["channel"] = channel_nums
             data_table["seqcount"] = ts["seqcount"]
 
-            pkt_header = get_obs_header()
+            pkt_header = get_obs_header(data_level="l0", data_type="spectrum")
+            pkt_header["DATE-BEG"] = (primary_hdr["DATE-BEG"], get_comment("DATE-BEG"))
+            pkt_header["DATEREF"] = (primary_hdr["DATE-BEG"], get_comment("DATEREF"))
+            pkt_header["FILENAME"] = (path, get_comment("FILENAME"))
             pkt_hdu = fits.BinTableHDU(data=data_table, header=pkt_header, name="PKT")
             pkt_hdu.add_checksum()
 
