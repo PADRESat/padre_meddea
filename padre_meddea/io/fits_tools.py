@@ -1326,6 +1326,7 @@ def _init_hdul_structure(
                 "header": hdu.header.copy(),
                 "data": None,
                 "type": "primary",
+                "name": hdu.name,
             }
         elif isinstance(hdu, fits.BinTableHDU):
             hdul_dict[i] = {
@@ -1461,6 +1462,68 @@ def _sort_hdul_template(hdul_dict: dict):
     return hdul_dict
 
 
+def split_hdul_by_day(hdul_dict: dict) -> dict:
+    """
+    Split a FITS HDU dictionary into multiple dictionaries based on day boundaries.
+    
+    Parameters:
+    -----------
+    hdul_dict : dict
+        Dictionary representation of a FITS HDU list
+        
+    Returns:
+    --------
+    dict
+        Dictionary where keys are days (as strings in 'YYYY-MM-DD' format) and values
+        are HDU dictionaries containing only data from that day
+    """
+    # Get the times from each HDU
+    hdu_times = [get_hdu_data_times(hdul_dict[i]) for i in hdul_dict if i != 0]
+    times = Time(np.unique(np.concatenate(hdu_times)))
+    
+    # Extract the day part of each time
+    day_strs = [t.iso[0:10] for t in times]
+    
+    # Find unique days
+    unique_days = sorted(set(day_strs))
+    print(f"Unique days found: {unique_days}")
+    
+    # Create a dictionary to hold the HDULs for each day
+    day_hduls = {}
+    
+    for hdu_idx, hdu_info in hdul_dict.items():
+        if hdu_info["type"] == "primary":
+            # Primary HDU does not have data, so we skip it for daily splitting
+            continue
+        
+        for day in unique_days:
+        
+            # Create a boolean mask for this day
+            hdu_day_strs = [t.iso[0:10] for t in hdu_times[hdu_idx-1]]
+            hud_day_mask = np.array([d == day for d in hdu_day_strs])
+            
+            # Create a copy of the HDU info
+            new_hdu_info = {
+                "header": hdu_info["header"].copy(),
+                "type": hdu_info["type"],
+            }
+            
+            if "name" in hdu_info:
+                new_hdu_info["name"] = hdu_info["name"]
+            
+            # Handle data based on HDU index
+            if hdu_info["type"] != "primary":
+                new_hdu_info["data"] = hdu_info["data"][hud_day_mask]
+            else:
+                new_hdu_info["data"] = None  # Primary HDU has no data
+            
+            # Store the HDU list for this day
+            day_hduls.setdefault(day, {})
+            day_hduls[day][hdu_idx] = new_hdu_info
+    
+    return day_hduls
+
+
 def concatenate_files(
     files_to_combine: list[Path],
     existing_file: Path = None,
@@ -1497,8 +1560,21 @@ def concatenate_files(
 
     # Sort Data Structures by Time
     hdul_dict = _sort_hdul_template(hdul_dict)
-
+    
+    # Split HDU by Day
+    hdul_dicts = split_hdul_by_day(hdul_dict)
+    
     outfiles = []
+    # Save each Day
+    for day, day_hdul in hdul_dicts.items():
+        outfile = get_output_path(
+            first_file=all_files[0], date_beg=Time(day + "T00:00:00")
+        )
+
+        # Write output file
+        out_path = _write_output_file(day_hdul, outfile)
+
+        outfiles.append(Path(out_path))
 
     # This should return the list of Paths of `outfiles` that were successfully created,
     return outfiles
