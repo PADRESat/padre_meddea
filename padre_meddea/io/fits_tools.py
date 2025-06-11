@@ -588,15 +588,15 @@ def get_file_data_times(file_path: Path) -> Time:
 
     hdul = fits.open(file_path)
     # Calculate Times based on the file descriptor
-    if file_descriptor == "eventlist":
+    if file_descriptor == "photon":
         times = calc_time(
             hdul["SCI"].data["pkttimes"],
             hdul["SCI"].data["pktclock"],
             hdul["SCI"].data["clocks"],
         )
-    elif file_descriptor == "hk" or file_descriptor == "housekeeping":
+    elif file_descriptor == "housekeeping":
         times = calc_time(hdul["HK"].data["timestamp"])
-    elif file_descriptor == "spec" or file_descriptor == "spectrum":
+    elif file_descriptor == "spectrum":
         times = calc_time(hdul["PKT"].data["pkttimes"], hdul["PKT"].data["pktclock"])
     else:
         raise ValueError(f"File contents of {file_path} not recogized.")
@@ -1422,20 +1422,23 @@ def get_hdu_data_times(hdu: dict) -> Time:
     # Get the File Desctiptor
     # We need to parse times differently for Photon / Spectrum / HK
     data_type = hdu["header"].get("BTYPE", "").lower()
-
+    data = hdu["data"]
+    
     # Calculate Times based on the file descriptor
-    if data_type in ["eventlist", "event_list", "photon"] and hdu["name"] == "SCI":
+    if data_type == "photon" and hdu["name"] == "SCI":
         times = calc_time(
-            hdu["data"]["pkttimes"],
-            hdu["data"]["pktclock"],
-            hdu["data"]["clocks"],
+            data["pkttimes"],
+            data["pktclock"],
+            data["clocks"],
         )
-    elif data_type in ["eventlist", "event_list", "photon"] and hdu["name"] == "PKT":
-        times = calc_time(hdu["data"]["pkttimes"], hdu["data"]["pktclock"])
-    elif data_type in ["hk", "housekeeping"]:
-        times = calc_time(hdu["data"]["timestamp"])
-    elif data_type in ["spec", "spectrum"]:
-        times = calc_time(hdu["data"]["pkttimes"], hdu["data"]["pktclock"])
+    elif data_type == "photon" and hdu["name"] == "PKT":
+        times = calc_time(data["pkttimes"], data["pktclock"])
+    elif data_type == "housekeeping" and hdu["name"] == "HK":
+        times = calc_time(data["timestamp"])
+    elif data_type == "housekeeping" and hdu["name"] == "READ":
+        times = calc_time(data["time_s"], data["time_clock"])
+    elif data_type == "spectrum":
+        times = calc_time(data["pkttimes"], data["pktclock"])
     else:
         raise ValueError(f"File contents of {hdu['name']} not recogized.")
 
@@ -1479,50 +1482,150 @@ def split_hdul_by_day(hdul_dict: dict) -> dict:
     """
     # Get the times from each HDU
     hdu_times = [get_hdu_data_times(hdul_dict[i]) for i in hdul_dict if i != 0]
-    times = Time(np.unique(np.concatenate(hdu_times)))
+    unique_times = Time(np.unique(np.concatenate(hdu_times)))
     
     # Extract the day part of each time
-    day_strs = [t.iso[0:10] for t in times]
+    day_strs = [t.iso[0:10] for t in unique_times]
     
     # Find unique days
     unique_days = sorted(set(day_strs))
-    print(f"Unique days found: {unique_days}")
     
     # Create a dictionary to hold the HDULs for each day
     day_hduls = {}
     
-    for hdu_idx, hdu_info in hdul_dict.items():
-        if hdu_info["type"] == "primary":
-            # Primary HDU does not have data, so we skip it for daily splitting
-            continue
-        
-        for day in unique_days:
-        
-            # Create a boolean mask for this day
-            hdu_day_strs = [t.iso[0:10] for t in hdu_times[hdu_idx-1]]
-            hud_day_mask = np.array([d == day for d in hdu_day_strs])
-            
-            # Create a copy of the HDU info
-            new_hdu_info = {
-                "header": hdu_info["header"].copy(),
-                "type": hdu_info["type"],
-            }
-            
-            if "name" in hdu_info:
-                new_hdu_info["name"] = hdu_info["name"]
-            
-            # Handle data based on HDU index
-            if hdu_info["type"] != "primary":
-                new_hdu_info["data"] = hdu_info["data"][hud_day_mask]
-            else:
-                new_hdu_info["data"] = None  # Primary HDU has no data
-            
+    # Loop each unique day
+    for day in unique_days:    
+        # Loop each HDU
+        for hdu_idx, hdu_info in hdul_dict.items():
             # Store the HDU list for this day
             day_hduls.setdefault(day, {})
-            day_hduls[day][hdu_idx] = new_hdu_info
+            
+            # Create a boolean mask for this day
+            hdu_day_strs = [t.iso[0:10] for t in hdu_times[hdu_idx-1]] # -1 to skip primary HDU
+            hud_day_mask = np.array([d == day for d in hdu_day_strs])
+            
+            if hdu_info["type"] == "primary":
+                # Just copy over the primary HDU header
+                day_hduls[day][hdu_idx] = {
+                    "header": hdu_info["header"].copy(),
+                    "data": None,  # Primary HDU has no data
+                    "type": "primary",
+                    "name": hdu_info.get("name", None),
+                }
+            else:
+                # Create a copy of the HDU info
+                day_hduls[day][hdu_idx] = {
+                    "header": hdu_info["header"].copy(),
+                    "data": hdu_info["data"][hud_day_mask].copy(),
+                    "type": hdu_info["type"],
+                    "name": hdu_info.get("name", None),
+                }
     
     return day_hduls
 
+
+def update_hdul_date_metadata(
+    hdul_dict: dict,
+) -> dict:
+    """
+    Function to update the date metadata in the HDU dictionary.
+    This function will update the DATE-BEG, DATE-END, DATE-AVG, and DATEREF keywords
+    in the headers of the HDUs based on the data contained within them.
+    
+    Parameters
+    ----------
+    hdul_dict : dict
+        Dictionary representation of a FITS HDU list, where each key is an index
+        and the value is a dictionary with keys "header", "data", "type", and optionally "name".
+
+    Returns
+    -------
+    dict
+        Updated dictionary representation of the FITS HDU list with updated date metadata.
+    """
+
+    date_beg = None
+    date_end = None
+    
+    # Loop through Data HDUs before Primary
+    for i, hdu_info in hdul_dict.items():
+        print(f"Processing HDU {i} of type {hdu_info['type']}")
+        if hdu_info["type"] == "primary":
+            # For primary HDU, we just need to check consistency
+            continue
+        elif hdu_info["type"] == "bintable":
+            # Get Times for Bintable Data
+            times = get_hdu_data_times(hdu_info)
+            
+            # Update Data HDU Header
+            if len(times) > 0:
+                hdu_info["header"]["DATE-BEG"] = (times[0].fits, get_comment("DATE-BEG"))
+                hdu_info["header"]["DATE-END"] = (times[-1].fits, get_comment("DATE-END"))
+                hdu_info["header"]["DATE-AVG"] = (
+                    (times[0] + (times[-1] - times[0]) / 2).fits, get_comment("DATE-AVG")
+                )
+                hdu_info["header"]["DATEREF"] = (times[0].fits, get_comment("DATEREF"))
+                
+                # Update info for Primary HDU
+                if date_beg is None or times[0] < date_beg:
+                    date_beg = times[0]
+                if date_end is None or times[-1] > date_end:
+                    date_end = times[-1]
+            # There are some cases where the data may not have any times
+            # I noticed this with the HK CMD_RESP files which did not have times exactly the same in each HDU
+            else:
+                hdu_info["header"]["DATE-BEG"] = ("", get_comment("DATE-BEG"))
+                hdu_info["header"]["DATE-END"] = ("", get_comment("DATE-END"))
+                hdu_info["header"]["DATE-AVG"] = ("", get_comment("DATE-AVG"))
+                hdu_info["header"]["DATEREF"] = ("", get_comment("DATEREF"))
+        elif hdu_info["type"] == "image":
+            # Sort Image Data
+            pass
+        
+    # Update Primary HDU Header with Date/Time Information
+    if date_beg is not None and date_end is not None:
+        hdul_dict[0]["header"]["DATE-BEG"] = (date_beg.fits, get_comment("DATE-BEG"))
+        hdul_dict[0]["header"]["DATE-END"] = (date_end.fits, get_comment("DATE-END"))
+        hdul_dict[0]["header"]["DATE-AVG"] = (
+            (date_beg + (date_end - date_beg) / 2).fits, get_comment("DATE-AVG")
+        )
+        hdul_dict[0]["header"]["DATEREF"] = (date_beg.fits, get_comment("DATEREF"))
+        
+    return hdul_dict
+
+
+def update_hdul_filename_metadata(
+    hdul_dict: dict,
+    output_file: Path,
+) -> dict:
+    """
+    Function to update the filename metadata in the HDU dictionary.
+    This function will update the FILENAME keyword in the headers of the HDUs
+    based on the output file name.
+    
+    Parameters
+    ----------
+    hdul_dict : dict
+        Dictionary representation of a FITS HDU list, where each key is an index
+        and the value is a dictionary with keys "header", "data", "type", and optionally "name".
+    output_file : Path
+        path the hdul_dict is being written to, used to extract filename metadata.
+    
+    Returns
+    -------
+    dict
+        Updated dictionary representation of the FITS HDU list with updated filename metadata.
+    """
+    filename_meta = parse_science_filename(output_file)
+    # Update Filename
+    hdul_dict[0]["header"]["FILENAME"] = (
+        output_file, get_comment("FILENAME")
+    )
+    hdul_dict[0]["header"]["LEVEL"] = (
+        filename_meta["level"], get_comment("LEVEL")
+    )
+    
+    return hdul_dict
 
 def concatenate_files(
     files_to_combine: list[Path],
@@ -1550,6 +1653,7 @@ def concatenate_files(
     # Ignore MergeConflictWarning from astropy
     warnings.simplefilter("ignore", MergeConflictWarning)
 
+    # Get the combined list of files to process
     all_files = _get_combined_list(files_to_combine, existing_file)
 
     # Initialize Data Structures
@@ -1567,8 +1671,18 @@ def concatenate_files(
     outfiles = []
     # Save each Day
     for day, day_hdul in hdul_dicts.items():
+        
+        # Calculate the Outputn Path Filename
         outfile = get_output_path(
             first_file=all_files[0], date_beg=Time(day + "T00:00:00")
+        )
+        
+        # Update HDUL Primary Header with Date/Time Information
+        day_hdul = update_hdul_date_metadata(day_hdul)
+        
+        # Update HDUL Primary Header with Filename Information
+        day_hdul = update_hdul_filename_metadata(
+            day_hdul, outfile
         )
 
         # Write output file

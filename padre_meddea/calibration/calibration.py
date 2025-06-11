@@ -6,8 +6,6 @@ import os
 from pathlib import Path
 import tempfile
 
-import numpy as np
-
 from astropy.io import fits
 from astropy.time import Time
 from astropy.table import Table
@@ -18,7 +16,7 @@ from padre_meddea.io import file_tools
 from padre_meddea.util import util, validation
 import padre_meddea.io.aws_db as aws_db
 
-from padre_meddea.util.util import create_science_filename, calc_time
+from padre_meddea.util.util import create_science_filename, parse_science_filename, calc_time
 from padre_meddea.io.file_tools import read_raw_file
 from padre_meddea.io.fits_tools import (
     get_primary_header,
@@ -67,6 +65,9 @@ def process_file(filename: Path, overwrite=False) -> list:
 
         parsed_data = read_raw_file(file_path)
         if parsed_data["photons"] is not None:  # we have event list data
+            # Set Data Type for L0 Data
+            data_type = "photon"
+            
             pkt_list, event_list = parsed_data["photons"]
             log.info(
                 f"Found photon data, {len(event_list)} photons and {len(pkt_list)} packets."
@@ -78,7 +79,7 @@ def process_file(filename: Path, overwrite=False) -> list:
 
             # Get FITS Primary Header Template
             primary_hdr = get_primary_header(
-                file_path, data_level="l0", data_type="photon"
+                file_path, data_level="l0", data_type=data_type
             )
 
             for this_keyword in ["DATE-BEG", "DATE-END", "DATE-AVG"]:
@@ -92,7 +93,7 @@ def process_file(filename: Path, overwrite=False) -> list:
                 "meddea",
                 time=primary_hdr["DATE-BEG"],
                 level="l0",
-                descriptor="eventlist",
+                descriptor=data_type,
                 test=True,
                 version="0.1.0",
             )
@@ -105,7 +106,7 @@ def process_file(filename: Path, overwrite=False) -> list:
             pkt_list.remove_column("time")
 
             # PKT Header
-            pkt_header = get_obs_header(data_level="l0", data_type="photon")
+            pkt_header = get_obs_header(data_level="l0", data_type=data_type)
             pkt_header["DATE-BEG"] = (
                 event_list.meta.get("DATE-BEG", ""),
                 get_comment("DATE-BEG"),
@@ -120,7 +121,7 @@ def process_file(filename: Path, overwrite=False) -> list:
             pkt_hdu.add_checksum()
 
             # SCI HDU
-            hit_header = get_obs_header(data_level="l0", data_type="photon")
+            hit_header = get_obs_header(data_level="l0", data_type=data_type)
             hit_header["DATE-BEG"] = (
                 event_list.meta.get("DATE-BEG", ""),
                 get_comment("DATE-BEG"),
@@ -146,6 +147,9 @@ def process_file(filename: Path, overwrite=False) -> list:
             # Store the output file path in a list
             output_files.append(path)
         if parsed_data["housekeeping"] is not None:
+            # Set Data Type for L0 Data
+            data_type = "housekeeping"
+            
             hk_data = parsed_data["housekeeping"]
             # send data to AWS Timestream for Grafana dashboard
             aws_db.record_housekeeping(hk_data)
@@ -153,7 +157,7 @@ def process_file(filename: Path, overwrite=False) -> list:
 
             # Get FITS Primary Header Template
             primary_hdr = get_primary_header(
-                file_path, data_level="l0", data_type="housekeeping"
+                file_path, data_level="l0", data_type=data_type
             )
 
             date_beg = calc_time(hk_data["timestamp"][0])
@@ -180,7 +184,7 @@ def process_file(filename: Path, overwrite=False) -> list:
                 "meddea",
                 time=date_beg,
                 level="l0",
-                descriptor="hk",
+                descriptor=data_type,
                 test=True,
                 version="0.1.0",
             )
@@ -189,7 +193,7 @@ def process_file(filename: Path, overwrite=False) -> list:
             empty_primary_hdu = fits.PrimaryHDU(header=primary_hdr)
 
             # Create HK HDU
-            hk_header = get_obs_header(data_level="l0", data_type="housekeeping")
+            hk_header = get_obs_header(data_level="l0", data_type=data_type)
             hk_header["DATE-BEG"] = (date_beg.fits, get_comment("DATE-BEG"))
             hk_header["DATEREF"] = (date_beg.fits, get_comment("DATEREF"))
             hk_header["FILENAME"] = (path, get_comment("FILENAME"))
@@ -198,7 +202,7 @@ def process_file(filename: Path, overwrite=False) -> list:
             hk_hdu.add_checksum()
 
             # add command response data if it exists  in the same fits file
-            cmd_header = get_obs_header(data_level="l0", data_type="housekeeping")
+            cmd_header = get_obs_header(data_level="l0", data_type=data_type)
             cmd_header["FILENAME"] = (path, get_comment("FILENAME"))
             if parsed_data["cmd_resp"] is not None:
                 data_ts = parsed_data["cmd_resp"]
@@ -243,6 +247,9 @@ def process_file(filename: Path, overwrite=False) -> list:
             hdul.writeto(path, overwrite=overwrite)
             output_files.append(path)
         if parsed_data["spectra"] is not None:
+            # Set Data Type for L0 Data
+            data_type = "spectrum"
+            
             ts, spectra, ids = parsed_data["spectra"]
             aws_db.record_spectra(ts, spectra, ids)
             asic_nums, channel_nums = util.parse_pixelids(ids)
@@ -252,7 +259,7 @@ def process_file(filename: Path, overwrite=False) -> list:
 
             # Get FITS Primary Header Template
             primary_hdr = get_primary_header(
-                file_path, data_level="l0", data_type="spectrum"
+                file_path, data_level="l0", data_type=data_type
             )
 
             dates = {
@@ -271,14 +278,14 @@ def process_file(filename: Path, overwrite=False) -> list:
                 "meddea",
                 time=dates["DATE-BEG"],
                 level="l0",
-                descriptor="spec",
+                descriptor=data_type,
                 test=True,
                 version="0.1.0",
             )
             primary_hdr["FILENAME"] = (path, get_comment("FILENAME"))
 
             # Spectrum HDU
-            spec_header = get_obs_header(data_level="l0", data_type="spectrum")
+            spec_header = get_obs_header(data_level="l0", data_type=data_type)
             spec_header["DATE-BEG"] = (primary_hdr["DATE-BEG"], get_comment("DATE-BEG"))
             spec_header["DATEREF"] = (primary_hdr["DATE-BEG"], get_comment("DATEREF"))
             spec_header["FILENAME"] = (path, get_comment("FILENAME"))
@@ -293,7 +300,7 @@ def process_file(filename: Path, overwrite=False) -> list:
             data_table["channel"] = channel_nums
             data_table["seqcount"] = ts["seqcount"]
 
-            pkt_header = get_obs_header(data_level="l0", data_type="spectrum")
+            pkt_header = get_obs_header(data_level="l0", data_type=data_type)
             pkt_header["DATE-BEG"] = (primary_hdr["DATE-BEG"], get_comment("DATE-BEG"))
             pkt_header["DATEREF"] = (primary_hdr["DATE-BEG"], get_comment("DATEREF"))
             pkt_header["FILENAME"] = (path, get_comment("FILENAME"))

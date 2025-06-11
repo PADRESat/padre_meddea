@@ -20,4 +20,4 @@ def test_process_file_test_file():
     Path(files[0]).unlink()
 
     # Assert filename is correct
-    assert files[0] == "padre_meddea_l0test_eventlist_20240916T122901_v0.1.0.fits"
+    assert files[0] == "padre_meddea_l0test_photon_20240916T122901_v0.1.0.fits"
