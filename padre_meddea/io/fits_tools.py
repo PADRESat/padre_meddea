@@ -20,7 +20,7 @@ import numpy as np
 import solarnet_metadata
 from astropy import units as u
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 
 from astropy.io import ascii
 from astropy.table import Table, vstack
@@ -1556,7 +1556,7 @@ def update_hdul_date_metadata(
 
     # Loop through Data HDUs before Primary
     for i, hdu_info in hdul_dict.items():
-        print(f"Processing HDU {i} of type {hdu_info['type']}")
+        log.debug(f"Processing HDU {i} of type {hdu_info['type']}")
         if hdu_info["type"] == "primary":
             # For primary HDU, we just need to check consistency
             continue
@@ -1726,7 +1726,7 @@ def split_provenance_tables_by_day(files_to_combine, existing_file=None):
                 scale="utc",
             )
             day_end = Time(
-                datetime.combine(day, datetime.max.time()),
+                datetime.combine(day, time(23, 59, 59, 999000)),
                 format="datetime",
                 scale="utc",
             )
@@ -1826,7 +1826,10 @@ def concatenate_files(
                 "header": fits.Header(
                     [
                         ("EXTNAME", "PROVENANCE", get_comment("EXTNAME")),
-                        ("COMMENT", "Provenance information for the concatenated files"),
+                        (
+                            "COMMENT",
+                            "Provenance information for the concatenated files",
+                        ),
                         ("OBS_HDU", 0, get_comment("OBS_HDU")),
                     ]
                 ),
