@@ -476,181 +476,7 @@ def get_prhsh(n: int = 1, a: str = "A") -> Tuple[str, str]:
 # =============================================================================
 
 
-def sort_files_list(
-    files_to_combine: list[Path], existing_file: Path = None
-) -> list[Path]:
-    """
-    Prepare and sort the list of files to be combined.
-
-    Removes duplicates, sorts by DATE-BEG or DATEREF, and combines with an existing file if provided.
-
-    Parameters
-    ----------
-    files_to_combine : list of Path
-        List of FITS files to combine
-    existing_file : Path, optional
-        Existing daily FITS file to append to
-
-    Returns
-    -------
-    list of Path
-        Sorted list of all files to process
-    """
-    # Combine with existing file if provided
-    all_files = []
-    if existing_file:
-        all_files.append(existing_file)
-    all_files.extend(files_to_combine)
-
-    # Remove duplicates while preserving order
-    all_files = list(OrderedDict.fromkeys(all_files))
-
-    # Extract times using DATE-BEG or DATE-REF
-    def get_date_key(file_path):
-        hdul = fits.open(file_path)
-        header = hdul[0].header.copy()
-        hdul.close()
-        return header.get("DATE-BEG") or header.get("DATEREF")
-
-    # Sort files based on extracted times
-    all_files = sorted(all_files, key=get_date_key)
-
-    return all_files
-
-
-def get_file_header_times(file_path: Path) -> Tuple[Time, Time]:
-    """
-    Get the DATE-BEG and DATE-END from the FITS file header.
-
-    Parameters
-    ----------
-    file_path : Path
-        Path to the FITS file.
-
-    Returns
-    -------
-    Tuple[Time, Time]
-        A tuple containing the start date (DATE-BEG) and end date (DATE-END) as astropy Time objects.
-
-    Raises
-    -------
-    ValueError
-        If the file does not contain DATE-BEG, DATE-END, or DATEREF keywords.
-    """
-    hdul = fits.open(file_path)
-    header = hdul[0].header.copy()
-    hdul.close()
-
-    # Get Start Date
-    if "DATE-BEG" in header:
-        date_beg = Time(header["DATE-BEG"])
-    elif "DATEREF" in header:
-        date_beg = Time(header["DATEREF"])
-    else:
-        raise ValueError(f"File {file_path} does not contain DATE-BEG or DATEREF.")
-
-    # Get End Date
-    if "DATE-END" in header:
-        date_end = Time(header["DATE-END"])
-    elif "DATEREF" in header:
-        date_end = Time(header["DATEREF"])
-    else:
-        raise ValueError(f"File {file_path} does not contain DATE-END or DATEREF.")
-
-    return date_beg, date_end
-
-
-def get_file_data_times(file_path: Path) -> Time:
-    """
-    Extract time information from the data within a FITS file.
-
-    This function parses times differently based on the file descriptor (eventlist, hk, spec)
-    extracted from the filename. It accesses the appropriate HDU and data columns for
-    each file type to calculate accurate time values.
-
-    Parameters
-    ----------
-    file_path : Path
-        Path to the FITS file to extract time data from
-
-    Returns
-    -------
-    Time
-        Astropy Time object containing the time values extracted from the file data
-
-    Raises
-    ------
-    ValueError
-        If the file descriptor is not recognized or supported
-    """
-    # Get the File Desctiptor
-    # We need to parse times differently for Photon / Spectrum / HK
-    file_meta = parse_science_filename(file_path)
-    file_descriptor = file_meta["descriptor"]
-    times = None
-
-    hdul = fits.open(file_path)
-    # Calculate Times based on the file descriptor
-    if file_descriptor == "photon":
-        times = calc_time(
-            hdul["SCI"].data["pkttimes"],
-            hdul["SCI"].data["pktclock"],
-            hdul["SCI"].data["clocks"],
-        )
-    elif file_descriptor == "housekeeping":
-        times = calc_time(hdul["HK"].data["timestamp"])
-    elif file_descriptor == "spectrum":
-        times = calc_time(hdul["PKT"].data["pkttimes"], hdul["PKT"].data["pktclock"])
-    else:
-        raise ValueError(f"File contents of {file_path} not recogized.")
-    # Explicitly Open and Close File - Windows Garbage Disposer cannot be trusted.
-    hdul.close()
-
-    return times
-
-
-def get_file_day_intervals(times: Time) -> List[Tuple[Time, Time, int, int]]:
-    """
-    Get the start and end times of each day in the file, along with the number of rows for each day.
-
-    Parameters
-    ----------
-    times : astropy.time.Time
-        List of times from the file data.
-
-    Returns
-    --------
-    List[Tuple[Time, Time, int, int]]
-        List of tuples of days contained in the file, each tuple contains:
-        - Start time of the day
-        - End time of the day
-        - Start index of the day in the file
-        - End index of the day in the file
-    """
-    # Get the Unique Days from the Times
-    unique_days = np.unique([t.iso[0:10] for t in times])
-
-    day_intervals = []
-    for day in unique_days:
-        # Get the start and end times for the day
-        day_start = Time(day + "T00:00:00", format="isot", scale="utc")
-        day_end = Time(day + "T23:59:59", format="isot", scale="utc")
-
-        # Get the indices of the times that fall within this day
-        start_index = np.searchsorted(times, day_start)
-        end_index = np.searchsorted(times, day_end, side="right") - 1
-
-        # Get the actual start and end times for the day
-        start_time = times[start_index] if start_index < len(times) else day_start
-        end_time = times[end_index] if end_index < len(times) else day_end
-
-        # Append the day interval to the list
-        day_intervals.append((start_time, end_time, int(start_index), int(end_index)))
-
-    return day_intervals
-
-
-def get_output_path(first_file: Path, date_beg: Time) -> Path:
+def _get_output_path(first_file: Path, date_beg: Time) -> Path:
     """
     Determine the output file path if not provided.
 
@@ -685,574 +511,6 @@ def get_output_path(first_file: Path, date_beg: Time) -> Path:
         outfile = temp_dir / outfile
 
     return outfile
-
-
-def _process_file_interval(
-    outfiles_to_process: dict,
-    file_path: Path,
-    date_beg_iso: str,
-    start_time: Time,
-    end_time: Time,
-    start_idx: int,
-    end_idx: int,
-):
-    """
-    Helper function to process a single file interval and update the output files dictionary.
-
-    Parameters
-    ----------
-    outfiles_to_process : dict
-        Dictionary of output files to process.
-    file_path : Path
-        Path to the source file.
-    date_beg_iso : str
-        ISO date string for the beginning of the interval (YYYY-MM-DD).
-    start_time : Time
-        Start time of the interval.
-    end_time : Time
-        End time of the interval.
-    start_idx : int
-        Start index within the day.
-    end_idx : int
-        End index within the day.
-
-    Returns
-    -------
-    None
-
-    """
-    # Determine the output file path for this day
-    outfile = get_output_path(file_path, date_beg_iso)
-
-    # Check if the output file is already in the outfiles
-    # If the output file is not in the outfiles, we need to create a new entry
-    if outfile not in outfiles_to_process:
-        outfiles_to_process[outfile] = {
-            "date_beg": start_time,
-            "date_end": end_time,
-            "date_avg": start_time + (end_time - start_time) / 2,
-            "source_files": [
-                {
-                    "source_file": file_path,
-                    "start_time": start_time,
-                    "end_time": end_time,
-                    "start_idx": start_idx,
-                    "end_idx": end_idx,
-                }
-            ],
-        }
-    # Otherwise we need to append the source file to the existing entry
-    else:
-        # Get the existing entry for the output file
-        existing_entry = outfiles_to_process[outfile]
-
-        # Check if the start_time or end_time of the existingn entry need to be updated
-        if start_time < existing_entry["date_beg"]:
-            existing_entry["date_beg"] = start_time
-        if end_time > existing_entry["date_end"]:
-            existing_entry["date_end"] = end_time
-        # Update the average date
-        existing_entry["date_avg"] = (
-            existing_entry["date_beg"]
-            + (existing_entry["date_end"] - existing_entry["date_beg"]) / 2
-        )
-
-        # Add the source file to the existing entry
-        existing_entry["source_files"].append(
-            {
-                "source_file": file_path,
-                "start_time": start_time,
-                "end_time": end_time,
-                "start_idx": start_idx,
-                "end_idx": end_idx,
-            }
-        )
-
-
-def get_output_files(all_files: list[Path]):
-    """
-    {
-        outfile (Path): {}
-            date_beg: Time,
-            date_end: Time,
-            date_avg: Time,
-            source_files: [
-                {
-                    source_file: Path,
-                    start_time: Time,
-                    end_time: Time,
-                    start_idx: int,
-                    end_idx: int,
-                },
-            ]
-        },
-        outfile (Path): {
-            date_beg: Time,
-            date_end: Time,
-            date_avg: Time,
-            source_files: [
-                {
-                    source_file: Path,
-                    start_time: Time,
-                    end_time: Time,
-                    start_idx: int,
-                    end_idx: int,
-                },
-            ]
-        },
-    }
-    """
-    # Start with Empty list of output files
-    outfiles_to_process = {}
-    # Loop through each of the input files to process
-    for file_path in all_files:
-
-        # Get the date-beg and date-end from the header
-        date_beg, date_end = get_file_header_times(file_path)
-        date_beg_iso = date_beg.iso[0:10]  # Convert to ISO format YYYY-MM-DD
-        date_end_iso = date_end.iso[0:10]  # Convert to ISO format YYYY-MM-DD
-        # Get the File Data Times
-        times: Time = get_file_data_times(file_path)
-
-        # If DATE-BEG is a different day than DATE-END, we need to create two output files
-        if date_beg_iso != date_end_iso:
-            # Get Time Intervals within the File
-            day_intervals = get_file_day_intervals(times)
-            # Loop through each day interval
-            for start_time, end_time, start_idx, end_idx in day_intervals:
-                _process_file_interval(
-                    outfiles_to_process=outfiles_to_process,
-                    file_path=file_path,
-                    date_beg_iso=start_time.iso[0:10],  # YYYY-MM-DD
-                    start_time=start_time,
-                    end_time=end_time,
-                    start_idx=start_idx,
-                    end_idx=end_idx,
-                )
-
-        # Otherwise we have a single output file for this source file
-        else:
-            _process_file_interval(
-                outfiles_to_process=outfiles_to_process,
-                file_path=file_path,
-                date_beg_iso=date_beg_iso,
-                start_time=date_beg,
-                end_time=date_end,
-                start_idx=0,  # Start index for the whole file
-                end_idx=len(times) - 1,  # End index for the whole file
-            )
-
-    # Sort the outfiles by date_beg
-    outfiles_to_process = dict(
-        sorted(outfiles_to_process.items(), key=lambda item: item[1]["date_beg"])
-    )
-
-    # Sort the Source Files within each output file by start_time
-    for outfile, entry in outfiles_to_process.items():
-        entry["source_files"].sort(key=lambda x: x["start_time"])
-
-    return outfiles_to_process
-
-
-def _prepare_parent_file_tracking(
-    files_to_combine: list[Path], existing_file: Path = None
-) -> list[str]:
-    """
-    Prepare parent file tracking information.
-
-    Parameters
-    ----------
-    files_to_combine : list of Path
-        New files being added
-    existing_file : Path, optional
-        Existing file that may contain parent information
-
-    Returns
-    -------
-    list[str]
-        Combined list of parent files, ensuring no duplicates
-    """
-    new_parent_files = [str(file_path.name) for file_path in files_to_combine]
-    existing_parent_files = []
-
-    if existing_file:
-        hdul = fits.open(existing_file)
-        header = hdul[0].header.copy()
-        hdul.close()
-        if "PARENTXT" in header:
-            existing_parent_files = [f.strip() for f in header["PARENTXT"].split(",")]
-
-    all_parent_files = list(
-        OrderedDict.fromkeys(existing_parent_files + new_parent_files)
-    )
-
-    return all_parent_files
-
-
-def _initialize_hdu_structure(
-    first_file: Path,
-    date_beg: Time,
-    date_end: Time,
-    date_avg: Time,
-    all_parent_files: list[str],
-    files_to_combine: list[dict],
-) -> dict:
-    """
-    Initialize the HDU dictionary structure from the first file.
-
-    Parameters
-    ----------
-    first_file : Path
-        First FITS file to use as template
-    date_beg, date_end, date_avg : Time
-        Calculated time values
-    all_parent_files : list[str]
-        Combined list of parent files
-    files_to_combine : list[dict]
-        List of files being combined, each as a dict with metadata
-        containing 'source_file', 'start_time', 'end_time', 'start_idx', and 'end_idx'.
-
-    Returns
-    -------
-    dict
-        HDU dictionary structure
-    """
-    hdu_dict = {}
-
-    first_hdul = fits.open(first_file)
-    for i, hdu in enumerate(first_hdul):
-        if isinstance(hdu, fits.PrimaryHDU):
-            base_header = hdu.header.copy()
-
-            # Update time-related headers
-            for key, value in [
-                ("DATE-BEG", date_beg),
-                ("DATE-END", date_end),
-                ("DATE-AVG", date_avg),
-                ("DATEREF", date_beg),
-            ]:
-                base_header[key] = (value.fits, get_comment(key))
-
-            # Update PARENTXT
-            parent_files_str = ", ".join(all_parent_files)
-            base_header["PARENTXT"] = (
-                parent_files_str,
-                "Parent files used in concatenation",
-            )
-
-            # Update COMMENT with file metadata
-            base_header = _update_comment_metadata(
-                base_header, all_parent_files, files_to_combine
-            )
-
-            hdu_dict[i] = {"header": base_header, "data": None, "type": "primary"}
-
-        elif isinstance(hdu, fits.BinTableHDU):
-            hdu_dict[i] = {
-                "header": hdu.header.copy(),
-                "data": Table.read(hdu),
-                "type": "bintable",
-                "name": hdu.name,
-            }
-        elif isinstance(hdu, fits.ImageHDU):
-            hdu_dict[i] = {
-                "header": hdu.header.copy(),
-                "data": hdu.data.copy(),
-                "type": "image",
-                "name": hdu.name,
-            }
-    # Explicitly Open and Close File - Windows Garbage Disposer cannot be trusted.
-    first_hdul.close()
-
-    return hdu_dict
-
-
-def _update_comment_metadata(
-    header: fits.Header, parent_files: list[str], files_to_combine: list[dict]
-) -> fits.Header:
-    """
-    Update COMMENT header with JSON metadata about contributing files.
-
-    Parameters
-    ----------
-    header : fits.Header
-        Header to update
-    parent_files : list[str]
-        List of parent files to include in the COMMENT metadata.
-    files_to_combine : list[dict]
-        List of files being combined, each as a dict with metadata
-        containing 'source_file', 'start_time', 'end_time', 'start_idx', and 'end_idx'.
-
-    Returns
-    -------
-    fits.Header
-        Updated header with comment metadata
-    """
-    comment_raw = header.get("COMMENT", "")
-
-    # COMMENT may be a list of strings
-    if isinstance(comment_raw, list):
-        comment_str = "".join(comment_raw)
-    else:
-        comment_str = str(comment_raw).replace("\n", "")
-
-    file_time_list = []
-    try:
-        file_time_list = json.loads(comment_str)
-    except json.JSONDecodeError as e:
-        log.warning(f"Failed to parse COMMENT as JSON: {e}")
-
-    # Add new metadata entries
-    existing_filenames = {entry["filename"] for entry in file_time_list}
-    for source_file in files_to_combine:
-        filename = source_file["source_file"].name
-        if filename in parent_files and filename not in existing_filenames:
-            file_time_list.append(
-                {
-                    "filename": filename,
-                    "date-beg": source_file["start_time"].fits,
-                    "date-end": source_file["end_time"].fits,
-                }
-            )
-            existing_filenames.add(filename)
-
-    # Sort by date-beg
-    file_time_list = sorted(
-        file_time_list,
-        key=lambda x: (
-            Time(x.get("date-beg", "UNKNOWN")).mjd
-            if x.get("date-beg") != "UNKNOWN"
-            else float("inf")
-        ),
-    )
-
-    # Store updated JSON as string in header
-    json_str = json.dumps(file_time_list, separators=(",", ":"))
-
-    # Remove existing COMMENT keyword if present
-    while "COMMENT" in header:
-        header.remove("COMMENT")
-    header["COMMENT"] = (json_str, "JSON list of contributing files")
-
-    return header
-
-
-def _process_additional_files(all_files: list[dict], hdu_dict: dict) -> dict:
-    """
-    Process additional files and combine their data with the initial structure.
-
-    Parameters
-    ----------
-    all_files : list[dict]
-        List of files being combined, each as a dict with metadata
-        containing 'source_file', 'start_time', 'end_time', 'start_idx', and 'end_idx'.
-    hdu_dict : dict
-        Initial HDU dictionary structure
-
-    Returns
-    -------
-    dict
-        Updated HDU dictionary with combined data
-    """
-    for source_file in all_files[1:]:
-        source_path = source_file["source_file"]
-        start_idx = source_file["start_idx"]
-        end_idx = source_file["end_idx"]
-
-        hdul = fits.open(source_path)
-        for i, hdu in enumerate(hdul):
-            if i not in hdu_dict:
-                log.warning(
-                    f"File {source_path} has unexpected HDU at index {i}, skipping."
-                )
-                continue
-
-            # TODO We will also need to update the header if necessary for all observational HDUs
-
-            if hdu_dict[i]["type"] == "primary":
-                # For primary HDU, we just need to check consistency
-                pass
-            elif hdu_dict[i]["type"] == "bintable":
-                # Vertically stack table data, but only use rows from start_idx to end_idx
-                new_table = Table.read(hdu)
-
-                # Make sure indices are within valid range
-                if end_idx >= len(new_table):
-                    log.warning(
-                        f"File {source_path}: end_idx {end_idx} exceeds table length {len(new_table)}. "
-                        f"Using {len(new_table)-1} as end_idx."
-                    )
-                    end_idx = len(new_table) - 1
-
-                if start_idx < 0:
-                    log.warning(
-                        f"File {source_path}: start_idx {start_idx} is negative. Using 0 as start_idx."
-                    )
-                    start_idx = 0
-
-                # Select only the relevant rows
-                selected_data = new_table[start_idx : end_idx + 1]
-
-                # Stack with existing data
-                hdu_dict[i]["data"] = vstack([hdu_dict[i]["data"], selected_data])
-
-            elif hdu_dict[i]["type"] == "image":
-                # Concatenate image data (assuming along first axis), using only selected indices
-                # Make sure indices are within valid range
-                if end_idx >= hdu.data.shape[0]:
-                    log.warning(
-                        f"File {source_path}: end_idx {end_idx} exceeds image length {hdu.data.shape[0]}. "
-                        f"Using {hdu.data.shape[0]-1} as end_idx."
-                    )
-                    end_idx = hdu.data.shape[0] - 1
-
-                if start_idx < 0:
-                    log.warning(
-                        f"File {source_path}: start_idx {start_idx} is negative. Using 0 as start_idx."
-                    )
-                    start_idx = 0
-
-                # Select only the relevant slice of the image data
-                selected_data = hdu.data[start_idx : end_idx + 1]
-
-                # Concatenate with existing data
-                hdu_dict[i]["data"] = np.concatenate(
-                    [hdu_dict[i]["data"], selected_data], axis=0
-                )
-        # Explicitly Open and Close File - Windows Garbage Disposer cannot be trusted.
-        hdul.close()
-
-    return hdu_dict
-
-
-def _write_output_file(
-    hdu_dict: dict, outfile: Path, retries: int = 5, delay: float = 1.0
-) -> None:
-    """
-    Construct and write the output FITS file with retry mechanism.
-
-    Parameters
-    ----------
-    hdu_dict : dict
-        Dictionary containing HDU information
-    outfile : Path
-        Output file path
-    retries : int, optional
-        Number of retry attempts, default is 3
-    delay : float, optional
-        Delay between retries in seconds, default is 1.0
-    """
-    hdu_list = []
-    for i in sorted(hdu_dict.keys()):
-        hdu_info = hdu_dict[i]
-
-        if hdu_info["type"] == "primary":
-            hdu_list.append(fits.PrimaryHDU(header=hdu_info["header"]))
-        elif hdu_info["type"] == "bintable":
-            new_hdu = fits.BinTableHDU(
-                hdu_info["data"], header=hdu_info["header"], name=hdu_info["name"]
-            )
-            new_hdu.add_checksum()
-            hdu_list.append(new_hdu)
-        elif hdu_info["type"] == "image":
-            new_hdu = fits.ImageHDU(
-                hdu_info["data"], header=hdu_info["header"], name=hdu_info["name"]
-            )
-            hdu_list.append(new_hdu)
-
-    # Write the output file with retry mechanism
-    hdul = fits.HDUList(hdu_list)
-    attempt = 0
-    while attempt < retries:
-        try:
-            log.debug(f"Writing to file: {outfile} (Attempt {attempt + 1})")
-            hdul.writeto(outfile, overwrite=True)
-            log.info(f"Created concatenated daily file: {outfile}")
-            return outfile
-        except Exception as e:
-            attempt += 1
-            log.warning(f"Failed to write file {outfile} on attempt {attempt}: {e}")
-            if attempt < retries:
-                gc.collect()  # Explicitly invoke garbage collection to release any unreferenced file handles
-                time.sleep(delay)
-            else:
-                log.error(f"Exceeded maximum retries ({retries}) for file {outfile}")
-                raise
-        finally:
-            log.debug(f"Closing file: {outfile}")
-            hdul.close()
-
-
-def concatenate_daily_fits(
-    files_to_combine: list[Path],
-    existing_file: Path = None,
-) -> list[Path]:
-    """
-    Concatenate multiple FITS files into a single daily FITS file, properly combining headers and data.
-
-    The function also tracks all parent files in the PARENTXT header keyword.
-
-    Note: This function assumes that there is no data stored in the PrimaryHDU of the FITS files.
-
-    Parameters
-    ----------
-    files_to_combine : list of Path
-        List of FITS files to combine. Assumed to have the same structure.
-    existing_file : Path, optional
-        Existing daily FITS file to append to.
-
-    Returns
-    -------
-    output_file : list of Path
-        List containing the output file paths of the concatenated daily FITS files.
-    """
-    # Ignore MergeConflictWarning from astropy
-    warnings.simplefilter("ignore", MergeConflictWarning)
-
-    # sorts files based on DATE-BEG or DATEREF
-    all_files = sort_files_list(files_to_combine, existing_file)
-
-    # Determine output files and source material
-    outfiles_to_process = get_output_files(all_files)
-
-    outfiles = []
-    for outfile, outfile_info in outfiles_to_process.items():
-
-        # Get updated Parent Infor for file
-        files_to_combine = [
-            f["source_file"]
-            for f in outfile_info["source_files"]
-            if f["source_file"] != existing_file
-        ]
-        all_parent_files = _prepare_parent_file_tracking(
-            files_to_combine, existing_file
-        )
-
-        # Initialize HDU structure from first file
-        hdu_dict = _initialize_hdu_structure(
-            first_file=outfile_info["source_files"][0]["source_file"],
-            date_beg=outfile_info["date_beg"],
-            date_end=outfile_info["date_end"],
-            date_avg=outfile_info["date_avg"],
-            all_parent_files=all_parent_files,
-            files_to_combine=outfile_info["source_files"],
-        )
-
-        # Process additional files
-        hdu_dict = _process_additional_files(outfile_info["source_files"], hdu_dict)
-
-        # Write output file
-        out_path = _write_output_file(hdu_dict, outfile)
-
-        outfiles.append(Path(out_path))
-
-    # This should return the list of Paths of `outfiles` that were successfully created,
-    return outfiles
-
-
-# =============================================================================
-# FITS File Concatenation (RE-WRITE) Functions
-# =============================================================================
 
 
 def _get_combined_list(
@@ -1754,6 +1012,64 @@ def split_provenance_tables_by_day(files_to_combine, existing_file=None):
     return tables_by_day
 
 
+def _write_output_file(
+    hdu_dict: dict, outfile: Path, retries: int = 5, delay: float = 1.0
+) -> None:
+    """
+    Construct and write the output FITS file with retry mechanism.
+
+    Parameters
+    ----------
+    hdu_dict : dict
+        Dictionary containing HDU information
+    outfile : Path
+        Output file path
+    retries : int, optional
+        Number of retry attempts, default is 3
+    delay : float, optional
+        Delay between retries in seconds, default is 1.0
+    """
+    hdu_list = []
+    for i in sorted(hdu_dict.keys()):
+        hdu_info = hdu_dict[i]
+
+        if hdu_info["type"] == "primary":
+            hdu_list.append(fits.PrimaryHDU(header=hdu_info["header"]))
+        elif hdu_info["type"] == "bintable":
+            new_hdu = fits.BinTableHDU(
+                hdu_info["data"], header=hdu_info["header"], name=hdu_info["name"]
+            )
+            new_hdu.add_checksum()
+            hdu_list.append(new_hdu)
+        elif hdu_info["type"] == "image":
+            new_hdu = fits.ImageHDU(
+                hdu_info["data"], header=hdu_info["header"], name=hdu_info["name"]
+            )
+            hdu_list.append(new_hdu)
+
+    # Write the output file with retry mechanism
+    hdul = fits.HDUList(hdu_list)
+    attempt = 0
+    while attempt < retries:
+        try:
+            log.debug(f"Writing to file: {outfile} (Attempt {attempt + 1})")
+            hdul.writeto(outfile, overwrite=True)
+            log.info(f"Created concatenated daily file: {outfile}")
+            return outfile
+        except Exception as e:
+            attempt += 1
+            log.warning(f"Failed to write file {outfile} on attempt {attempt}: {e}")
+            if attempt < retries:
+                gc.collect()  # Explicitly invoke garbage collection to release any unreferenced file handles
+                time.sleep(delay)
+            else:
+                log.error(f"Exceeded maximum retries ({retries}) for file {outfile}")
+                raise
+        finally:
+            log.debug(f"Closing file: {outfile}")
+            hdul.close()
+
+
 def concatenate_files(
     files_to_combine: list[Path],
     existing_file: Path = None,
@@ -1803,7 +1119,7 @@ def concatenate_files(
     for day, day_hdul in hdul_dicts.items():
 
         # Calculate the Outputn Path Filename
-        outfile = get_output_path(
+        outfile = _get_output_path(
             first_file=all_files[0], date_beg=Time(day + "T00:00:00")
         )
 
