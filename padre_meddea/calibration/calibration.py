@@ -16,7 +16,11 @@ from padre_meddea.io import file_tools
 from padre_meddea.util import util, validation
 import padre_meddea.io.aws_db as aws_db
 
-from padre_meddea.util.util import create_science_filename, parse_science_filename, calc_time
+from padre_meddea.util.util import (
+    create_science_filename,
+    parse_science_filename,
+    calc_time,
+)
 from padre_meddea.io.file_tools import read_raw_file
 from padre_meddea.io.fits_tools import (
     get_primary_header,
@@ -67,7 +71,7 @@ def process_file(filename: Path, overwrite=False) -> list:
         if parsed_data["photons"] is not None:  # we have event list data
             # Set Data Type for L0 Data
             data_type = "photon"
-            
+
             pkt_list, event_list = parsed_data["photons"]
             log.info(
                 f"Found photon data, {len(event_list)} photons and {len(pkt_list)} packets."
@@ -149,7 +153,7 @@ def process_file(filename: Path, overwrite=False) -> list:
         if parsed_data["housekeeping"] is not None:
             # Set Data Type for L0 Data
             data_type = "housekeeping"
-            
+
             hk_data = parsed_data["housekeeping"]
             # send data to AWS Timestream for Grafana dashboard
             aws_db.record_housekeeping(hk_data)
@@ -249,7 +253,7 @@ def process_file(filename: Path, overwrite=False) -> list:
         if parsed_data["spectra"] is not None:
             # Set Data Type for L0 Data
             data_type = "spectrum"
-            
+
             ts, spectra, ids = parsed_data["spectra"]
             aws_db.record_spectra(ts, spectra, ids)
             asic_nums, channel_nums = util.parse_pixelids(ids)

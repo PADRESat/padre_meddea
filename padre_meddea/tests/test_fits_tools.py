@@ -90,16 +90,20 @@ def temp_dir():
         # Corrected HK case
         (
             [
-                data_dir / "hk/padre_meddea_l0test_housekeeping_20250504T055138_v0.1.0.fits",
-                data_dir / "hk/padre_meddea_l0test_housekeeping_20250504T055308_v0.1.0.fits",
-                data_dir / "hk/padre_meddea_l0test_housekeeping_20250504T055508_v0.1.0.fits",
+                data_dir
+                / "hk/padre_meddea_l0test_housekeeping_20250504T055138_v0.1.0.fits",
+                data_dir
+                / "hk/padre_meddea_l0test_housekeeping_20250504T055308_v0.1.0.fits",
+                data_dir
+                / "hk/padre_meddea_l0test_housekeeping_20250504T055508_v0.1.0.fits",
             ],
             [
                 "padre_meddea_l1_housekeeping_20250504T000000_v0.1.0.fits",
             ],
             "padre_meddea_l0test_housekeeping_20250504T055138_v0.1.0.fits, padre_meddea_l0test_housekeeping_20250504T055308_v0.1.0.fits, padre_meddea_l0test_housekeeping_20250504T055508_v0.1.0.fits",
             [
-                data_dir / "hk/padre_meddea_l0test_housekeeping_20250504T055708_v0.1.0.fits",
+                data_dir
+                / "hk/padre_meddea_l0test_housekeeping_20250504T055708_v0.1.0.fits",
             ],
             [
                 "padre_meddea_l1_housekeeping_20250504T000000_v0.1.0.fits",
@@ -115,16 +119,20 @@ def temp_dir():
         # Corrected spec case
         (
             [
-                data_dir / "spec/padre_meddea_l0test_spectrum_20250504T153111_v0.1.0.fits",
-                data_dir / "spec/padre_meddea_l0test_spectrum_20250504T153309_v0.1.0.fits",
-                data_dir / "spec/padre_meddea_l0test_spectrum_20250504T153509_v0.1.0.fits",
+                data_dir
+                / "spec/padre_meddea_l0test_spectrum_20250504T153111_v0.1.0.fits",
+                data_dir
+                / "spec/padre_meddea_l0test_spectrum_20250504T153309_v0.1.0.fits",
+                data_dir
+                / "spec/padre_meddea_l0test_spectrum_20250504T153509_v0.1.0.fits",
             ],
             [
                 "padre_meddea_l1_spectrum_20250504T000000_v0.1.0.fits",
             ],
             "padre_meddea_l0test_spectrum_20250504T153111_v0.1.0.fits, padre_meddea_l0test_spectrum_20250504T153309_v0.1.0.fits, padre_meddea_l0test_spectrum_20250504T153509_v0.1.0.fits",
             [
-                data_dir / "spec/padre_meddea_l0test_spectrum_20250504T153709_v0.1.0.fits",
+                data_dir
+                / "spec/padre_meddea_l0test_spectrum_20250504T153709_v0.1.0.fits",
             ],
             [
                 "padre_meddea_l1_spectrum_20250504T000000_v0.1.0.fits",
@@ -168,9 +176,9 @@ def test_concatenate_fits_cases(
     with fits.open(output_file, memmap=False) as hdul:
         header = hdul[0].header
 
-        # assert "PARENTXT" in header
-        # assert header["PARENTXT"] == expected_parentxt
-        # expected_parentxt_list = expected_parentxt.split(", ")
+        assert "PARENTXT" in header
+        assert header["PARENTXT"] == expected_parentxt
+        expected_parentxt_list = expected_parentxt.split(", ")
 
         # comment_raw = header.get("COMMENT", "")
         # if isinstance(comment_raw, list):
@@ -200,9 +208,8 @@ def test_concatenate_fits_cases(
     with fits.open(output_file, memmap=False) as hdul:
         header = hdul[0].header
 
-        # assert "PARENTXT" in header
-        # assert header["PARENTXT"] == additional_parentext
-        # expected_parentxt_list = additional_parentext.split(", ")
+        assert "PARENTXT" in header
+        assert header["PARENTXT"] == additional_parentext
 
         # comment_raw = header.get("COMMENT", "")
         # if isinstance(comment_raw, list):

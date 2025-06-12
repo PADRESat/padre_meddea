@@ -19,6 +19,9 @@ import git
 import numpy as np
 import solarnet_metadata
 from astropy import units as u
+from collections import defaultdict
+from datetime import datetime, timedelta
+
 from astropy.io import ascii
 from astropy.table import Table, vstack
 from astropy.time import Time
@@ -1329,6 +1332,8 @@ def _init_hdul_structure(
                 "name": hdu.name,
             }
         elif isinstance(hdu, fits.BinTableHDU):
+            if hdu.name in ["PROVENANCE"]:  # Skip non-data HDUs
+                continue
             hdul_dict[i] = {
                 "header": hdu.header.copy(),
                 "data": Table.read(hdu),
@@ -1423,7 +1428,7 @@ def get_hdu_data_times(hdu: dict) -> Time:
     # We need to parse times differently for Photon / Spectrum / HK
     data_type = hdu["header"].get("BTYPE", "").lower()
     data = hdu["data"]
-    
+
     # Calculate Times based on the file descriptor
     if data_type == "photon" and hdu["name"] == "SCI":
         times = calc_time(
@@ -1468,12 +1473,12 @@ def _sort_hdul_template(hdul_dict: dict):
 def split_hdul_by_day(hdul_dict: dict) -> dict:
     """
     Split a FITS HDU dictionary into multiple dictionaries based on day boundaries.
-    
+
     Parameters:
     -----------
     hdul_dict : dict
         Dictionary representation of a FITS HDU list
-        
+
     Returns:
     --------
     dict
@@ -1483,27 +1488,29 @@ def split_hdul_by_day(hdul_dict: dict) -> dict:
     # Get the times from each HDU
     hdu_times = [get_hdu_data_times(hdul_dict[i]) for i in hdul_dict if i != 0]
     unique_times = Time(np.unique(np.concatenate(hdu_times)))
-    
+
     # Extract the day part of each time
     day_strs = [t.iso[0:10] for t in unique_times]
-    
+
     # Find unique days
     unique_days = sorted(set(day_strs))
-    
+
     # Create a dictionary to hold the HDULs for each day
     day_hduls = {}
-    
+
     # Loop each unique day
-    for day in unique_days:    
+    for day in unique_days:
         # Loop each HDU
         for hdu_idx, hdu_info in hdul_dict.items():
             # Store the HDU list for this day
             day_hduls.setdefault(day, {})
-            
+
             # Create a boolean mask for this day
-            hdu_day_strs = [t.iso[0:10] for t in hdu_times[hdu_idx-1]] # -1 to skip primary HDU
+            hdu_day_strs = [
+                t.iso[0:10] for t in hdu_times[hdu_idx - 1]
+            ]  # -1 to skip primary HDU
             hud_day_mask = np.array([d == day for d in hdu_day_strs])
-            
+
             if hdu_info["type"] == "primary":
                 # Just copy over the primary HDU header
                 day_hduls[day][hdu_idx] = {
@@ -1520,7 +1527,7 @@ def split_hdul_by_day(hdul_dict: dict) -> dict:
                     "type": hdu_info["type"],
                     "name": hdu_info.get("name", None),
                 }
-    
+
     return day_hduls
 
 
@@ -1531,7 +1538,7 @@ def update_hdul_date_metadata(
     Function to update the date metadata in the HDU dictionary.
     This function will update the DATE-BEG, DATE-END, DATE-AVG, and DATEREF keywords
     in the headers of the HDUs based on the data contained within them.
-    
+
     Parameters
     ----------
     hdul_dict : dict
@@ -1546,7 +1553,7 @@ def update_hdul_date_metadata(
 
     date_beg = None
     date_end = None
-    
+
     # Loop through Data HDUs before Primary
     for i, hdu_info in hdul_dict.items():
         print(f"Processing HDU {i} of type {hdu_info['type']}")
@@ -1556,16 +1563,23 @@ def update_hdul_date_metadata(
         elif hdu_info["type"] == "bintable":
             # Get Times for Bintable Data
             times = get_hdu_data_times(hdu_info)
-            
+
             # Update Data HDU Header
             if len(times) > 0:
-                hdu_info["header"]["DATE-BEG"] = (times[0].fits, get_comment("DATE-BEG"))
-                hdu_info["header"]["DATE-END"] = (times[-1].fits, get_comment("DATE-END"))
+                hdu_info["header"]["DATE-BEG"] = (
+                    times[0].fits,
+                    get_comment("DATE-BEG"),
+                )
+                hdu_info["header"]["DATE-END"] = (
+                    times[-1].fits,
+                    get_comment("DATE-END"),
+                )
                 hdu_info["header"]["DATE-AVG"] = (
-                    (times[0] + (times[-1] - times[0]) / 2).fits, get_comment("DATE-AVG")
+                    (times[0] + (times[-1] - times[0]) / 2).fits,
+                    get_comment("DATE-AVG"),
                 )
                 hdu_info["header"]["DATEREF"] = (times[0].fits, get_comment("DATEREF"))
-                
+
                 # Update info for Primary HDU
                 if date_beg is None or times[0] < date_beg:
                     date_beg = times[0]
@@ -1581,28 +1595,30 @@ def update_hdul_date_metadata(
         elif hdu_info["type"] == "image":
             # Sort Image Data
             pass
-        
+
     # Update Primary HDU Header with Date/Time Information
     if date_beg is not None and date_end is not None:
         hdul_dict[0]["header"]["DATE-BEG"] = (date_beg.fits, get_comment("DATE-BEG"))
         hdul_dict[0]["header"]["DATE-END"] = (date_end.fits, get_comment("DATE-END"))
         hdul_dict[0]["header"]["DATE-AVG"] = (
-            (date_beg + (date_end - date_beg) / 2).fits, get_comment("DATE-AVG")
+            (date_beg + (date_end - date_beg) / 2).fits,
+            get_comment("DATE-AVG"),
         )
         hdul_dict[0]["header"]["DATEREF"] = (date_beg.fits, get_comment("DATEREF"))
-        
+
     return hdul_dict
 
 
 def update_hdul_filename_metadata(
     hdul_dict: dict,
     output_file: Path,
+    provenance_table: Table = None,
 ) -> dict:
     """
     Function to update the filename metadata in the HDU dictionary.
     This function will update the FILENAME keyword in the headers of the HDUs
     based on the output file name.
-    
+
     Parameters
     ----------
     hdul_dict : dict
@@ -1610,7 +1626,7 @@ def update_hdul_filename_metadata(
         and the value is a dictionary with keys "header", "data", "type", and optionally "name".
     output_file : Path
         path the hdul_dict is being written to, used to extract filename metadata.
-    
+
     Returns
     -------
     dict
@@ -1618,14 +1634,125 @@ def update_hdul_filename_metadata(
     """
     filename_meta = parse_science_filename(output_file)
     # Update Filename
-    hdul_dict[0]["header"]["FILENAME"] = (
-        output_file, get_comment("FILENAME")
-    )
-    hdul_dict[0]["header"]["LEVEL"] = (
-        filename_meta["level"], get_comment("LEVEL")
-    )
-    
+    hdul_dict[0]["header"]["FILENAME"] = (output_file, get_comment("FILENAME"))
+    hdul_dict[0]["header"]["LEVEL"] = (filename_meta["level"], get_comment("LEVEL"))
+
+    # Generate the PARENTXT string from the provenance table filenames
+    if provenance_table is not None:
+        parent_files = provenance_table["FILENAME"].tolist()
+        parent_files_str = ", ".join(parent_files)
+        hdul_dict[0]["header"]["PARENTXT"] = (
+            parent_files_str,
+            "Parent files used in concatenation",
+        )
+    else:
+        # If no provenance table, just set PARENTXT to the output file
+        hdul_dict[0]["header"]["PARENTXT"] = (
+            str(output_file),
+            "Parent file used in concatenation",
+        )
+
     return hdul_dict
+
+
+def split_provenance_tables_by_day(files_to_combine, existing_file=None):
+    """
+    Splits provenance entries into daily Astropy Tables. If a file spans
+    multiple days, it is duplicated across those days with start/end times clipped
+    to each day. Take note if the file has no DATE-BEG or DATE-END in the header,
+    it will utilize the file DATEREF as a fallback.
+
+    Parameters
+    ----------
+    files_to_combine : list[Path or object with .name]
+        List of FITS file paths or similar objects.
+    existing_file : Path or None
+        Optional existing provenance FITS file to pull previous provenance from.
+
+    Returns
+    -------
+    dict[str, astropy.table.Table]
+        Dictionary mapping 'YYYY-MM-DD' -> Table with columns FILENAME, DATE_BEG, DATE_END
+    """
+    by_day = defaultdict(list)
+
+    # STEP 1: Load provenance from existing file if it exists
+    if existing_file and Path(existing_file).exists():
+        with fits.open(existing_file) as hdul:
+            try:
+                existing_table = Table(hdul["PROVENANCE"].data)
+                for row in existing_table:
+                    day = row["DATE_BEG"][:10]  # 'YYYY-MM-DD'
+                    by_day[day].append(
+                        {
+                            "FILENAME": row["FILENAME"],
+                            "DATE_BEG": row["DATE_BEG"],
+                            "DATE_END": row["DATE_END"],
+                        }
+                    )
+            except (KeyError, AttributeError):
+                pass  # skip if PROVENANCE not present or invalid
+
+    # STEP 2: Add new provenance entries
+    for fileobj in files_to_combine:
+        filename = fileobj.name if hasattr(fileobj, "name") else Path(fileobj).name
+
+        with fits.open(fileobj) as hdul:
+            hdr = hdul[0].header
+
+            start_str = hdr.get("DATE-BEG")
+            end_str = hdr.get("DATE-END")
+            fallback = hdr.get("DATEREF")
+
+            if not start_str or not end_str:
+                if fallback:
+                    start_str = end_str = fallback
+                else:
+                    raise ValueError(
+                        f"Missing DATE-BEG or DATE-END in header for {filename}"
+                    )
+
+            start = Time(start_str, format="fits", scale="utc")
+            end = Time(end_str, format="fits", scale="utc")
+
+        start_day = datetime.strptime(start.utc.iso[:10], "%Y-%m-%d")
+        end_day = datetime.strptime(end.utc.iso[:10], "%Y-%m-%d")
+
+        day = start_day
+        while day <= end_day:
+            day_start = Time(
+                datetime.combine(day, datetime.min.time()),
+                format="datetime",
+                scale="utc",
+            )
+            day_end = Time(
+                datetime.combine(day, datetime.max.time()),
+                format="datetime",
+                scale="utc",
+            )
+
+            clipped_start = max(start, day_start)
+            clipped_end = min(end, day_end)
+
+            by_day[day.strftime("%Y-%m-%d")].append(
+                {
+                    "FILENAME": filename,
+                    "DATE_BEG": clipped_start.fits,
+                    "DATE_END": clipped_end.fits,
+                }
+            )
+
+            day += timedelta(days=1)
+
+    # STEP 3: Convert to sorted Astropy tables
+    tables_by_day = {}
+    for day, entries in by_day.items():
+        entries.sort(key=lambda e: Time(e["DATE_BEG"]).mjd)
+        table = Table(rows=entries, names=["FILENAME", "DATE_BEG", "DATE_END"])
+        tables_by_day[day] = table
+
+    return tables_by_day
+
 
 def concatenate_files(
     files_to_combine: list[Path],
@@ -1656,6 +1783,9 @@ def concatenate_files(
     # Get the combined list of files to process
     all_files = _get_combined_list(files_to_combine, existing_file)
 
+    # Create new provenance table from the files to combine
+    provenance_tables = split_provenance_tables_by_day(files_to_combine, existing_file)
+
     # Initialize Data Structures
     hdul_dict = _init_hdul_structure(all_files[0])
 
@@ -1664,26 +1794,46 @@ def concatenate_files(
 
     # Sort Data Structures by Time
     hdul_dict = _sort_hdul_template(hdul_dict)
-    
+
     # Split HDU by Day
     hdul_dicts = split_hdul_by_day(hdul_dict)
-    
+
     outfiles = []
     # Save each Day
     for day, day_hdul in hdul_dicts.items():
-        
+
         # Calculate the Outputn Path Filename
         outfile = get_output_path(
             first_file=all_files[0], date_beg=Time(day + "T00:00:00")
         )
-        
+
         # Update HDUL Primary Header with Date/Time Information
         day_hdul = update_hdul_date_metadata(day_hdul)
-        
+
+        log.info(f"Processing day: {day} with output file: {outfile}")
+        log.info(f"Provenance Table: {provenance_tables[day]}")
+
         # Update HDUL Primary Header with Filename Information
         day_hdul = update_hdul_filename_metadata(
-            day_hdul, outfile
+            day_hdul, outfile, provenance_tables[day]
         )
+
+        # Add Provenance Table to HDU
+        if day in provenance_tables:
+            prov_data = provenance_tables[day]
+
+            prov_table = {
+                "header": fits.Header(
+                    {
+                        "EXTNAME": "PROVENANCE",
+                        "COMMENT": "Provenance information for the concatenated files",
+                    }
+                ),
+                "data": prov_data,
+                "type": "bintable",
+                "name": "PROVENANCE",
+            }
+            day_hdul[max(day_hdul) + 1] = prov_table
 
         # Write output file
         out_path = _write_output_file(day_hdul, outfile)
