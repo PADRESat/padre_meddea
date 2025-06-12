@@ -1824,10 +1824,11 @@ def concatenate_files(
 
             prov_table = {
                 "header": fits.Header(
-                    {
-                        "EXTNAME": "PROVENANCE",
-                        "COMMENT": "Provenance information for the concatenated files",
-                    }
+                    [
+                        ("EXTNAME", "PROVENANCE", get_comment("EXTNAME")),
+                        ("COMMENT", "Provenance information for the concatenated files"),
+                        ("OBS_HDU", 0, get_comment("OBS_HDU")),
+                    ]
                 ),
                 "data": prov_data,
                 "type": "bintable",
