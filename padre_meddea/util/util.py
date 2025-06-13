@@ -10,11 +10,12 @@ from astropy.time import Time, TimeDelta
 import astropy.units as u
 from ccsdspy.utils import split_packet_bytes, split_by_apid
 
-from swxsoc.util import create_science_filename
+from swxsoc.util import parse_science_filename, create_science_filename
 
 from padre_meddea import EPOCH, APID
 
 __all__ = [
+    "parse_science_filename",
     "create_science_filename",
     "calc_time",
     "has_baseline",

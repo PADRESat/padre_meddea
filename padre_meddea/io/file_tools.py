@@ -3,7 +3,6 @@ This module provides a generic file reader.
 """
 
 from pathlib import Path
-import datetime as dt
 
 import numpy as np
 import astropy.units as u
@@ -22,11 +21,11 @@ import astropy.io.fits as fits
 
 from specutils import Spectrum1D
 
-import padre_meddea
 from padre_meddea import log
-from padre_meddea import EPOCH, APID
+from padre_meddea import APID
 import padre_meddea.util.util as util
 import padre_meddea.util.cmd_util as cmd_util
+from padre_meddea.housekeeping import housekeeping as hk
 
 __all__ = ["read_file", "read_raw_file", "read_fits"]
 
@@ -151,7 +150,7 @@ def read_raw_file(filename: Path):
 
     result = {
         "photons": parse_ph_packets(filename),
-        "housekeeping": parse_hk_packets(filename),
+        "housekeeping": hk.parse_housekeeping_packets(filename),
         "spectra": parse_spectrum_packets(filename),
         "cmd_resp": parse_cmd_response_packets(filename),
     }
@@ -163,13 +162,17 @@ def read_fits(filename: Path):
     """
     Read a fits file.
     """
-    hdu = fits.open(filename)
+    hdul = fits.open(filename)
+    header = hdul[0].header.copy()
+    hdul.close()
+    level = header["LEVEL"]
+    data_type = header["DATATYPE"]
 
-    if (hdu[0].header["LEVEL"] == 0) and (hdu[0].header["DATATYPE"] == "event_list"):
+    if (level == 0) and (data_type == "event_list"):
         return read_fits_l0_event_list(filename)
-    if (hdu[0].header["LEVEL"] == 0) and (hdu[0].header["DATATYPE"] == "housekeeping"):
+    if (level == 0) and (data_type == "housekeeping"):
         return read_fits_l0_housekeeping(filename)
-    if (hdu[0].header["LEVEL"] == 0) and (hdu[0].header["DATATYPE"] == "spectrum"):
+    if (level == 0) and (data_type == "spectrum"):
         return read_fits_l0_spectrum(filename)
     else:
         raise ValueError(f"File contents of {filename} not recogized.")
@@ -177,47 +180,49 @@ def read_fits(filename: Path):
 
 def read_fits_l0_event_list(filename: Path) -> TimeSeries:
     """ """
-    hdu = fits.open(filename)
-    # parse event data in SCI
-    num_events = len(hdu["SCI"].data["seqcount"])
-    ph_times = util.calc_time(
-        hdu["sci"].data["pkttimes"],
-        hdu["sci"].data["pktclock"],
-        hdu["sci"].data["clocks"],
-    )
-    # add the pixel conversions
-    pixels = util.channel_to_pixel(hdu["sci"].data["channel"])
-    pixel_strs = [
-        util.get_pixel_str(this_asic, this_pixel)
-        for this_asic, this_pixel in zip(hdu["sci"].data["asic"], pixels)
-    ]
-    event_list = TimeSeries(
-        time=ph_times,
-        data={
-            "atod": hdu["sci"].data["atod"],
-            "baseline": hdu["sci"].data["baseline"],
-            "asic": hdu["sci"].data["asic"],
-            "channel": hdu["sci"].data["channel"],
-            "pixel": pixels,
-            "clocks": hdu["sci"].data["clocks"],
-            "seqcount": hdu["sci"].data["seqcount"],
-            "pixel_str": pixel_strs,
-        },
-    )
-    event_list.sort()
-    # parse packet header data
-    pkt_times = util.calc_time(hdu["pkt"].data["pkttimes"], hdu["pkt"].data["pktclock"])
-    pkt_ts = TimeSeries(
-        time=pkt_times,
-        data={
-            "livetime": hdu["pkt"].data["livetime"],
-            "inttime": hdu["pkt"].data["inttime"],
-            "flags": hdu["pkt"].data[
-                "flags"
-            ],  # TODO: parse flags into individual columns
-            "seqcount": hdu["pkt"].data["seqcount"],
-        },
-    )
+    with fits.open(filename) as hdu:
+        # parse event data in SCI
+        num_events = len(hdu["SCI"].data["seqcount"])
+        ph_times = util.calc_time(
+            hdu["sci"].data["pkttimes"],
+            hdu["sci"].data["pktclock"],
+            hdu["sci"].data["clocks"],
+        )
+        # add the pixel conversions
+        pixels = util.channel_to_pixel(hdu["sci"].data["channel"])
+        pixel_strs = [
+            util.get_pixel_str(this_asic, this_pixel)
+            for this_asic, this_pixel in zip(hdu["sci"].data["asic"], pixels)
+        ]
+        event_list = TimeSeries(
+            time=ph_times,
+            data={
+                "atod": hdu["sci"].data["atod"],
+                "baseline": hdu["sci"].data["baseline"],
+                "asic": hdu["sci"].data["asic"],
+                "channel": hdu["sci"].data["channel"],
+                "pixel": pixels,
+                "clocks": hdu["sci"].data["clocks"],
+                "seqcount": hdu["sci"].data["seqcount"],
+                "pixel_str": pixel_strs,
+            },
+        )
+        event_list.sort()
+        # parse packet header data
+        pkt_times = util.calc_time(
+            hdu["pkt"].data["pkttimes"], hdu["pkt"].data["pktclock"]
+        )
+        pkt_ts = TimeSeries(
+            time=pkt_times,
+            data={
+                "livetime": hdu["pkt"].data["livetime"],
+                "inttime": hdu["pkt"].data["inttime"],
+                "flags": hdu["pkt"].data[
+                    "flags"
+                ],  # TODO: parse flags into individual columns
+                "seqcount": hdu["pkt"].data["seqcount"],
+            },
+        )
     return event_list, pkt_ts
 
 
@@ -228,13 +233,13 @@ def read_fits_l0_housekeeping(filename: Path) -> TimeSeries:
     -------
     TimeSeries of housekeeping data.
     """
-    hdu = fits.open(filename)
-    colnames = [this_col.name for this_col in hdu["HK"].data.columns]
-    times = util.calc_time(hdu["HK"].data["timestamp"])
-    hk_list = TimeSeries(
-        time=times, data={key: hdu["hk"].data[key] for key in colnames}
-    )
-    return hk_list
+    with fits.open(filename) as hdu:
+        colnames = [this_col.name for this_col in hdu["HK"].data.columns]
+        times = util.calc_time(hdu["HK"].data["timestamp"])
+        hk_list = TimeSeries(
+            time=times, data={key: hdu["hk"].data[key] for key in colnames}
+        )
+        return hk_list
 
 
 def read_fits_l0_spectrum(filename: Path):
@@ -247,29 +252,29 @@ def read_fits_l0_spectrum(filename: Path):
     -------
     timestamps, Spectrum1D array, asic_nums, pixel_nums, pixelid_strings
     """
-    hdu = fits.open(filename)
-    timestamps = util.calc_time(
-        hdu["PKT"].data["pkttimes"], hdu["PKT"].data["pktclock"]
-    )
-    asic_nums = hdu["PKT"].data["asic"]
-    channel_nums = hdu["PKT"].data["channel"]
-    pixel_nums = util.channel_to_pixel(channel_nums)
-    these_asics = asic_nums[0]
-    these_pixels = pixel_nums[0]
-    pixel_strs = [
-        util.get_pixel_str(this_asic, this_pixel)
-        for this_asic, this_pixel in zip(these_asics, these_pixels)
-    ]
-    # TODO: check that all asic_nums and channel_nums are the same
-    specs = Spectrum1D(
-        spectral_axis=np.arange(512) * u.pix, flux=hdu["spec"].data * u.ct
-    )
-    ts = TimeSeries(times=timestamps)
-    ts["asic"] = these_asics
-    ts["pixel"] = these_pixels
-    ts["pixel_str"] = pixel_strs
-    ts["seqcount"] = hdu["pkt"].data["seqcount"]
-    ts["pkttimes"] = hdu["pkt"].data["pkttimes"]
+    with fits.open(filename) as hdu:
+        timestamps = util.calc_time(
+            hdu["PKT"].data["pkttimes"], hdu["PKT"].data["pktclock"]
+        )
+        asic_nums = hdu["PKT"].data["asic"]
+        channel_nums = hdu["PKT"].data["channel"]
+        pixel_nums = util.channel_to_pixel(channel_nums)
+        these_asics = asic_nums[0]
+        these_pixels = pixel_nums[0]
+        pixel_strs = [
+            util.get_pixel_str(this_asic, this_pixel)
+            for this_asic, this_pixel in zip(these_asics, these_pixels)
+        ]
+        # TODO: check that all asic_nums and channel_nums are the same
+        specs = Spectrum1D(
+            spectral_axis=np.arange(512) * u.pix, flux=hdu["spec"].data * u.ct
+        )
+        ts = TimeSeries(times=timestamps)
+        ts["asic"] = these_asics
+        ts["pixel"] = these_pixels
+        ts["pixel_str"] = pixel_strs
+        ts["seqcount"] = hdu["pkt"].data["seqcount"]
+        ts["pkttimes"] = hdu["pkt"].data["pkttimes"]
 
     return ts, specs
 
@@ -342,9 +347,11 @@ def parse_ph_packets(filename: Path):
     pkt_list["inttime"] = ph_data["INTEGRATION_TIME"]
     pkt_list["flags"] = ph_data["FLAGS"]
     # parse flag field into their own
-    pkt_list["decim_lvl"], pkt_list["drop_cnt"], pkt_list["int_time_flag"] = (
-        util.parse_ph_flags(pkt_list["flags"])
-    )
+    (
+        pkt_list["decim_lvl"],
+        pkt_list["drop_cnt"],
+        pkt_list["int_time_flag"],
+    ) = util.parse_ph_flags(pkt_list["flags"])
     pkt_list.meta.update({"ORIGFILE": f"{filename.name}"})
 
     # determine the total amount of hits in all photon packets
@@ -427,38 +434,6 @@ def parse_ph_packets(filename: Path):
     date_avg = util.calc_time(time_s[center_index], time_clk[center_index])
     event_list.meta.update({"DATE-AVG": date_avg.fits})
     return pkt_list, event_list
-
-
-def parse_hk_packets(filename: Path):
-    """Given a binary file, read only the housekeeping packets and return a timeseries.
-
-    Parameters
-    ----------
-    filename : Path
-        A file to read
-
-    Returns
-    -------
-    hk_list : astropy.time.TimeSeries or None
-        A list of housekeeping data
-    """
-    filename = Path(filename)
-    with open(filename, "rb") as mixed_file:
-        stream_by_apid = split_by_apid(mixed_file)
-    packet_bytes = stream_by_apid.get(APID["housekeeping"], None)
-    if packet_bytes is None:
-        return None
-    else:
-        log.info(f"{filename.name}: Found housekeeping data")
-    packet_definition = packet_definition_hk()
-    pkt = ccsdspy.FixedLength(packet_definition)
-    hk_data = pkt.load(packet_bytes, include_primary_header=True)
-    hk_timestamps = [
-        dt.timedelta(seconds=int(this_t)) + EPOCH for this_t in hk_data["timestamp"]
-    ]
-    hk_data = TimeSeries(time=hk_timestamps, data=hk_data)
-    hk_data.meta.update({"ORIGFILE": f"{filename.name}"})
-    return hk_data
 
 
 def parse_spectrum_packets(filename: Path):
@@ -557,17 +532,6 @@ def parse_cmd_response_packets(filename: Path):
     ts = cmd_util.add_address_name(ts)
     ts.meta.update({"ORIGFILE": f"{filename.name}"})
     return ts
-
-
-def packet_definition_hk():
-    """Return the packet definiton for the housekeeping packets."""
-    hk_table = ascii.read(padre_meddea._data_directory / "hk_packet_def.csv")
-    hk_table.add_index("name")
-    p = [PacketField(name="timestamp", data_type="uint", bit_length=32)]
-    for this_hk in hk_table["name"]:
-        p += [PacketField(name=this_hk, data_type="uint", bit_length=16)]
-    p += [PacketField(name="CHECKSUM", data_type="uint", bit_length=16)]
-    return p
 
 
 def packet_definition_hist():
