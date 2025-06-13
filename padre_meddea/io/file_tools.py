@@ -81,13 +81,17 @@ def read_fits(filename: Path):
     """
     Read a fits file.
     """
-    hdu = fits.open(filename)
+    hdul = fits.open(filename)
+    header = hdul[0].header.copy()
+    hdul.close()
+    level = header["LEVEL"]
+    data_type = header["DATATYPE"]
 
-    if (hdu[0].header["LEVEL"] == 0) and (hdu[0].header["DATATYPE"] == "event_list"):
+    if (level == 0) and (data_type == "event_list"):
         return read_fits_l0_event_list(filename)
-    if (hdu[0].header["LEVEL"] == 0) and (hdu[0].header["DATATYPE"] == "housekeeping"):
+    if (level == 0) and (data_type == "housekeeping"):
         return read_fits_l0_housekeeping(filename)
-    if (hdu[0].header["LEVEL"] == 0) and (hdu[0].header["DATATYPE"] == "spectrum"):
+    if (level == 0) and (data_type == "spectrum"):
         return read_fits_l0_spectrum(filename)
     else:
         raise ValueError(f"File contents of {filename} not recogized.")
@@ -95,47 +99,49 @@ def read_fits(filename: Path):
 
 def read_fits_l0_event_list(filename: Path) -> TimeSeries:
     """ """
-    hdu = fits.open(filename)
-    # parse event data in SCI
-    num_events = len(hdu["SCI"].data["seqcount"])
-    ph_times = util.calc_time(
-        hdu["sci"].data["pkttimes"],
-        hdu["sci"].data["pktclock"],
-        hdu["sci"].data["clocks"],
-    )
-    # add the pixel conversions
-    pixels = util.channel_to_pixel(hdu["sci"].data["channel"])
-    pixel_strs = [
-        util.get_pixel_str(this_asic, this_pixel)
-        for this_asic, this_pixel in zip(hdu["sci"].data["asic"], pixels)
-    ]
-    event_list = TimeSeries(
-        time=ph_times,
-        data={
-            "atod": hdu["sci"].data["atod"],
-            "baseline": hdu["sci"].data["baseline"],
-            "asic": hdu["sci"].data["asic"],
-            "channel": hdu["sci"].data["channel"],
-            "pixel": pixels,
-            "clocks": hdu["sci"].data["clocks"],
-            "seqcount": hdu["sci"].data["seqcount"],
-            "pixel_str": pixel_strs,
-        },
-    )
-    event_list.sort()
-    # parse packet header data
-    pkt_times = util.calc_time(hdu["pkt"].data["pkttimes"], hdu["pkt"].data["pktclock"])
-    pkt_ts = TimeSeries(
-        time=pkt_times,
-        data={
-            "livetime": hdu["pkt"].data["livetime"],
-            "inttime": hdu["pkt"].data["inttime"],
-            "flags": hdu["pkt"].data[
-                "flags"
-            ],  # TODO: parse flags into individual columns
-            "seqcount": hdu["pkt"].data["seqcount"],
-        },
-    )
+    with fits.open(filename) as hdu:
+        # parse event data in SCI
+        num_events = len(hdu["SCI"].data["seqcount"])
+        ph_times = util.calc_time(
+            hdu["sci"].data["pkttimes"],
+            hdu["sci"].data["pktclock"],
+            hdu["sci"].data["clocks"],
+        )
+        # add the pixel conversions
+        pixels = util.channel_to_pixel(hdu["sci"].data["channel"])
+        pixel_strs = [
+            util.get_pixel_str(this_asic, this_pixel)
+            for this_asic, this_pixel in zip(hdu["sci"].data["asic"], pixels)
+        ]
+        event_list = TimeSeries(
+            time=ph_times,
+            data={
+                "atod": hdu["sci"].data["atod"],
+                "baseline": hdu["sci"].data["baseline"],
+                "asic": hdu["sci"].data["asic"],
+                "channel": hdu["sci"].data["channel"],
+                "pixel": pixels,
+                "clocks": hdu["sci"].data["clocks"],
+                "seqcount": hdu["sci"].data["seqcount"],
+                "pixel_str": pixel_strs,
+            },
+        )
+        event_list.sort()
+        # parse packet header data
+        pkt_times = util.calc_time(
+            hdu["pkt"].data["pkttimes"], hdu["pkt"].data["pktclock"]
+        )
+        pkt_ts = TimeSeries(
+            time=pkt_times,
+            data={
+                "livetime": hdu["pkt"].data["livetime"],
+                "inttime": hdu["pkt"].data["inttime"],
+                "flags": hdu["pkt"].data[
+                    "flags"
+                ],  # TODO: parse flags into individual columns
+                "seqcount": hdu["pkt"].data["seqcount"],
+            },
+        )
     return event_list, pkt_ts
 
 
@@ -146,13 +152,13 @@ def read_fits_l0_housekeeping(filename: Path) -> TimeSeries:
     -------
     TimeSeries of housekeeping data.
     """
-    hdu = fits.open(filename)
-    colnames = [this_col.name for this_col in hdu["HK"].data.columns]
-    times = util.calc_time(hdu["HK"].data["timestamp"])
-    hk_list = TimeSeries(
-        time=times, data={key: hdu["hk"].data[key] for key in colnames}
-    )
-    return hk_list
+    with fits.open(filename) as hdu:
+        colnames = [this_col.name for this_col in hdu["HK"].data.columns]
+        times = util.calc_time(hdu["HK"].data["timestamp"])
+        hk_list = TimeSeries(
+            time=times, data={key: hdu["hk"].data[key] for key in colnames}
+        )
+        return hk_list
 
 
 def read_fits_l0_spectrum(filename: Path):
@@ -165,29 +171,29 @@ def read_fits_l0_spectrum(filename: Path):
     -------
     timestamps, Spectrum1D array, asic_nums, pixel_nums, pixelid_strings
     """
-    hdu = fits.open(filename)
-    timestamps = util.calc_time(
-        hdu["PKT"].data["pkttimes"], hdu["PKT"].data["pktclock"]
-    )
-    asic_nums = hdu["PKT"].data["asic"]
-    channel_nums = hdu["PKT"].data["channel"]
-    pixel_nums = util.channel_to_pixel(channel_nums)
-    these_asics = asic_nums[0]
-    these_pixels = pixel_nums[0]
-    pixel_strs = [
-        util.get_pixel_str(this_asic, this_pixel)
-        for this_asic, this_pixel in zip(these_asics, these_pixels)
-    ]
-    # TODO: check that all asic_nums and channel_nums are the same
-    specs = Spectrum1D(
-        spectral_axis=np.arange(512) * u.pix, flux=hdu["spec"].data * u.ct
-    )
-    ts = TimeSeries(times=timestamps)
-    ts["asic"] = these_asics
-    ts["pixel"] = these_pixels
-    ts["pixel_str"] = pixel_strs
-    ts["seqcount"] = hdu["pkt"].data["seqcount"]
-    ts["pkttimes"] = hdu["pkt"].data["pkttimes"]
+    with fits.open(filename) as hdu:
+        timestamps = util.calc_time(
+            hdu["PKT"].data["pkttimes"], hdu["PKT"].data["pktclock"]
+        )
+        asic_nums = hdu["PKT"].data["asic"]
+        channel_nums = hdu["PKT"].data["channel"]
+        pixel_nums = util.channel_to_pixel(channel_nums)
+        these_asics = asic_nums[0]
+        these_pixels = pixel_nums[0]
+        pixel_strs = [
+            util.get_pixel_str(this_asic, this_pixel)
+            for this_asic, this_pixel in zip(these_asics, these_pixels)
+        ]
+        # TODO: check that all asic_nums and channel_nums are the same
+        specs = Spectrum1D(
+            spectral_axis=np.arange(512) * u.pix, flux=hdu["spec"].data * u.ct
+        )
+        ts = TimeSeries(times=timestamps)
+        ts["asic"] = these_asics
+        ts["pixel"] = these_pixels
+        ts["pixel_str"] = pixel_strs
+        ts["seqcount"] = hdu["pkt"].data["seqcount"]
+        ts["pkttimes"] = hdu["pkt"].data["pkttimes"]
 
     return ts, specs
 
