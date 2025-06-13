@@ -654,6 +654,19 @@ def _concatenate_input_files(input_files: list[Path], hdu_dict: dict) -> dict:
     return hdu_dict
 
 
+def hdu_to_dict(hdu: fits.hdu) -> dict:
+    """Given an hdu, convert it to an hdu dict"""
+
+    if isinstance(hdu, fits.BinTableHDU):
+        hdu_type = "bintabel"
+    elif isinstance(hdu, fits.ImageHDU):
+        hdu_type = "image"
+    else:
+        hdu_type = None
+
+    return {"header": hdu.header, "data": hdu.data, "name": hdu.name, "type": hdu_type}
+
+
 def get_hdu_data_times(hdu: dict) -> Time:
     """
     Extract time information from the data within a FITS file.

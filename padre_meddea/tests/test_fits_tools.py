@@ -5,12 +5,13 @@ import pytest
 from pathlib import Path
 import tempfile
 import time
+import numpy as np
 
 from astropy.table import Table
 import astropy.io.fits as fits
 import pytest
 
-from padre_meddea.io.fits_tools import concatenate_files
+from padre_meddea.io.fits_tools import concatenate_files, hdu_to_dict, get_hdu_data_times
 
 
 # Fix for memmap issue and files not closing on Windows
@@ -324,3 +325,45 @@ def test_concatenate_fits_cases(
             )
             assert provenance_table["FILENAME"][0] == additional_parentext
             assert provenance_table["DATE_BEG"][0] == "2025-05-05T00:00:00.000"
+
+@pytest.mark.parametrize("input_files", [
+            [
+                data_dir
+                / "eventlist/padre_meddea_l0test_photon_20250504T055311_v0.1.0.fits",
+                data_dir
+                / "eventlist/padre_meddea_l0test_photon_20250504T073749_v0.1.0.fits",
+            ],
+             [
+                data_dir
+                / "hk/padre_meddea_l0test_housekeeping_20250504T055138_v0.1.0.fits",
+                data_dir
+                / "hk/padre_meddea_l0test_housekeeping_20250504T055308_v0.1.0.fits",
+            ],
+           [ data_dir
+                / "spec/padre_meddea_l0test_spectrum_20250504T153111_v0.1.0.fits",
+                data_dir
+                / "spec/padre_meddea_l0test_spectrum_20250504T153309_v0.1.0.fits"],
+            ])
+def test_eventlist_concatenate(input_files):
+    """Test that no data is lost in every hdu and that the data is in the right order."""
+
+    output_files = concatenate_files(files_to_combine=input_files)
+
+    h1 = fits.open(input_files[0])
+    h2 = fits.open(input_files[1])
+    out = fits.open(output_files[0])
+
+    # check all hdu but ignore the first hdu which does not contain data
+    for hdu1, hdu2, outhdu in zip(h1[1:], h2[1:], out[1:]):
+        assert len(hdu1.data) + len(hdu2.data) == len(outhdu.data)
+
+        times = get_hdu_data_times(hdu_to_dict(outhdu))
+        assert np.all(sorted(times) == times)
+
+    h1.close()
+    h2.close()
+    out.close()
+
+# add test to check that no data was lost for each file
+# add test to check that data is in the right order
+
