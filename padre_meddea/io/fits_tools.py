@@ -1066,7 +1066,7 @@ def _write_output_file(
     while attempt < retries:
         try:
             log.debug(f"Writing to file: {outfile} (Attempt {attempt + 1})")
-            hdul.writeto(outfile, overwrite=True)
+            hdul.writeto(str(outfile), overwrite=True)
             log.info(f"Created concatenated daily file: {outfile}")
             return outfile
         except Exception as e:
