@@ -255,7 +255,10 @@ def process_file(filename: Path, overwrite=False) -> list:
             data_type = "spectrum"
 
             ts, spectra, ids = parsed_data["spectra"]
-            aws_db.record_spectra(ts, spectra, ids)
+            try:
+                aws_db.record_spectra(ts, spectra, ids)
+            except ValueError:
+                pass
             asic_nums, channel_nums = util.parse_pixelids(ids)
             # asic_nums = (ids & 0b11100000) >> 5
             # channel_nums = ids & 0b00011111
