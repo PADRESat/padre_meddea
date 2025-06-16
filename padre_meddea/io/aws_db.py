@@ -19,7 +19,9 @@ def record_spectra(pkt_ts, spectra, ids):
     ts = TimeSeries(time=pkt_ts.time)
     median_asic_nums = np.median(asic_nums, axis=0)
     median_channel_nums = np.median(channel_nums, axis=0)
-    for i, (this_asic, this_chan) in enumerate(zip(median_asic_nums, median_channel_nums)):
+    for i, (this_asic, this_chan) in enumerate(
+        zip(median_asic_nums, median_channel_nums)
+    ):
         this_col = f"Det{this_asic}{util.pixel_to_str(util.channel_to_pixel(this_chan))[:-1]}"  # remove L or S
         for j in range(NUM_LC_PER_SPEC):
             this_lc = np.sum(
