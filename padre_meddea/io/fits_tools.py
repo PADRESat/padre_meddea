@@ -1120,7 +1120,7 @@ def concatenate_files(
 
     if len(all_files) == 1:
         # Only one file, just open it (or whatever logic you need)
-        hdul_dict = _process_single_file(all_files[0],hdul_dict)
+        hdul_dict = _concatenate_input_files(all_files[0], hdul_dict)
     else:
         # Concatenate Input Files
         hdul_dict = _concatenate_input_files(all_files[1:], hdul_dict)
