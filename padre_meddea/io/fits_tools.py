@@ -1118,8 +1118,12 @@ def concatenate_files(
     # Initialize Data Structures
     hdul_dict = _init_hdul_structure(all_files[0])
 
-    # Concatenate Input Files
-    hdul_dict = _concatenate_input_files(all_files[1:], hdul_dict)
+    if len(all_files) == 1:
+        # Only one file, just open it (or whatever logic you need)
+        hdul_dict = _process_single_file(all_files[0],hdul_dict)
+    else:
+        # Concatenate Input Files
+        hdul_dict = _concatenate_input_files(all_files[1:], hdul_dict)
 
     # Sort Data Structures by Time
     hdul_dict = _sort_hdul_template(hdul_dict)
