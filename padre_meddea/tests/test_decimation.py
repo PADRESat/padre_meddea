@@ -68,4 +68,8 @@ def test_get_decimation_ftable():
 )
 def test_get_decimation_file(time_str, filename):
     """Check that expected results for specific times."""
-    assert get_decimation_file(Time(time_str)).name == filename
+    decim_filename = get_decimation_file(Time(time_str))
+    if decim_filename:
+        assert decim_filename.name == filename
+    else:
+        assert decim_filename is None
