@@ -951,21 +951,18 @@ def split_provenance_tables_by_day(files_to_combine, existing_file=None):
     if existing_file and Path(existing_file).exists():
         with fits.open(existing_file) as hdul:
             try:
-                if isinstance(hdul["PROVENANCE"], fits.BinTableHDU):
-                    existing_table = Table.read(hdul["PROVENANCE"], format="fits")
-                else:
-                    existing_table = Table(hdul["PROVENANCE"].data)
-                for row in existing_table:
-                    day = row["DATE_BEG"][:10]  # 'YYYY-MM-DD'
-                    by_day[day].append(
-                        {
+                prov_hdu = hdul["PROVENANCE"]
+                if isinstance(prov_hdu, fits.BinTableHDU):
+                    existing_table = Table.read(prov_hdu, format="fits")
+                    for row in existing_table:
+                        day = row["DATE_BEG"][:10]
+                        by_day[day].append({
                             "FILENAME": row["FILENAME"],
                             "DATE_BEG": row["DATE_BEG"],
                             "DATE_END": row["DATE_END"],
-                        }
-                    )
-            except (KeyError, AttributeError):
-                pass  # skip if PROVENANCE not present or invalid
+                        })
+            except (KeyError, AttributeError, IndexError):
+                pass
 
     # STEP 2: Add new provenance entries
     for fileobj in files_to_combine:
