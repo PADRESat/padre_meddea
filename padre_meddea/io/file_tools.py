@@ -7,6 +7,7 @@ from pathlib import Path
 import numpy as np
 import astropy.units as u
 from astropy.timeseries import TimeSeries
+from astropy.time import Time
 
 import ccsdspy
 from ccsdspy import PacketField, PacketArray
@@ -555,3 +556,35 @@ def inspect_raw_file(filename: Path):
             print(
                 f"There are {count_packets(stream_by_apid[val])} {key} packets (APID {val})."
             )
+
+
+def clean_spectra_data(parsed_data):
+    """Given raw spectrum packet data, perform a cleaning operation that removes bad data.
+    The most common cause of which are bits that are turned to zero when they should not be.
+
+    This function finds unphysical times (before 2022-01-01) and replaces the time with an estimated time by using the median time between spectra.
+    It also replaces all pixel ids with the median pixel id set.
+
+    Returns
+    -------
+    cleaned_parsed_data
+    """
+    ts, spectra, ids = parsed_data
+    # remove bad times
+    dts = ts.time[1:] - ts.time[:-1]
+    median_dt = np.median(dts)
+    bad_indices = np.argwhere(ts.time <= Time("2024-01-01T00:00"))
+    for this_bad_index in bad_indices:
+        if this_bad_index < len(ts.time) - 1:
+            ts.time[this_bad_index] = ts.time[this_bad_index + 1] - median_dt
+        else:
+            ts.time[this_bad_index] = ts.time[this_bad_index - 1] + median_dt
+
+    # remove bad pixel ids
+    median_ids = np.median(ids, axis=0)
+    fixed_ids = (
+        np.tile(median_ids, ids.shape[0])
+        .reshape(ids.shape[0], len(median_ids))
+        .astype(ids.dtype)
+    )
+    return ts, spectra, fixed_ids

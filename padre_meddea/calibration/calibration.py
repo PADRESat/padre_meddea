@@ -254,15 +254,18 @@ def process_file(filename: Path, overwrite=False) -> list:
             # Set Data Type for L0 Data
             data_type = "spectrum"
 
-            ts, spectra, ids = parsed_data["spectra"]
+            # TODO check that asic_nums and channel_nums do not change
+            # the function below will remove any change in pixel ids
+
+            ts, spectra, ids = file_tools.clean_spectra_data(parsed_data["spectra"])
             try:
                 aws_db.record_spectra(ts, spectra, ids)
             except ValueError:
                 pass
+
             asic_nums, channel_nums = util.parse_pixelids(ids)
             # asic_nums = (ids & 0b11100000) >> 5
             # channel_nums = ids & 0b00011111
-            # TODO check that asic_nums and channel_nums do not change
 
             # Get FITS Primary Header Template
             primary_hdr = get_primary_header(
