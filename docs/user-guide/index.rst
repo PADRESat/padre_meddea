@@ -16,6 +16,7 @@ For more details checkout the :ref:`reference`.
    level0
    simul_spectrum
    amptek
+   photons/decimation
    raw_spectrum_data
    customization
    logger
