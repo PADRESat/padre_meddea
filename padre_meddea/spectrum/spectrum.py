@@ -1,6 +1,7 @@
 """
 This module provides tools to analyze and manipulate meddea spectral data both summary spectra and event lists.
 """
+
 from pathlib import Path
 
 import numpy as np
@@ -20,7 +21,35 @@ from specutils.fitting import estimate_line_parameters, fit_lines
 import padre_meddea.util.util as util
 import padre_meddea
 
-DEFAULT_PIXEL_IDS = np.array([51738, 51720, 51730, 51712, 51733, 51715, 51770, 51752, 51762, 51744, 51765, 51747, 51802, 51784, 51794, 51776, 51797, 51779, 51834, 51816, 51826, 51808, 51829, 51811], dtype=np.uint16)
+DEFAULT_PIXEL_IDS = np.array(
+    [
+        51738,
+        51720,
+        51730,
+        51712,
+        51733,
+        51715,
+        51770,
+        51752,
+        51762,
+        51744,
+        51765,
+        51747,
+        51802,
+        51784,
+        51794,
+        51776,
+        51797,
+        51779,
+        51834,
+        51816,
+        51826,
+        51808,
+        51829,
+        51811,
+    ],
+    dtype=np.uint16,
+)
 MAX_PH_DATA_RATE = 100 * u.kilobyte / u.s
 
 __all__ = [
@@ -69,7 +98,7 @@ class PhotonList:
 
     def _text_summary(self):
         dt = self.data.time[-1] - self.data.time[0]
-        dt.format = 'quantity_str'
+        dt.format = "quantity_str"
         result = f"PhotonList ({len(self.data):,} events)\n"
         if dt < (1 * u.day):
             result += f"{self.data.time[0]} - {str(self.data.time[-1])[11:]} ({dt})\n"
@@ -276,7 +305,7 @@ class SpectrumList:
 
     def _text_summary(self):
         dt = self.time[-1] - self.time[0]
-        dt.format = 'quantity_str'
+        dt.format = "quantity_str"
         result = f"SpectrumList ({self.specs.shape[0]:,} spectra)\n"
         if dt < (1 * u.day):
             result += f"{self.time[0]} - {str(self.time[-1])[11:]} ({dt})\n"

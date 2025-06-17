@@ -1,4 +1,5 @@
 """Provides support for parsing raw files"""
+
 from pathlib import Path
 
 import numpy as np
@@ -68,10 +69,14 @@ def parse_ph_packets(filename: Path):
     ph_data = pkt.load(packet_stream, include_primary_header=True)
     # packet_time = ph_data["TIME_S"] + ph_data["TIME_CLOCKS"] / 20.0e6
     if util.has_baseline(filename):
-        padre_meddea.log.info(f"{filename.name}: Found baseline measurements in photon data.")
+        padre_meddea.log.info(
+            f"{filename.name}: Found baseline measurements in photon data."
+        )
         WORDS_PER_HIT = 4
     else:
-        padre_meddea.log.info(f"{filename.name}: No baseline measurements in photon data.")
+        padre_meddea.log.info(
+            f"{filename.name}: No baseline measurements in photon data."
+        )
         WORDS_PER_HIT = 3
 
     pkt_times = util.calc_time(ph_data["TIME_S"], ph_data["TIME_CLOCKS"])
@@ -187,7 +192,7 @@ def parse_spectrum_packets(filename: Path):
     """
     import ccsdspy
     from ccsdspy.utils import split_by_apid
-    
+
     filename = Path(filename)
     with open(filename, "rb") as mixed_file:
         stream_by_apid = split_by_apid(mixed_file)
@@ -221,6 +226,7 @@ def parse_spectrum_packets(filename: Path):
 def packet_definition_hist():
     """Return the packet definition for the histogram packets."""
     from ccsdspy import PacketField, PacketArray
+
     # NOTE: This is an outdated packet definition.
     # the number of pixels provided by a histogram packet
     NUM_BINS = 512
@@ -258,6 +264,7 @@ def packet_definition_hist2():
     NUM_BINS = 512
     NUM_PIXELS = 24
     from ccsdspy import PacketField, PacketArray
+
     # the header
     p = [
         PacketField(name="TIME_S", data_type="uint", bit_length=32),
@@ -283,6 +290,7 @@ def packet_definition_hist2():
 def packet_definition_ph():
     """Return the packet definition for the photon packets."""
     from ccsdspy import PacketField, PacketArray
+
     p = [
         PacketField(name="TIME_S", data_type="uint", bit_length=32),
         PacketField(name="TIME_CLOCKS", data_type="uint", bit_length=32),

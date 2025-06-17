@@ -57,7 +57,7 @@ def read_file(filename: Path):
                     result = read_raw_a2(this_path)
                 case "padremda0":  # photon data
                     result = read_raw_a0(this_path)
-                case "padremdu8": # housekeeping and command response data
+                case "padremdu8":  # housekeeping and command response data
                     result = read_raw_u8(this_path)
         case _:
             raise ValueError(f"File extension {this_path.suffix} not recognized.")
@@ -67,7 +67,7 @@ def read_file(filename: Path):
 def read_raw_a2(filename: Path) -> SpectrumList:
     this_path = Path(filename)
     raw_data = read_raw_file(this_path)
-    pkt_spec, specs, pixel_ids = raw_data['spectra']
+    pkt_spec, specs, pixel_ids = raw_data["spectra"]
     result = SpectrumList(pkt_spec, specs, pixel_ids)
     return result
 
@@ -75,7 +75,7 @@ def read_raw_a2(filename: Path) -> SpectrumList:
 def read_raw_a0(filename: Path) -> PhotonList:
     this_path = Path(filename)
     raw_data = read_raw_file(this_path)
-    pkt_list, event_list = raw_data['photons']
+    pkt_list, event_list = raw_data["photons"]
     result = PhotonList(pkt_list, event_list)
     return result
 
@@ -83,8 +83,8 @@ def read_raw_a0(filename: Path) -> PhotonList:
 def read_raw_u8(filename: Path):
     this_path = Path(filename)
     raw_data = read_raw_file(this_path)
-    hk_ts = raw_data['housekeeping']
-    cmd_ts = raw_data['cmd_resp']
+    hk_ts = raw_data["housekeeping"]
+    cmd_ts = raw_data["cmd_resp"]
     return hk_ts, cmd_ts
 
 
