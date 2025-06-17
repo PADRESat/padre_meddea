@@ -8,6 +8,7 @@ import padre_meddea.util.util as util
 
 from astropy.time import TimeDelta
 import astropy.units as u
+from astropy.tests.helper import assert_quantity_allclose
 
 TIME = "2024-04-06T12:06:21"
 TIME_FORMATTED = "20240406T120621"
@@ -116,3 +117,24 @@ def test_pixel_to_string_error():
         util.pixel_to_str(13)
     with pytest.raises(ValueError):
         util.pixel_to_str(16)
+
+
+def test_threshold_to_energy_error():
+    with pytest.raises(ValueError):
+        util.threshold_to_energy(-1)
+    with pytest.raises(ValueError):
+        util.threshold_to_energy(64)
+    with pytest.raises(ValueError):
+        util.threshold_to_energy(100)
+
+
+@pytest.mark.parametrize(
+    "input,output",
+    [
+        (0, -0.6 * u.keV),
+        (55, 10.4 * u.keV),
+        (62, 16 * u.keV),
+    ],
+)
+def test_threshold_to_energy(input, output):
+    assert_quantity_allclose([util.threshold_to_energy(input)], [output])
