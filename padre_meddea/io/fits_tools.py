@@ -9,7 +9,8 @@ import re
 import tempfile
 import time
 import warnings
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
+from datetime import datetime, time, timedelta
 from pathlib import Path
 from typing import List, Tuple
 
@@ -19,9 +20,6 @@ import git
 import numpy as np
 import solarnet_metadata
 from astropy import units as u
-from collections import defaultdict
-from datetime import datetime, timedelta, time
-
 from astropy.io import ascii
 from astropy.table import Table, vstack
 from astropy.time import Time
@@ -582,7 +580,6 @@ def _init_hdul_structure(
 
     hdul = fits.open(template_file)
     for i, hdu in enumerate(hdul):
-        print(hdu.header["BTYPE"], {hdu.name})
         if isinstance(hdu, fits.PrimaryHDU):
             hdul_dict[i] = {
                 "header": hdu.header.copy(),
@@ -590,7 +587,9 @@ def _init_hdul_structure(
                 "type": "primary",
                 "name": hdu.name,
             }
-        elif isinstance(hdu, fits.BinTableHDU) and not isinstance(hdu, fits.CompImageHDU):
+        elif isinstance(hdu, fits.BinTableHDU) and not isinstance(
+            hdu, fits.CompImageHDU
+        ):
             if hdu.name in ["PROVENANCE"]:  # Skip non-data HDUs
                 continue
             hdul_dict[i] = {
@@ -659,7 +658,7 @@ def hdu_to_dict(hdu: fits.hdu) -> dict:
     """Given an hdu, convert it to an hdu dict"""
 
     if isinstance(hdu, fits.BinTableHDU):
-        hdu_type = "bintabel"
+        hdu_type = "bintable"
     elif isinstance(hdu, fits.ImageHDU):
         hdu_type = "image"
     else:
@@ -669,13 +668,43 @@ def hdu_to_dict(hdu: fits.hdu) -> dict:
 
 
 def get_hdu_data_times(hdul_dict: dict[int, dict], hdu_name: str) -> Time:
+    """
+    Extract time information from the data within a FITS file.
+
+    This function parses times differently based on the file descriptor (eventlist, hk, spec)
+    extracted from the filename. It accesses the appropriate HDU and data columns for
+    each file type to calculate accurate time values.
+
+    Parameters
+    ----------
+    hdul_dict : dict[int, dict]
+        Dictionary representation of a FITS HDU list, where each key is an index into the HDUL
+        Each value is a dict: {
+            "header": fits.Header,
+            "data": Table or np.ndarray,
+            "type": "bintable" or "image",
+            "name": str (optional)
+        }
+    hdu_name : str
+        Name of the HDU to extract time information from
+
+    Returns
+    -------
+    Time
+        Astropy Time object containing the time values extracted from the file data
+
+    Raises
+    ------
+    ValueError
+        If the file descriptor is not recognized or supported
+    """
     # Find the HDU with the given name
     target_hdu = None
     for idx, hdu in hdul_dict.items():
         if hdu.get("name") == hdu_name:
             target_hdu = hdu
             break
-    
+
     if target_hdu is None:
         raise ValueError(f"No HDU with name {hdu_name} found in HDU dictionary")
 
@@ -683,7 +712,7 @@ def get_hdu_data_times(hdul_dict: dict[int, dict], hdu_name: str) -> Time:
     # We need to parse times differently for Photon / Spectrum / HK
     data_type = target_hdu["header"].get("BTYPE", "").lower()
     data = target_hdu["data"]
-    
+
     # Photon HDUs
     if data_type == "photon" and hdu_name == "SCI":
         return calc_time(
@@ -693,13 +722,13 @@ def get_hdu_data_times(hdul_dict: dict[int, dict], hdu_name: str) -> Time:
         )
     elif data_type == "photon" and hdu_name == "PKT":
         return calc_time(data["pkttimes"], data["pktclock"])
-    
+
     # Housekeeping HDUs
     elif data_type == "housekeeping" and hdu_name == "HK":
         return calc_time(data["timestamp"])
     elif data_type == "housekeeping" and hdu_name == "READ":
         return calc_time(data["time_s"], data["time_clock"])
-    
+
     # Spectrum HDUs
     elif data_type == "spectrum" and hdu_name == "PKT":
         return calc_time(data["pkttimes"], data["pktclock"])
@@ -708,72 +737,22 @@ def get_hdu_data_times(hdul_dict: dict[int, dict], hdu_name: str) -> Time:
         # Find the associated PKT HDU
         pkt_hdu = None
         for idx, hdu in hdul_dict.items():
-            if hdu.get("name") == "PKT" and hdu["header"].get("BTYPE", "").lower() == "spectrum":
+            if (
+                hdu.get("name") == "PKT"
+                and hdu["header"].get("BTYPE", "").lower() == "spectrum"
+            ):
                 pkt_hdu = hdu
                 break
-        
+
         if pkt_hdu is None:
             raise ValueError("No PKT HDU found for SPEC HDU")
-        
+
         # Extract times from PKT HDU
         return calc_time(pkt_hdu["data"]["pkttimes"], pkt_hdu["data"]["pktclock"])
     else:
-        raise ValueError(f"File contents of {hdu_name} not recognized for data type {data_type}")
-
-
-# def get_hdu_data_times(hdu: dict) -> Time:
-#     """
-#     Extract time information from the data within a FITS file.
-
-#     This function parses times differently based on the file descriptor (eventlist, hk, spec)
-#     extracted from the filename. It accesses the appropriate HDU and data columns for
-#     each file type to calculate accurate time values.
-
-#     Parameters
-#     ----------
-#     hdu : dict
-#         {
-#             "header": fits.Header,
-#             "data": Table or np.ndarray,
-#             "type": "bintable" or "image",
-#             "name": str (optional)
-#         }
-
-#     Returns
-#     -------
-#     Time
-#         Astropy Time object containing the time values extracted from the file data
-
-#     Raises
-#     ------
-#     ValueError
-#         If the file descriptor is not recognized or supported
-#     """
-#     # Get the File Desctiptor
-#     # We need to parse times differently for Photon / Spectrum / HK
-#     data_type = hdu["header"].get("BTYPE", "").lower()
-#     data = hdu["data"]
-
-#     # Calculate Times based on the file descriptor
-#     if data_type == "photon" and hdu["name"] == "SCI":
-#         times = calc_time(
-#             data["pkttimes"],
-#             data["pktclock"],
-#             data["clocks"],
-#         )
-#     elif data_type == "photon" and hdu["name"] == "PKT":
-#         times = calc_time(data["pkttimes"], data["pktclock"])
-#     elif data_type == "housekeeping" and hdu["name"] == "HK":
-#         times = calc_time(data["timestamp"])
-#     elif data_type == "housekeeping" and hdu["name"] == "READ":
-#         times = calc_time(data["time_s"], data["time_clock"])
-#     elif data_type == "spectrum":
-#         times = calc_time(data["pkttimes"], data["pktclock"])
-#     else:
-#         raise ValueError(f"File contents of {hdu['name']} not recogized.")
-
-#     return times
-
+        raise ValueError(
+            f"File contents of {hdu_name} not recognized for data type {data_type}"
+        )
 
 
 def _sort_hdul_template(hdul_dict: dict):
@@ -784,17 +763,63 @@ def _sort_hdul_template(hdul_dict: dict):
             pass
         elif hdu_info["type"] == "bintable":
             # Get Times for Bintable Data
-            # times = get_hdu_data_times(hdu_info)
             times = get_hdu_data_times(hdul_dict, hdu_info["name"])
             # Get sorting indices - this tells you the order that would sort the array
             sort_indices = times.argsort()
             # Replace the data in the HDU with the sorted data
             hdu_info["data"] = hdu_info["data"][sort_indices]
         elif hdu_info["type"] == "image":
-            # Sort Image Data
-            pass
+            # Get Times for Image Data
+            times = get_hdu_data_times(hdul_dict, hdu_info["name"])
+            # Get sorting indices - this tells you the order that would sort the array
+            sort_indices = times.argsort()
+            # The Image data is indexed by time indices, so we sort the data
+            hdu_info["data"] = hdu_info["data"][sort_indices]
 
     return hdul_dict
+
+
+def _filter_hdul_time_ranges(
+    hdul_dict: dict[int, dict], start_time: Time, end_time: Time
+) -> dict[int, dict]:
+    """
+    Filter the HDU dictionary to only include data within the specified time range.
+
+    Parameters
+    ----------
+    hdul_dict : dict[int, dict]
+        Dictionary representation of a FITS HDU list, where each key is an index into the HDUL
+        Each value is a dict: {
+            "header": fits.Header,
+            "data": Table or np.ndarray,
+            "type": "bintable" or "image",
+            "name": str (optional)
+        }
+
+    Returns
+    -------
+    dict[int, dict]
+        Filtered HDU dictionary containing only data within the specified time range.
+    """
+    filtered_hdul = {}
+    for idx, hdu_info in hdul_dict.items():
+        if hdu_info["type"] == "primary":
+            # For primary HDU, we just need to check consistency
+            filtered_hdul[idx] = hdu_info
+        else:
+            # Get Times for Data HDUs
+            times = get_hdu_data_times(hdul_dict, hdu_info["name"])
+            # Apply Time Range Filtering
+            time_mask = (times >= start_time) & (times <= end_time)
+            if np.any(time_mask):
+                filtered_hdul[idx] = {
+                    "header": hdu_info["header"].copy(),
+                    "data": hdu_info["data"][time_mask].copy(),
+                    "type": hdu_info["type"],
+                    "name": hdu_info.get("name", None),
+                }
+
+    return filtered_hdul
 
 
 def split_hdul_by_day(hdul_dict: dict) -> dict:
@@ -813,8 +838,9 @@ def split_hdul_by_day(hdul_dict: dict) -> dict:
         are HDU dictionaries containing only data from that day
     """
     # Get the times from each HDU
-    # hdu_times = [get_hdu_data_times(hdul_dict[i]) for i in hdul_dict if i != 0]
-    hdu_times = [get_hdu_data_times(hdul_dict, hdul_dict[i]["name"]) for i in hdul_dict if i != 0]
+    hdu_times = [
+        get_hdu_data_times(hdul_dict, hdul_dict[i]["name"]) for i in hdul_dict if i != 0
+    ]
     unique_times = Time(np.unique(np.concatenate(hdu_times)))
 
     # Extract the day part of each time
@@ -890,7 +916,6 @@ def update_hdul_date_metadata(
             continue
         elif hdu_info["type"] == "bintable":
             # Get Times for Bintable Data
-            # times = get_hdu_data_times(hdu_info)
             times = get_hdu_data_times(hdul_dict, hdu_info["name"])
 
             # Update Data HDU Header
@@ -1181,6 +1206,13 @@ def concatenate_files(
 
     # Sort Data Structures by Time
     hdul_dict = _sort_hdul_template(hdul_dict)
+
+    # Filter HDUL baed on Time Range Checking
+    hdul_dict = _filter_hdul_time_ranges(
+        hdul_dict=hdul_dict,
+        start_time=Time("2025-01-01 00:00:00.000", format="iso", scale="utc"),
+        end_time=Time("2050-01-01 00:00:00.000", format="iso", scale="utc"),
+    )
 
     # Split HDU by Day
     hdul_dicts = split_hdul_by_day(hdul_dict)
