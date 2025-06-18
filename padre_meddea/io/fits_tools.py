@@ -988,7 +988,7 @@ def update_hdul_filename_metadata(
     """
     filename_meta = parse_science_filename(output_file)
     # Update Filename
-    hdul_dict[0]["header"]["FILENAME"] = (output_file, get_comment("FILENAME"))
+    hdul_dict[0]["header"]["FILENAME"] = (str(output_file), get_comment("FILENAME"))
     hdul_dict[0]["header"]["LEVEL"] = (filename_meta["level"], get_comment("LEVEL"))
 
     # Generate the PARENTXT string from the provenance table filenames
