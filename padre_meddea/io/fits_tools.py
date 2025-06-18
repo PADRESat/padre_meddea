@@ -1202,7 +1202,8 @@ def concatenate_files(
     hdul_dict = _init_hdul_structure(all_files[0])
 
     # Concatenate Input Files
-    hdul_dict = _concatenate_input_files(all_files[1:], hdul_dict)
+    if len(all_files) > 1:
+        hdul_dict = _concatenate_input_files(all_files[1:], hdul_dict)
 
     # Sort Data Structures by Time
     hdul_dict = _sort_hdul_template(hdul_dict)
