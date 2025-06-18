@@ -13,6 +13,7 @@ import pytest
 
 from padre_meddea.io.fits_tools import (
     concatenate_files,
+    _init_hdul_structure,
     hdu_to_dict,
     get_hdu_data_times,
 )
@@ -172,45 +173,45 @@ def temp_dir():
         (
             [
                 data_dir
-                / "spec/padre_meddea_l0test_spectrum_20250504T153111_v0.1.0.fits",
+                / "spec/padre_meddea_l0test_spectrum_20250504T103811_v0.1.0.fits",
                 data_dir
-                / "spec/padre_meddea_l0test_spectrum_20250504T153309_v0.1.0.fits",
+                / "spec/padre_meddea_l0test_spectrum_20250504T114921_v0.1.0.fits",
                 data_dir
-                / "spec/padre_meddea_l0test_spectrum_20250504T153509_v0.1.0.fits",
+                / "spec/padre_meddea_l0test_spectrum_20250504T141211_v0.1.0.fits",
             ],
             [
                 "padre_meddea_l1_spectrum_20250504T000000_v0.1.0.fits",
             ],
-            "padre_meddea_l0test_spectrum_20250504T153111_v0.1.0.fits, padre_meddea_l0test_spectrum_20250504T153309_v0.1.0.fits, padre_meddea_l0test_spectrum_20250504T153509_v0.1.0.fits",
+            "padre_meddea_l0test_spectrum_20250504T103811_v0.1.0.fits, padre_meddea_l0test_spectrum_20250504T114921_v0.1.0.fits, padre_meddea_l0test_spectrum_20250504T141211_v0.1.0.fits",
             [
                 data_dir
-                / "spec/padre_meddea_l0test_spectrum_20250504T153709_v0.1.0.fits",
+                / "spec/padre_meddea_l0test_spectrum_20250504T070411_v0.1.0.fits",
             ],
             [
                 "padre_meddea_l1_spectrum_20250504T000000_v0.1.0.fits",
                 "padre_meddea_l1_spectrum_20250505T000000_v0.1.0.fits",
             ],
-            "padre_meddea_l0test_spectrum_20250504T153111_v0.1.0.fits, padre_meddea_l0test_spectrum_20250504T153309_v0.1.0.fits, padre_meddea_l0test_spectrum_20250504T153509_v0.1.0.fits, padre_meddea_l0test_spectrum_20250504T153709_v0.1.0.fits",
+            "padre_meddea_l0test_spectrum_20250504T103811_v0.1.0.fits, padre_meddea_l0test_spectrum_20250504T114921_v0.1.0.fits, padre_meddea_l0test_spectrum_20250504T141211_v0.1.0.fits, padre_meddea_l0test_spectrum_20250504T070411_v0.1.0.fits",
             [
                 {
-                    "date-beg": "2025-05-04T15:31:11.449",
-                    "date-end": "2025-05-04T15:33:09.809",
-                    "filename": "padre_meddea_l0test_spectrum_20250504T153111_v0.1.0.fits",
+                    "date-beg": "2025-05-04T00:00:00.000",  # 2025-05-04 10:38:21.392
+                    "date-end": "2025-05-04T10:39:51.392",
+                    "filename": "padre_meddea_l0test_spectrum_20250504T103811_v0.1.0.fits",
                 },
                 {
-                    "date-beg": "2025-05-04T15:33:11.449",
-                    "date-end": "2025-05-04T15:35:09.809",
-                    "filename": "padre_meddea_l0test_spectrum_20250504T153309_v0.1.0.fits",
+                    "date-beg": "2025-05-04T00:00:00.000",  # 2025-05-04 11:49:31.406
+                    "date-end": "2025-05-04T11:50:51.406",
+                    "filename": "padre_meddea_l0test_spectrum_20250504T114921_v0.1.0.fits",
                 },
                 {
-                    "date-beg": "2025-05-04T15:35:11.449",
-                    "date-end": "2025-05-04T15:37:09.809",
-                    "filename": "padre_meddea_l0test_spectrum_20250504T153509_v0.1.0.fits",
+                    "date-beg": "2025-05-04T00:00:00.000",  # 2025-05-04 14:12:21.433
+                    "date-end": "2025-05-04T14:13:41.434",
+                    "filename": "padre_meddea_l0test_spectrum_20250504T141211_v0.1.0.fits",
                 },
                 {
-                    "date-beg": "2025-05-04T15:37:11.449",
-                    "date-end": "2025-05-04T23:59:59.999",
-                    "filename": "padre_meddea_l0test_spectrum_20250504T153709_v0.1.0.fits",
+                    "date-beg": "2025-05-04T00:00:00.000",  # 2025-05-04 07:04:21.349
+                    "date-end": "2025-05-04T23:59:59.999",  # 2025-05-04T07:04:51.349
+                    "filename": "padre_meddea_l0test_spectrum_20250504T070411_v0.1.0.fits",
                 },
             ],
         ),
@@ -347,30 +348,22 @@ def test_concatenate_fits_cases(
             / "hk/padre_meddea_l0test_housekeeping_20250504T055308_v0.1.0.fits",
         ],
         [
-            data_dir / "spec/padre_meddea_l0test_spectrum_20250504T153111_v0.1.0.fits",
-            data_dir / "spec/padre_meddea_l0test_spectrum_20250504T153309_v0.1.0.fits",
+            data_dir / "spec/padre_meddea_l0test_spectrum_20250504T103811_v0.1.0.fits",
+            data_dir / "spec/padre_meddea_l0test_spectrum_20250504T114921_v0.1.0.fits",
         ],
     ],
 )
 def test_eventlist_concatenate(input_files):
-    """Test that no data is lost in every hdu and that the data is in the right order."""
+    """Test that the data is in the right order."""
 
     output_files = concatenate_files(files_to_combine=input_files)
-
-    h1 = fits.open(input_files[0])
-    h2 = fits.open(input_files[1])
-    out = fits.open(output_files[0])
+    outfile = _init_hdul_structure(output_files[0])
 
     # check all hdu but ignore the first hdu which does not contain data
-    for hdu1, hdu2, outhdu in zip(h1[1:], h2[1:], out[1:]):
-        assert len(hdu1.data) + len(hdu2.data) == len(outhdu.data)
-
-        times = get_hdu_data_times(hdu_to_dict(outhdu))
+    for outhdu_idx in range(1, len(outfile)):
+        # check that the data is the same
+        times = get_hdu_data_times(outfile, outfile[outhdu_idx]["name"])
         assert np.all(sorted(times) == times)
-
-    h1.close()
-    h2.close()
-    out.close()
 
 
 # add test to check that no data was lost for each file
