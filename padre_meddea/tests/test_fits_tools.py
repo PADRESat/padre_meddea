@@ -331,6 +331,12 @@ def test_concatenate_fits_cases(
             assert provenance_table["FILENAME"][0] == additional_parentext
             assert provenance_table["DATE_BEG"][0] == "2025-05-05T00:00:00.000"
 
+    # Test if you try to concatenate a file that is already concatenated, it logs a warning with logging.warning and does not change the file
+    empty_list = concatenate_files(
+        files_to_combine=additional_file, existing_file=output_file
+    )
+    assert empty_list == [], "Expected empty list when file is already concatenated"
+
 
 @pytest.mark.parametrize(
     "input_files",

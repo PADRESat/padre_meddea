@@ -1009,6 +1009,46 @@ def update_hdul_filename_metadata(
     return hdul_dict
 
 
+def get_provenance_filenames(fits_path: Path) -> set[str]:
+    """
+    Read the PROVENANCE table from an existing FITS file and return the set of filenames.
+    """
+    prov_filenames = set()
+    if not Path(fits_path).exists():
+        return prov_filenames
+    with fits.open(fits_path) as hdul:
+        if "PROVENANCE" in hdul:
+            prov_table = hdul["PROVENANCE"].data
+            # This works for both BinTable and TableHDU
+            if prov_table is not None and "FILENAME" in prov_table.names:
+                prov_filenames.update(str(f) for f in prov_table["FILENAME"])
+    return prov_filenames
+
+
+def filter_files_by_provenance(
+    files_to_combine: list[Path], existing_file: Path = None
+) -> list[Path]:
+    """
+    Remove files that are already in the provenance table of the existing file.
+    Logs a warning for each file skipped.
+    """
+    if existing_file is not None and Path(existing_file).exists():
+        already_concatenated = get_provenance_filenames(existing_file)
+        # Add existing_file itself to the set
+        already_concatenated.add(str(existing_file))
+        filtered = []
+        for f in files_to_combine:
+            if Path(f).name in already_concatenated:
+                log.warning(
+                    f"Skipping file '{f}' as it already exists in provenance of {existing_file}."
+                )
+            else:
+                filtered.append(f)
+        return filtered
+    else:
+        return files_to_combine
+
+
 def split_provenance_tables_by_day(files_to_combine, existing_file=None):
     """
     Splits provenance entries into daily Astropy Tables. If a file spans
@@ -1191,6 +1231,12 @@ def concatenate_files(
     """
     # Ignore MergeConflictWarning from astropy
     warnings.simplefilter("ignore", MergeConflictWarning)
+
+    # Remove files that are already in the provenance table of the existing file
+    files_to_combine = filter_files_by_provenance(files_to_combine, existing_file)
+    if not files_to_combine:
+        log.info("No new files to concatenate. All files are already in provenance.")
+        return []
 
     # Get the combined list of files to process
     all_files = _get_combined_list(files_to_combine, existing_file)
