@@ -121,7 +121,7 @@ def read_fits(filename: Path):
     header = hdul[0].header.copy()
     hdul.close()
     level = header["LEVEL"]
-    data_type = header["DATATYPE"]
+    data_type = header["BTYPE"]
 
     if (level == 0) and (data_type == "event_list"):
         return read_fits_l0_event_list(filename)
