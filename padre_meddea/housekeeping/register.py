@@ -40,13 +40,14 @@ def unshift_asic_reg_addr(asic_num: int, addr: int) -> int:
     base = 0x40 * asic_num
     return addr - base
 
+
 def load_register_table() -> Table:
     """Load the register table and add the asic registers.
-    
+
     Parameters
     ----------
     None
-    
+
     Returns
     -------
     Table
@@ -63,7 +64,9 @@ def load_register_table() -> Table:
     ]
 
     # find the indices for the asic registers
-    asic_ind = (register_table["address"] >= 0x0020) * (register_table["address"] <= 0x0044)
+    asic_ind = (register_table["address"] >= 0x0020) * (
+        register_table["address"] <= 0x0044
+    )
 
     for this_asic in range(4):
         this_register_asic_table = register_table[asic_ind].copy()
@@ -74,12 +77,15 @@ def load_register_table() -> Table:
         if this_asic == 0:
             register_asic_table = this_register_asic_table
         else:
-            register_asic_table = vstack([register_asic_table, this_register_asic_table])
+            register_asic_table = vstack(
+                [register_asic_table, this_register_asic_table]
+            )
 
     register_table = register_table[~asic_ind]
     register_table = vstack([register_table, register_asic_table])
     register_table.add_index("address")
     return register_table
+
 
 register_table = load_register_table()
 
