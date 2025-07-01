@@ -7,6 +7,7 @@ from pathlib import Path
 import numpy as np
 import astropy.units as u
 from astropy.timeseries import TimeSeries
+from astropy.table import Table
 from astropy.time import Time
 
 import ccsdspy
@@ -45,6 +46,7 @@ def read_file(filename: Path):
     Examples
     --------
     """
+    # TODO: the following should use parse_science_filename
     this_path = Path(filename)
     match this_path.suffix.lower():
         case ".bin":  # raw binary file
@@ -65,6 +67,18 @@ def read_file(filename: Path):
 
 
 def read_raw_a2(filename: Path) -> SpectrumList:
+    """
+    Read a raw Spectrum (A2) packet file.
+
+    Parameters
+    ----------
+    filename : Path
+        A file to read
+
+    Returns
+    -------
+    spectra : SpectrumList
+    """
     this_path = Path(filename)
     raw_data = read_raw_file(this_path)
     pkt_spec, specs, pixel_ids = raw_data["spectra"]
@@ -73,6 +87,18 @@ def read_raw_a2(filename: Path) -> SpectrumList:
 
 
 def read_raw_a0(filename: Path) -> PhotonList:
+    """
+    Read a raw photon (A0) packet file.
+
+    Parameters
+    ----------
+    filename : Path
+        A file to read
+
+    Returns
+    -------
+    eventlist : PhotonList
+    """
     this_path = Path(filename)
     raw_data = read_raw_file(this_path)
     pkt_list, event_list = raw_data["photons"]
@@ -81,6 +107,18 @@ def read_raw_a0(filename: Path) -> PhotonList:
 
 
 def read_raw_u8(filename: Path):
+    """
+    Read a raw housekeeping (U8) packet file.
+
+    Parameters
+    ----------
+    filename : Path
+        A file to read
+
+    Returns
+    -------
+    housekeeping timeseries, command timeseries
+    """
     this_path = Path(filename)
     raw_data = read_raw_file(this_path)
     hk_ts = raw_data["housekeeping"]
@@ -115,7 +153,7 @@ def read_raw_file(filename: Path):
 
 def read_fits(filename: Path):
     """
-    Read a fits file.
+    Read a fits file of any level and return the appropriate data objects.
     """
     hdul = fits.open(filename)
     header = hdul[0].header.copy()
@@ -123,62 +161,41 @@ def read_fits(filename: Path):
     level = header["LEVEL"]
     data_type = header["BTYPE"]
 
-    if (level == 0) and (data_type == "event_list"):
-        return read_fits_l0_event_list(filename)
-    if (level == 0) and (data_type == "housekeeping"):
-        return read_fits_l0_housekeeping(filename)
-    if (level == 0) and (data_type == "spectrum"):
-        return read_fits_l0_spectrum(filename)
+    if level == 'l0':
+        match data_type:
+            case "photon":
+                return read_fits_l0_photon(filename)
+            case "housekeeping":
+                return read_fits_l0_housekeeping(filename)
+            case "spectrum":
+                return read_fits_l0_spectrum(filename)
+            case _:
+                raise ValueError(f"Data type {data_type} is not recognized.")
     else:
-        raise ValueError(f"File contents of {filename} not recogized.")
+        raise ValueError(f"File level, {level}, is not recogized.")
 
 
-def read_fits_l0_event_list(filename: Path) -> TimeSeries:
-    """ """
-    with fits.open(filename) as hdu:
-        # parse event data in SCI
-        num_events = len(hdu["SCI"].data["seqcount"])
-        ph_times = util.calc_time(
-            hdu["sci"].data["pkttimes"],
-            hdu["sci"].data["pktclock"],
-            hdu["sci"].data["clocks"],
+def read_fits_l0_photon(filename: Path) -> PhotonList:
+    """
+    Read a level 0 photon fits file.
+    """
+    event_list_table = Table.read(filename, hdu=1)
+    ph_times = util.calc_time(
+            event_list_table["pkttimes"],
+            event_list_table["pktclock"],
+            event_list_table["clocks"],
         )
-        # add the pixel conversions
-        pixels = util.channel_to_pixel(hdu["sci"].data["channel"])
-        pixel_strs = [
-            util.get_pixel_str(this_asic, this_pixel)
-            for this_asic, this_pixel in zip(hdu["sci"].data["asic"], pixels)
-        ]
-        event_list = TimeSeries(
-            time=ph_times,
-            data={
-                "atod": hdu["sci"].data["atod"],
-                "baseline": hdu["sci"].data["baseline"],
-                "asic": hdu["sci"].data["asic"],
-                "channel": hdu["sci"].data["channel"],
-                "pixel": pixels,
-                "clocks": hdu["sci"].data["clocks"],
-                "seqcount": hdu["sci"].data["seqcount"],
-                "pixel_str": pixel_strs,
-            },
+    event_list_table['time'] = ph_times
+    event_list = TimeSeries(event_list_table)
+
+    packet_list_table = Table.read(filename, hdu=2)
+    pkt_times = util.calc_time(
+            packet_list_table["pkttimes"], packet_list_table["pktclock"]
         )
-        event_list.sort()
-        # parse packet header data
-        pkt_times = util.calc_time(
-            hdu["pkt"].data["pkttimes"], hdu["pkt"].data["pktclock"]
-        )
-        pkt_ts = TimeSeries(
-            time=pkt_times,
-            data={
-                "livetime": hdu["pkt"].data["livetime"],
-                "inttime": hdu["pkt"].data["inttime"],
-                "flags": hdu["pkt"].data[
-                    "flags"
-                ],  # TODO: parse flags into individual columns
-                "seqcount": hdu["pkt"].data["seqcount"],
-            },
-        )
-    return event_list, pkt_ts
+    packet_list_table['time'] = pkt_times
+    packet_list = TimeSeries(packet_list_table)
+    
+    return PhotonList(event_list, packet_list)
 
 
 def read_fits_l0_housekeeping(filename: Path) -> TimeSeries:
@@ -186,15 +203,20 @@ def read_fits_l0_housekeeping(filename: Path) -> TimeSeries:
 
     Returns
     -------
-    TimeSeries of housekeeping data.
+    hk_ts, cmd_ts
+        TimeSeries of housekeeping data, TimeSeries of reads
     """
-    with fits.open(filename) as hdu:
-        colnames = [this_col.name for this_col in hdu["HK"].data.columns]
-        times = util.calc_time(hdu["HK"].data["timestamp"])
-        hk_list = TimeSeries(
-            time=times, data={key: hdu["hk"].data[key] for key in colnames}
-        )
-        return hk_list
+    hk_table = Table.read(filename, hdu=1)
+    hk_times = util.calc_time(hk_table["timestamp"])
+    hk_table['time'] = hk_times
+    hk_ts = TimeSeries(hk_table)
+
+    cmd_table = Table.read(filename, hdu=2)
+    cmd_times = util.calc_time(cmd_table['time_s'], cmd_table['time_clock'])
+    cmd_table['time'] = cmd_times
+    cmd_ts = TimeSeries(cmd_table)
+
+    return hk_ts, cmd_ts
 
 
 def read_fits_l0_spectrum(filename: Path):
@@ -207,31 +229,18 @@ def read_fits_l0_spectrum(filename: Path):
     -------
     timestamps, Spectrum1D array, asic_nums, pixel_nums, pixelid_strings
     """
-    with fits.open(filename) as hdu:
-        timestamps = util.calc_time(
-            hdu["PKT"].data["pkttimes"], hdu["PKT"].data["pktclock"]
-        )
-        asic_nums = hdu["PKT"].data["asic"]
-        channel_nums = hdu["PKT"].data["channel"]
-        pixel_nums = util.channel_to_pixel(channel_nums)
-        these_asics = asic_nums[0]
-        these_pixels = pixel_nums[0]
-        pixel_strs = [
-            util.get_pixel_str(this_asic, this_pixel)
-            for this_asic, this_pixel in zip(these_asics, these_pixels)
-        ]
-        # TODO: check that all asic_nums and channel_nums are the same
-        specs = Spectrum1D(
-            spectral_axis=np.arange(512) * u.pix, flux=hdu["spec"].data * u.ct
-        )
-        ts = TimeSeries(times=timestamps)
-        ts["asic"] = these_asics
-        ts["pixel"] = these_pixels
-        ts["pixel_str"] = pixel_strs
-        ts["seqcount"] = hdu["pkt"].data["seqcount"]
-        ts["pkttimes"] = hdu["pkt"].data["pkttimes"]
+    pkt_table = Table.read(filename, hdu=2)
+    pkt_times = util.calc_time(pkt_table['pkttimes'], pkt_table['pktclock'])
+    pkt_table['time'] = pkt_times
+    pkt_ts = TimeSeries(pkt_table)
 
-    return ts, specs
+    hdu = fits.open(filename)
+    specs = Spectrum1D(
+            spectral_axis=np.arange(512) * u.pix, flux=hdu["spec"].data * u.ct
+    )
+    # reconstruct pixel ids
+    pixel_ids = (hdu["PKT"].data["asic"] << 5) + (hdu["PKT"].data["channel"])
+    return SpectrumList(pkt_ts, specs, pixel_ids)
 
 
 def parse_cmd_response_packets(filename: Path):
