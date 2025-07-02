@@ -147,7 +147,7 @@ def process_file(filename: Path, overwrite=False) -> list:
                 path = temp_dir / path
 
             # Write the file, with the overwrite option controlled by the environment variable
-            hdul.writeto(path, overwrite=overwrite)
+            hdul.writeto(path, overwrite=overwrite, checksum=True)
             # Store the output file path in a list
             output_files.append(path)
         if parsed_data["housekeeping"] is not None:
@@ -248,7 +248,7 @@ def process_file(filename: Path, overwrite=False) -> list:
                 overwrite = True  # Set overwrite to True
                 path = temp_dir / path
 
-            hdul.writeto(path, overwrite=overwrite)
+            hdul.writeto(path, overwrite=overwrite, checksum=True)
             output_files.append(path)
         if parsed_data["spectra"] is not None:
             # Set Data Type for L0 Data
@@ -300,8 +300,13 @@ def process_file(filename: Path, overwrite=False) -> list:
             spec_header["DATEREF"] = (primary_hdr["DATE-BEG"], get_comment("DATEREF"))
             spec_header["FILENAME"] = (path, get_comment("FILENAME"))
 
-            spec_hdu = fits.ImageHDU(data=spectra.data, header=spec_header, name="SPEC")
-            spec_hdu.add_checksum()
+            spec_hdu = fits.CompImageHDU(
+                data=spectra.data,
+                header=spec_header,
+                name="SPEC",
+                compression_type="GZIP_1",
+            )
+            # NOTE: CompImageHDU does not support add_checksum, so we add checksum to the HDUList later
 
             data_table = Table()
             data_table["pkttimes"] = ts["pkttimes"]
@@ -326,7 +331,7 @@ def process_file(filename: Path, overwrite=False) -> list:
                 overwrite = True  # Set overwrite to True
                 path = temp_dir / path
 
-            hdul.writeto(path, overwrite=overwrite)
+            hdul.writeto(path, overwrite=overwrite, checksum=True)
             output_files.append(path)
 
     # add other tasks below
