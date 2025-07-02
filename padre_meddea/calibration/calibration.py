@@ -300,7 +300,12 @@ def process_file(filename: Path, overwrite=False) -> list:
             spec_header["DATEREF"] = (primary_hdr["DATE-BEG"], get_comment("DATEREF"))
             spec_header["FILENAME"] = (path, get_comment("FILENAME"))
 
-            spec_hdu = fits.ImageHDU(data=spectra.data, header=spec_header, name="SPEC")
+            spec_hdu = fits.CompImageHDU(
+                data=spectra.data,
+                header=spec_header,
+                name="SPEC",
+                compression_type="GZIP_1",
+            )
             spec_hdu.add_checksum()
 
             data_table = Table()

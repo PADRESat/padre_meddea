@@ -1178,8 +1178,11 @@ def _write_output_file(
             new_hdu.add_checksum()
             hdu_list.append(new_hdu)
         elif hdu_info["type"] == "image":
-            new_hdu = fits.ImageHDU(
-                hdu_info["data"], header=hdu_info["header"], name=hdu_info["name"]
+            new_hdu = fits.CompImageHDU(
+                hdu_info["data"],
+                header=hdu_info["header"],
+                name=hdu_info["name"],
+                compression_type="GZIP_1",
             )
             hdu_list.append(new_hdu)
 
