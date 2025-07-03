@@ -161,21 +161,21 @@ def read_fits(filename: Path):
     level = header["LEVEL"]
     data_type = header["BTYPE"]
 
-    if level == 'l0':
+    if level in ['l0', 'l1']:
         match data_type:
             case "photon":
-                return read_fits_l0_photon(filename)
+                return read_fits_l0l1_photon(filename)
             case "housekeeping":
-                return read_fits_l0_housekeeping(filename)
+                return read_fits_l0l1_housekeeping(filename)
             case "spectrum":
-                return read_fits_l0_spectrum(filename)
+                return read_fits_l0l1_spectrum(filename)
             case _:
                 raise ValueError(f"Data type {data_type} is not recognized.")
     else:
-        raise ValueError(f"File level, {level}, is not recogized.")
+        raise ValueError(f"File level, {level}, and data type, {data_type}, of {filename} not recogized.")
 
 
-def read_fits_l0_photon(filename: Path) -> PhotonList:
+def read_fits_l0l1_photon(filename: Path) -> PhotonList:
     """
     Read a level 0 photon fits file.
     """
@@ -198,7 +198,7 @@ def read_fits_l0_photon(filename: Path) -> PhotonList:
     return PhotonList(event_list, packet_list)
 
 
-def read_fits_l0_housekeeping(filename: Path) -> TimeSeries:
+def read_fits_l0l1_housekeeping(filename: Path) -> TimeSeries:
     """Read a level 0 housekeeping file
 
     Returns
@@ -219,7 +219,7 @@ def read_fits_l0_housekeeping(filename: Path) -> TimeSeries:
     return hk_ts, cmd_ts
 
 
-def read_fits_l0_spectrum(filename: Path):
+def read_fits_l0l1_spectrum(filename: Path):
     """Read a level 0 spectrum file.
 
     .. note::
