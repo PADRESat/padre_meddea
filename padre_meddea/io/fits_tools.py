@@ -82,7 +82,7 @@ def get_comment(keyword: str) -> str:
     if keyword in schema.attribute_schema["attribute_key"]:
         keyword_info = schema.attribute_schema["attribute_key"][keyword]
         comment = keyword_info["human_readable"]
-        return comment
+    return comment
 
 
 def get_primary_header(

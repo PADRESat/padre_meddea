@@ -161,7 +161,7 @@ def read_fits(filename: Path):
     level = header["LEVEL"]
     data_type = header["BTYPE"]
 
-    if level in ['l0', 'l1']:
+    if level in ["l0", "l1"]:
         match data_type:
             case "photon":
                 return read_fits_l0l1_photon(filename)
@@ -172,7 +172,9 @@ def read_fits(filename: Path):
             case _:
                 raise ValueError(f"Data type {data_type} is not recognized.")
     else:
-        raise ValueError(f"File level, {level}, and data type, {data_type}, of {filename} not recogized.")
+        raise ValueError(
+            f"File level, {level}, and data type, {data_type}, of {filename} not recogized."
+        )
 
 
 def read_fits_l0l1_photon(filename: Path) -> PhotonList:
@@ -181,21 +183,21 @@ def read_fits_l0l1_photon(filename: Path) -> PhotonList:
     """
     event_list_table = Table.read(filename, hdu=1)
     ph_times = util.calc_time(
-            event_list_table["pkttimes"],
-            event_list_table["pktclock"],
-            event_list_table["clocks"],
-        )
-    event_list_table['time'] = ph_times
+        event_list_table["pkttimes"],
+        event_list_table["pktclock"],
+        event_list_table["clocks"],
+    )
+    event_list_table["time"] = ph_times
     event_list = TimeSeries(event_list_table)
 
     packet_list_table = Table.read(filename, hdu=2)
     pkt_times = util.calc_time(
-            packet_list_table["pkttimes"], packet_list_table["pktclock"]
-        )
-    packet_list_table['time'] = pkt_times
+        packet_list_table["pkttimes"], packet_list_table["pktclock"]
+    )
+    packet_list_table["time"] = pkt_times
     packet_list = TimeSeries(packet_list_table)
-    
-    return PhotonList(event_list, packet_list)
+
+    return PhotonList(packet_list, event_list)
 
 
 def read_fits_l0l1_housekeeping(filename: Path) -> TimeSeries:
@@ -208,12 +210,12 @@ def read_fits_l0l1_housekeeping(filename: Path) -> TimeSeries:
     """
     hk_table = Table.read(filename, hdu=1)
     hk_times = util.calc_time(hk_table["timestamp"])
-    hk_table['time'] = hk_times
+    hk_table["time"] = hk_times
     hk_ts = TimeSeries(hk_table)
 
     cmd_table = Table.read(filename, hdu=2)
-    cmd_times = util.calc_time(cmd_table['time_s'], cmd_table['time_clock'])
-    cmd_table['time'] = cmd_times
+    cmd_times = util.calc_time(cmd_table["time_s"], cmd_table["time_clock"])
+    cmd_table["time"] = cmd_times
     cmd_ts = TimeSeries(cmd_table)
 
     return hk_ts, cmd_ts
@@ -230,13 +232,13 @@ def read_fits_l0l1_spectrum(filename: Path):
     timestamps, Spectrum1D array, asic_nums, pixel_nums, pixelid_strings
     """
     pkt_table = Table.read(filename, hdu=2)
-    pkt_times = util.calc_time(pkt_table['pkttimes'], pkt_table['pktclock'])
-    pkt_table['time'] = pkt_times
+    pkt_times = util.calc_time(pkt_table["pkttimes"], pkt_table["pktclock"])
+    pkt_table["time"] = pkt_times
     pkt_ts = TimeSeries(pkt_table)
 
     hdu = fits.open(filename)
     specs = Spectrum1D(
-            spectral_axis=np.arange(512) * u.pix, flux=hdu["spec"].data * u.ct
+        spectral_axis=np.arange(512) * u.pix, flux=hdu["spec"].data * u.ct
     )
     # reconstruct pixel ids
     pixel_ids = (hdu["PKT"].data["asic"] << 5) + (hdu["PKT"].data["channel"])

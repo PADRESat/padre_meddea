@@ -71,10 +71,9 @@ class PhotonList:
     """
 
     def __init__(self, pkt_list: TimeSeries, event_list: TimeSeries):
-        self.data = event_list
-        self.event_list = self.data
-        self.pkt_list = pkt_list
+        self.data = {"event_list": event_list, "pkt_list": pkt_list}
         self.event_list = event_list
+        self.pkt_list = pkt_list
 
     def __getitem__(self, key):
         if isinstance(key, int):
@@ -97,17 +96,17 @@ class PhotonList:
         return f"{object.__repr__(self)}\n{self}"
 
     def _text_summary(self):
-        dt = self.data.time[-1] - self.data.time[0]
+        dt = self.data["event_list"].time[-1] - self.data["event_list"].time[0]
         dt.format = "quantity_str"
         result = f"PhotonList ({len(self.data):,} events)\n"
         if dt < (1 * u.day):
-            result += f"{self.data.time[0]} - {str(self.data.time[-1])[11:]} ({dt})\n"
+            result += f"{self.data['event_list'].time[0]} - {str(self.data['event_list'].time[-1])[11:]} ({dt})\n"
         else:
-            result += f"{self.data.time[0]} - {self.data.time[-1]} ({dt})\n"
+            result += f"{self.data['event_list'].time[0]} - {self.data['event_list'].time[-1]} ({dt})\n"
         return result
 
     def spectrum(
-        self, asic_num: int, pixel_num: int, bins=None, baseline_sub: bool = False
+        self, asic_num: int, pixel_num: int, bins=None, baseline_sub: bool = False, calibrate: bool = False
     ) -> Spectrum1D:
         """
         Create a spectrum

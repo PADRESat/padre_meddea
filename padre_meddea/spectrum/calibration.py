@@ -117,7 +117,7 @@ def calibrate_phlist_barium_linear(ph_list: PhotonList, plot: bool = False):
             )
             f = find_rough_cal(this_spec)
             ba_line_centers = f(ba_line_energies.value)
-            fit_line_centers = fit_peaks_para(this_spec, ba_line_centers)
+            fit_line_centers = fit_peaks_para(this_spec, u.Quantity(ba_line_centers, this_spec.spectral_axis.unit))
             if plot:
                 plt.figure()
                 plt.plot(this_spec.spectral_axis.value, this_spec.flux.value)
@@ -137,7 +137,7 @@ def calibrate_phlist_barium_linear(ph_list: PhotonList, plot: bool = False):
             if plot:
                 plt.figure()
                 plt.plot(x, y, "x")
-                plt.plot(x, f(x))
+                plt.plot(x, f(x.value))
                 plt.title(f"asic {this_asic} pixel {this_pixel}")
                 plt.show()
             lin_cal_params[this_asic, this_pixel, :] = p
