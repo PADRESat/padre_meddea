@@ -10,6 +10,8 @@ from padre_meddea.io.file_tools import (
     parse_cmd_response_packets,
     read_file,
 )
+from padre_meddea.spectrum.spectrum import PhotonList, SpectrumList
+from astropy.timeseries import TimeSeries
 
 ph_packet_file = padre_meddea._test_files_directory / "apid160_4packets.bin"
 hk_packet_file = padre_meddea._test_files_directory / "apid163_4packets.bin"
@@ -36,3 +38,13 @@ def test_read_ph_file():
 def test_read_spec_file():
     specs = parse_spectrum_packets(spec_packet_file)
     assert len(specs[0]) == NUM_PACKETS
+
+
+def test_read_file_ph():
+    assert isinstance(read_file(ph_packet_file), PhotonList)
+    assert isinstance(read_file(spec_packet_file), SpectrumList)
+
+    # note that there are no command packets in this file
+    hk_ts, cmd_ts = read_file(hk_packet_file)
+    assert isinstance(hk_ts, TimeSeries)
+    assert cmd_ts is None
