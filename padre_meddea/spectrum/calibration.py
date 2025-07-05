@@ -20,7 +20,7 @@ specutils.conf.do_continuum_function_check = False
 def find_rough_cal(spec: Spectrum1D, plot: bool = False):
     """
     Given a Ba-133 spectrum, return a rough linear calibration function
-    by finding and fitting only the 30.85 keV line and 81 keV line.
+    by finding and fitting only the two strongest lines (30.85 keV, 81 keV).
     It does this by splitting the spectrum into two regions and finding the
     maximum value in those regions.
 
@@ -29,7 +29,7 @@ def find_rough_cal(spec: Spectrum1D, plot: bool = False):
     spec : Spectrum1D
         The Ba-133 spectrum
     plot : bool
-        If True, then display a plot of the spectrum with the line identified.
+        If True, then display a plot of the spectrum with the line peaks found.
     Returns
     -------
     np.poly1d linear fit
@@ -51,12 +51,35 @@ def find_rough_cal(spec: Spectrum1D, plot: bool = False):
     return f
 
 
-def fit_peaks_para(
-    spec: Spectrum1D, line_centers: u.Quantity, plot: bool = False
+def fit_peak_parabola(spec: Spectrum1D) -> float:
+    """Given a spectral region with a single line, fit a parabola 
+    to the peak and return the position of the maximum
+    
+    Parameters
+    ----------
+    spec : Spectrum1D
+    
+    Returns
+    -------
+    peak_center : float
+    """
+    x = spec.spectral_axis.value
+    y = spec.flux.value
+    max_ind = np.argmax(y)
+    # TODO add edge case for max at index value 0 or max index
+    fit_x = [x[max_ind-1], x[max_ind], x[max_ind+1]]
+    fit_y = [y[max_ind-1], y[max_ind], y[max_ind+1]]
+    p = np.polyfit(fit_x, fit_y, 2)
+    fit_peak = -p[1] / (2.0 * p[0])
+    return fit_peak
+
+
+def fit_peaks(
+    spec: Spectrum1D, line_centers: u.Quantity, plot: bool = False, fit_func='parabola', window=30
 ) -> u.Quantity:
     """
-    Given a spectrum and a set of line approximate peaks,
-    fit a parabola to the line peak region and return the fit value.
+    Given a spectrum and a set of approximate peak or line centers,
+    perform a fit for each and return the fitted peak location for each.
 
     Parameters
     ----------
@@ -66,34 +89,37 @@ def fit_peaks_para(
         The approximate location of the line peaks
     plot : bool
         If True, then plot the data and fit for each line center region.
-
+    fit_func : str
+        The fit function for finding the peak value.
+    window : int
+        Number of points to consider around the line center
+        
     Returns
     -------
     fit_centers
     """
     fit_centers = line_centers.copy()
+    print(line_centers.unit)
     spec_units = line_centers[0].unit
-    fit_window_halfwidth = 30 * spec_units
+    fit_window_halfwidth = window * spec_units
     for i, this_line in enumerate(line_centers):
         line_region = SpectralRegion(
             this_line - fit_window_halfwidth, this_line + fit_window_halfwidth
         )
         sub_spec = extract_region(spec, line_region)
-        p = np.polyfit(sub_spec.spectral_axis.value, sub_spec.flux.value, 2)
-        fit_peak = -p[1] / (2.0 * p[0])
-        fit_centers[i] = fit_peak * spec_units
+        fit_centers[i] = fit_peak_parabola(sub_spec) * spec_units
         if plot:
             plt.figure()
-            plt.plot(sub_spec.spectral_axis, sub_spec.flux, label="data")
-            f = np.poly1d(p)
-            plt.plot(sub_spec.spectral_axis, f(sub_spec.spectral_axis), label="fit")
-            plt.axvline(this_line, color="green", label="line_center")
-            plt.axvline(fit_peak, color="red", label="fit peak")
+            plt.plot(sub_spec.spectral_axis.value, sub_spec.flux, label="data")
+            plt.axvline(this_line.value, color="green", label="line_center")
+            plt.axvline(fit_centers[i].value, color="red", label="fit peak")
             plt.legend()
+            plt.show()
+        print(fit_centers)
     return fit_centers
 
 
-def calibrate_phlist_barium_linear(ph_list: PhotonList, plot: bool = False):
+def calibrate_barium_linear(ph_list: PhotonList, plot: bool = False):
     """Given a PhotonList of a Ba-133 spectrum,
     perform a linear energy calibration for all detectors and pixels.
 
