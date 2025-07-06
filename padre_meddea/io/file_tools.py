@@ -240,8 +240,8 @@ def read_fits_l0l1_spectrum(filename: Path):
     specs = Spectrum1D(
         spectral_axis=np.arange(512) * u.pix, flux=hdu["spec"].data * u.ct
     )
-    # reconstruct pixel ids
-    pixel_ids = (hdu["PKT"].data["asic"] << 5) + (hdu["PKT"].data["channel"])
+    # reconstruct pixel ids TODO use util.get_pixelid
+    pixel_ids = (hdu["PKT"].data["asic"] << 5) + (hdu["PKT"].data["channel"]) + 0xCA00
     return SpectrumList(pkt_ts, specs, pixel_ids)
 
 

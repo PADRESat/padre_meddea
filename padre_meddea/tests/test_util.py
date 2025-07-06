@@ -38,7 +38,7 @@ def test_is_consecutive():
     assert util.is_consecutive(np.arange(10, 100, 1))
     # test if the array loops over
     assert util.is_consecutive(
-        np.concatenate((np.arange(0, 2**14), np.arange(0, 2000)))
+        np.concatenate((np.arange(0, 2 ** 14), np.arange(0, 2000)))
     )
 
 
@@ -51,7 +51,7 @@ def test_is_not_consecutive():
 
 
 @pytest.mark.parametrize(
-    "input,output",
+    "channel,pixel_num",
     [
         (26, 0),
         (15, 1),
@@ -69,8 +69,44 @@ def test_is_not_consecutive():
         (14, 14 + 12),  # unconnected channel gets 12 added to it
     ],
 )
-def test_channel_to_pix(input, output):
-    assert util.channel_to_pixel(input) == output
+def test_channel_to_pix(channel, pixel_num):
+    assert util.channel_to_pixel(channel) == pixel_num
+    if pixel_num < 12:
+        assert util.pixel_to_channel(pixel_num) == channel
+
+
+@pytest.mark.parametrize(
+    "pixel_id,asic_num,pixel_num",
+    [
+        (51738, 0, 0),
+        (51720, 0, 2),
+        (51730, 0, 5),
+        (51712, 0, 7),
+        (51733, 0, 9),
+        (51715, 0, 11),
+        (51770, 1, 0),
+        (51752, 1, 2),
+        (51762, 1, 5),
+        (51744, 1, 7),
+        (51765, 1, 9),
+        (51747, 1, 11),
+        (51802, 2, 0),
+        (51784, 2, 2),
+        (51794, 2, 5),
+        (51776, 2, 7),
+        (51797, 2, 9),
+        (51779, 2, 11),
+        (51834, 3, 0),
+        (51816, 3, 2),
+        (51826, 3, 5),
+        (51808, 3, 7),
+        (51829, 3, 9),
+        (51811, 3, 11),
+    ],
+)
+def test_get_pixelid(pixel_id, asic_num, pixel_num):
+    assert util.get_pixelid(asic_num, pixel_num) == pixel_id
+    assert util.parse_pixelids(pixel_id) == (asic_num, util.pixel_to_channel(pixel_num))
 
 
 def test_has_baseline():

@@ -98,7 +98,7 @@ class PhotonList:
     def _text_summary(self):
         dt = self.data["event_list"].time[-1] - self.data["event_list"].time[0]
         dt.format = "quantity_str"
-        result = f"PhotonList ({len(self.data):,} events)\n"
+        result = f"PhotonList ({len(self.data['event_list']):,} events)\n"
         if dt < (1 * u.day):
             result += f"{self.data['event_list'].time[0]} - {str(self.data['event_list'].time[-1])[11:]} ({dt})\n"
         else:
@@ -106,7 +106,12 @@ class PhotonList:
         return result
 
     def spectrum(
-        self, asic_num: int, pixel_num: int, bins=None, baseline_sub: bool = False, calibrate: bool = False
+        self,
+        asic_num: int,
+        pixel_num: int,
+        bins=None,
+        baseline_sub: bool = False,
+        calibrate: bool = False,
     ) -> Spectrum1D:
         """
         Create a spectrum
@@ -129,7 +134,7 @@ class PhotonList:
         spectrum : Spectrum1D
         """
         if bins is None:
-            bins = np.arange(0, 2**12 - 1)
+            bins = np.arange(0, 2 ** 12 - 1)
         if (asic_num is None) and (pixel_num is None):
             this_event_list = self.event_list
         else:
@@ -229,19 +234,6 @@ class PhotonList:
         )
         return self.event_list[ind]
 
-    def fast_calibrate(self, calfile):
-        """Apply a fast linear calibration.
-        Adds a new energy column to the event_list."""
-        lin_cal_params = np.load(calfile)
-        self.event_list["energy"] = np.zeros(len(self.event_list["atod"]))
-        for this_asic in range(4):
-            for this_pixel in range(12):
-                ind = (self.event_list["asic"] == this_asic) * (
-                    self.event_list["pixel"] == this_pixel
-                )
-                cal_func = np.poly1d(lin_cal_params[this_asic, this_pixel, :])
-                self.event_list["energy"][ind] = cal_func(self.event_list["atod"][ind])
-
 
 class SpectrumList:
     """
@@ -272,11 +264,11 @@ class SpectrumList:
     >>> this_spectrum = this_spec_list.spectrum(asic_num=0, pixel_num=0)
     """
 
-    def __init__(self, pkt_spec: TimeSeries, specs, pixel_ids):
+    def __init__(self, pkt_list: TimeSeries, specs, pixel_ids):
         self.bins = np.arange(0, 4097, 8, dtype=np.uint16)
-        self.time = pkt_spec.time
-        self.data = {"pkt": pkt_spec, "specs": specs, "pixel_ids": pixel_ids}
-        self.pkt = self.data["pkt"]
+        self.time = pkt_list.time
+        self.data = {"pkt_list": pkt_list, "specs": specs, "pixel_ids": pixel_ids}
+        self.pkt_list = self.data["pkt_list"]
         self.specs = self.data["specs"]
         self._pixel_ids = self.data["pixel_ids"]
         if len(np.unique(pixel_ids)) > 24:
@@ -288,13 +280,13 @@ class SpectrumList:
             self.pixel_nums = util.channel_to_pixel(self.channel_nums)
         else:
             if np.all(np.unique(pixel_ids) == sorted(pixel_ids[0, :])):
-                self.pixel_ids = pixel_ids
+                self.pixel_ids = np.median(pixel_ids, axis=0)
                 self.pixel_str = util.pixelid_to_str(pixel_ids[0])
                 self.asics, self.channel_nums = util.parse_pixelids(pixel_ids[0])
                 self.pixel_nums = util.channel_to_pixel(self.channel_nums)
             else:
                 raise ValueError("Found change in pixel ids")
-        self.index = len(pkt_spec)
+        self.index = len(pkt_list)
 
     def __str__(self):
         return f"{self._text_summary()}{self.data['specs'].__repr__()}"
@@ -305,14 +297,14 @@ class SpectrumList:
     def _text_summary(self):
         dt = self.time[-1] - self.time[0]
         dt.format = "quantity_str"
-        result = f"SpectrumList ({self.specs.shape[0]:,} spectra)\n"
+        result = f"SpectrumList ({self.specs.shape[0]:,} spectra, {int(np.sum(self.specs.data)):,} events)\n"
         if dt < (1 * u.day):
             result += f"{self.time[0]} - {str(self.time[-1])[11:]} ({dt})\n"
         else:
             result += f"{self.time[0]} - {self.time[-1]} ({dt})\n"
         return result
 
-    def spectrum(self, asic_num: int, pixel_num: int):
+    def spectrum(self, asic_num: int = 0, pixel_num: int = 0, spec_index: int = -1):
         """Create a spectrum, integrates over all times
 
         Parameters
@@ -321,6 +313,9 @@ class SpectrumList:
             The asic or detector number (0 to 3)
         pixel_num : int
             The pixel number (0 to 11)
+        or
+        spec_index : int
+            The spectrum index from 0 to 23
 
         Raises
         ------
@@ -331,17 +326,24 @@ class SpectrumList:
         -------
         spectrum : Spectrum1D
         """
-        pixel_ind = (self.asics == asic_num) * (self.pixel_nums == pixel_num)
-        if np.sum(pixel_ind) != 1:
-            raise ValueError(f"asic {asic_num} and {pixel_num} not found.")
-        int_spec = np.sum(self.specs[:, pixel_ind, :].data, axis=0)[0]
+        if spec_index == -1:
+            spec_index = self.get_spec_index(asic_num, pixel_num)
+        flux = np.sum(self.specs[:, spec_index, :].data, axis=0)
         # the spectral axis is at the center of the bins
         result = Spectrum1D(
-            flux=u.Quantity(int_spec, "count"),
+            flux=u.Quantity(flux, "count"),
             spectral_axis=u.Quantity(self.bins, "pix"),
-            uncertainty=StdDevUncertainty(np.sqrt(int_spec) * u.count),
+            uncertainty=StdDevUncertainty(np.sqrt(flux) * u.count),
         )
         return result
+
+    def get_spec_index(self, asic_num: int, pixel_num: int) -> int:
+        """Given an asic number and pixel number, find the corresponding spectrum index."""
+        match_index = (self.asics == asic_num) * (self.pixel_nums == pixel_num)
+        if np.sum(match_index) == 0:
+            raise ValueError(f"asic {asic_num} and {pixel_num} not found.")
+        pixel_id = util.get_pixelid(asic_num, pixel_num)
+        return int(np.where(pixel_id == self._pixel_ids)[0][0])
 
     def __getitem__(self, key):
         if isinstance(key, int):
@@ -350,6 +352,6 @@ class SpectrumList:
             if isinstance(key.start, Time) and isinstance(key.stop, Time):
                 ind = (self.time > key.start) * (self.time < key.stop)
                 return type(self)(
-                    self.pkt_spec[ind], self.specs[ind, :, :], self._pixel_ids
+                    self.pkt_list[ind], self.specs[ind, :, :], self._pixel_ids
                 )
         return self
