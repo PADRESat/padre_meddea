@@ -757,7 +757,6 @@ def get_hdu_data_times(hdul_dict: dict[int, dict], hdu_name: str) -> Time:
 
 
 def _sort_hdul_template(hdul_dict: dict):
-
     for i, hdu_info in hdul_dict.items():
         if hdu_info["type"] == "primary":
             # For primary HDU, we just need to check consistency
@@ -1271,7 +1270,6 @@ def concatenate_files(
     outfiles = []
     # Save each Day
     for day, day_hdul in hdul_dicts.items():
-
         # Calculate the Outputn Path Filename
         outfile = _get_output_path(
             first_file=all_files[0], date_beg=Time(day + "T00:00:00")

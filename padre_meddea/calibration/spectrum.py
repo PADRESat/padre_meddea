@@ -102,7 +102,7 @@ def elist_to_spectrum(event_list: Table, bins=None):
     spectrum: Spectrum1D
     """
     if bins is None:
-        bins = np.arange(0, 2 ** 12 - 1)
+        bins = np.arange(0, 2**12 - 1)
     data, bins = np.histogram(event_list["atod"], bins=bins)
     result = Spectrum1D(
         flux=u.Quantity(data, "count"),
