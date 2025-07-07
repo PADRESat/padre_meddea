@@ -255,12 +255,9 @@ class SpectrumList:
 
     Examples
     --------
-    >>> from padre_meddea.calibration.spectrum import SpectrumList
-    >>> from padre_meddea.io import read_raw_file
+    >>> from padre_meddea.io import read_file
     >>> from astropy.time import Time
-    >>> tr = [Time('2025-01-30 10:52'), Time('2025-01-30 11:05')]
-    >>> spec_list = read_raw_file(Path("data/padre_meddea_l0test_calba_20250130T104700_v0.3.0.bin"))
-    >>> this_spec_list = spec_list[tr[0]:tr[1]]
+    >>> spec_list = read_file("padre_meddea_l0test_spectrum_20250504T070411_v0.1.0.fits")
     >>> this_spectrum = this_spec_list.spectrum(asic_num=0, pixel_num=0)
     """
 
