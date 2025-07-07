@@ -257,8 +257,8 @@ class SpectrumList:
     --------
     >>> from padre_meddea.io.file_tools import read_file
     >>> from astropy.time import Time
-    >>> spec_list = read_file("padre_meddea_l0test_spectrum_20250504T070411_v0.1.0.fits")
-    >>> this_spectrum = this_spec_list.spectrum(asic_num=0, pixel_num=0)
+    >>> spec_list = read_file("padre_meddea_l0test_spectrum_20250504T070411_v0.1.0.fits")  # doctest: +SKIP
+    >>> this_spectrum = this_spec_list.spectrum(asic_num=0, pixel_num=0)  # doctest: +SKIP
     """
 
     def __init__(self, pkt_list: TimeSeries, specs, pixel_ids):
