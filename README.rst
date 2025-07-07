@@ -31,7 +31,11 @@ Overview
 .. end-badges
 
 A Python package to process and analyze data from the Measuring Directivity to Determine Electron Anisotropy (MeDDEA) instrument on the 
-NASA solar PolArization and Directivity X-Ray Experiment (PADRE) small satellite mission. PADRE is expected to launch in mid-2025.
+NASA solar PolArization and Directivity X-Ray Experiment (PADRE) small satellite mission.
+
+PADRE launched on July 23rd, 2025.
+
+For information about the PADRE mission, see `PADRESat <https://github.com/PADRESat>`_.
 
 Our documentation can be found at `http://padre-meddea.rtfd.io/ <http://padre-meddea.rtfd.io/>`_.
 

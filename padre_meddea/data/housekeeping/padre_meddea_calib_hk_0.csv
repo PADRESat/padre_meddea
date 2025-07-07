@@ -1,0 +1,11 @@
+name,cal_func,cal_params,unit_str
+fp_temp,bspline,"",deg_C
+dib_temp,bspline,"",deg_C
+hvps_temp,bspline,"",deg_C
+hvps_vsense,poly,"-0.0101,1.291",volt
+hvps_csense,poly,"1.6914E-04,-4.1556E-03",nanoamp
+csense_15v,poly,"-0.010776,446.17",milliamp
+csense_33vd,poly,"-0.010776,446.17",milliamp
+csense_33va,poly,"-0.010776,446.17",milliamp
+hvps_setpoint,poly,"-0.1471,-0.5394",volt
+heater_pwm_duty_cycle,poly,"0.0016,0",percent

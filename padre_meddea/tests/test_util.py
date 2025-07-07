@@ -8,6 +8,7 @@ import padre_meddea.util.util as util
 
 from astropy.time import TimeDelta
 import astropy.units as u
+from astropy.tests.helper import assert_quantity_allclose
 
 TIME = "2024-04-06T12:06:21"
 TIME_FORMATTED = "20240406T120621"
@@ -51,7 +52,7 @@ def test_is_not_consecutive():
 
 
 @pytest.mark.parametrize(
-    "input,output",
+    "channel,pixel_num",
     [
         (26, 0),
         (15, 1),
@@ -69,8 +70,44 @@ def test_is_not_consecutive():
         (14, 14 + 12),  # unconnected channel gets 12 added to it
     ],
 )
-def test_channel_to_pix(input, output):
-    assert util.channel_to_pixel(input) == output
+def test_channel_to_pix(channel, pixel_num):
+    assert util.channel_to_pixel(channel) == pixel_num
+    if pixel_num < 12:
+        assert util.pixel_to_channel(pixel_num) == channel
+
+
+@pytest.mark.parametrize(
+    "pixel_id,asic_num,pixel_num",
+    [
+        (51738, 0, 0),
+        (51720, 0, 2),
+        (51730, 0, 5),
+        (51712, 0, 7),
+        (51733, 0, 9),
+        (51715, 0, 11),
+        (51770, 1, 0),
+        (51752, 1, 2),
+        (51762, 1, 5),
+        (51744, 1, 7),
+        (51765, 1, 9),
+        (51747, 1, 11),
+        (51802, 2, 0),
+        (51784, 2, 2),
+        (51794, 2, 5),
+        (51776, 2, 7),
+        (51797, 2, 9),
+        (51779, 2, 11),
+        (51834, 3, 0),
+        (51816, 3, 2),
+        (51826, 3, 5),
+        (51808, 3, 7),
+        (51829, 3, 9),
+        (51811, 3, 11),
+    ],
+)
+def test_get_pixelid(pixel_id, asic_num, pixel_num):
+    assert util.get_pixelid(asic_num, pixel_num) == pixel_id
+    assert util.parse_pixelids(pixel_id) == (asic_num, util.pixel_to_channel(pixel_num))
 
 
 def test_has_baseline():
@@ -116,3 +153,24 @@ def test_pixel_to_string_error():
         util.pixel_to_str(13)
     with pytest.raises(ValueError):
         util.pixel_to_str(16)
+
+
+def test_threshold_to_energy_error():
+    with pytest.raises(ValueError):
+        util.threshold_to_energy(-1)
+    with pytest.raises(ValueError):
+        util.threshold_to_energy(64)
+    with pytest.raises(ValueError):
+        util.threshold_to_energy(100)
+
+
+@pytest.mark.parametrize(
+    "input,output",
+    [
+        (0, -0.6 * u.keV),
+        (55, 10.4 * u.keV),
+        (62, 16 * u.keV),
+    ],
+)
+def test_threshold_to_energy(input, output):
+    assert_quantity_allclose([util.threshold_to_energy(input)], [output])
