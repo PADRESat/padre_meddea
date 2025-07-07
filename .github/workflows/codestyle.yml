@@ -1,43 +1,8 @@
-# This workflow will install Python dependencies and check codestyle
-name: Codestyle and Linting
-
-on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+name: Codestyle and linting with Ruff
+on: [ push, pull_request ]
 jobs:
-  build:
-    #
-    runs-on: ${{ matrix.platform }}
-    #
-    strategy:
-      fail-fast: false
-      matrix:
-        platform: [ubuntu-latest]
-        python-version: ["3.13"]
-
+  ruff:
+    runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-      #
-    - name: Set up Python ${{ matrix.python-version }}
-      #
-      uses: actions/setup-python@v5
-      with:
-        #
-        python-version: ${{ matrix.python-version }}
-        #
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip setuptools wheel
-        python -m pip install -e .[dev]
-    - name: Lint with Black
-      run: |
-        black --check --diff padre_meddea
-    - name: flake8
-      run: |
-        flake8 --count padre_meddea
-
-
+      - uses: actions/checkout@v4
+      - uses: astral-sh/ruff-action@v3
