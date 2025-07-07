@@ -5,7 +5,7 @@ A great deal of NASA work leverages information technology to capture, interpret
 
 NASA recognizes that external vulnerabilities can be discovered by anyone at any time and has issued this policy in order to provide clear guidelines to security researchers so that they feel comfortable reporting vulnerabilities they have discovered in good faith.
 
-If you believe you have found a security vulnerability in any of NASA-owned repository that meets NASA's criteria of a security vulnerability, please report it to us as described below.
+If you believe you have found a security vulnerability in this repository that meets NASA's criteria of a security vulnerability, please report it to us as described below.
 
 ## Reporting Security Issues
 
@@ -14,7 +14,7 @@ If you believe you have found a security vulnerability in any of NASA-owned repo
 *Information submitted under this policy will be used for defensive purposes only – to mitigate or 
 remediate vulnerabilities.*
 
-NASA accepts vulnerability reports via e-mail to vulnerability-report@nasa.gov. Reports may 
+NASA accepts vulnerability reports via e-mail to the repository owner (steven.christe@nasa.gov). Reports may 
 be submitted anonymously.
 
 This reporting mechanism is not intended for use by NASA employees, contractors, and others 
