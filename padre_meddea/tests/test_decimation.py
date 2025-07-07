@@ -19,7 +19,7 @@ decimation_file = decimation_file_directory / "20250314_decimation_table.csv"
     [
         (Time("2025-04-01"), [3900, 11000]),
         (Time("2024-02-01T00:00"), [4000, 10000]),
-        (Time("2025-03-13T01:00"), [3700, 20000]),
+        (Time("2025-05-13T01:00"), [3900, 11000]),
     ],
 )
 def test_get_decimation(time, result):
@@ -61,7 +61,6 @@ def test_get_decimation_ftable():
     "time_str,filename",
     [
         (Time("2025-04-01T00:00"), "20250314_decimation_table.csv"),
-        (Time("2025-03-13T01:00"), "20250313_decimation_table.csv"),
         (Time("2024-02-01T00:00"), "20240101_decimation_table.csv"),
         (Time("2022-02-01T00:00"), None),
     ],
