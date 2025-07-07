@@ -147,7 +147,7 @@ def process_file(filename: Path, overwrite=False) -> list:
                 path = temp_dir / path
 
             # Write the file, with the overwrite option controlled by the environment variable
-            hdul.writeto(path, overwrite=overwrite)
+            hdul.writeto(path, overwrite=overwrite, checksum=True)
             # Store the output file path in a list
             output_files.append(path)
         if parsed_data["housekeeping"] is not None:
@@ -248,21 +248,24 @@ def process_file(filename: Path, overwrite=False) -> list:
                 overwrite = True  # Set overwrite to True
                 path = temp_dir / path
 
-            hdul.writeto(path, overwrite=overwrite)
+            hdul.writeto(path, overwrite=overwrite, checksum=True)
             output_files.append(path)
         if parsed_data["spectra"] is not None:
             # Set Data Type for L0 Data
             data_type = "spectrum"
 
-            ts, spectra, ids = parsed_data["spectra"]
+            # TODO check that asic_nums and channel_nums do not change
+            # the function below will remove any change in pixel ids
+
+            ts, spectra, ids = file_tools.clean_spectra_data(parsed_data["spectra"])
             try:
                 aws_db.record_spectra(ts, spectra, ids)
             except ValueError:
                 pass
+
             asic_nums, channel_nums = util.parse_pixelids(ids)
             # asic_nums = (ids & 0b11100000) >> 5
             # channel_nums = ids & 0b00011111
-            # TODO check that asic_nums and channel_nums do not change
 
             # Get FITS Primary Header Template
             primary_hdr = get_primary_header(
@@ -297,8 +300,13 @@ def process_file(filename: Path, overwrite=False) -> list:
             spec_header["DATEREF"] = (primary_hdr["DATE-BEG"], get_comment("DATEREF"))
             spec_header["FILENAME"] = (path, get_comment("FILENAME"))
 
-            spec_hdu = fits.ImageHDU(data=spectra.data, header=spec_header, name="SPEC")
-            spec_hdu.add_checksum()
+            spec_hdu = fits.CompImageHDU(
+                data=spectra.data,
+                header=spec_header,
+                name="SPEC",
+                compression_type="GZIP_1",
+            )
+            # NOTE: CompImageHDU does not support add_checksum, so we add checksum to the HDUList later
 
             data_table = Table()
             data_table["pkttimes"] = ts["pkttimes"]
@@ -323,7 +331,7 @@ def process_file(filename: Path, overwrite=False) -> list:
                 overwrite = True  # Set overwrite to True
                 path = temp_dir / path
 
-            hdul.writeto(path, overwrite=overwrite)
+            hdul.writeto(path, overwrite=overwrite, checksum=True)
             output_files.append(path)
 
     # add other tasks below

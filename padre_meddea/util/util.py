@@ -69,6 +69,35 @@ def _channel_to_pixel(channel: int) -> int:
 channel_to_pixel = np.vectorize(_channel_to_pixel)
 
 
+def _pixel_to_channel(pixel_num: int) -> int:
+    """
+    Given a pixel number, return the channel number.
+    """
+    PIXEL_TO_CHANNEL = {
+        0: 26,
+        1: 15,
+        2: 8,
+        3: 1,
+        4: 29,
+        5: 18,
+        6: 5,
+        7: 0,
+        8: 30,
+        9: 21,
+        10: 11,
+        11: 3,
+        12: 31,  # not a pixel, guard ring
+    }
+
+    if pixel_num in PIXEL_TO_CHANNEL.keys():
+        return PIXEL_TO_CHANNEL[pixel_num]
+    else:
+        raise ValueError(f"Pixel number, {pixel_num}, not found.")
+
+
+pixel_to_channel = np.vectorize(_pixel_to_channel)
+
+
 def parse_pixelids(ids):
     """
     Given pixel id infomration, return the asic numbers and channel numbers
@@ -76,6 +105,11 @@ def parse_pixelids(ids):
     asic_nums = (ids & 0b11100000) >> 5
     channel_nums = ids & 0b00011111
     return asic_nums, channel_nums
+
+
+def get_pixelid(asic_num: int, pixel_num: int) -> int:
+    """Given an asic number and a pixel number return the pixelid"""
+    return (asic_num << 5) + pixel_to_channel(pixel_num) + 0xCA00
 
 
 def get_pixel_str(asic_num: int, pixel_num: int):
@@ -155,7 +189,7 @@ def str_to_fits_keyword(keyword: str) -> str:
 
 def is_consecutive(arr: np.array) -> bool:
     """Return True if the packet sequence numbers are all consecutive integers, has no missing numbers."""
-    MAX_SEQCOUNT = 2**14 - 1  # 16383
+    MAX_SEQCOUNT = 2 ** 14 - 1  # 16383
 
     # Ensure arr is at least 1D
     arr = np.atleast_1d(arr)
@@ -196,3 +230,32 @@ def parse_ph_flags(ph_flags):
     dropped_count = ph_flags & 2047
     int_time_overflow = ph_flags & 32768
     return decim_lvl, dropped_count, int_time_overflow
+
+
+def threshold_to_energy(threshold_value: int) -> u.Quantity:
+    """Given a threshold value return the threshold energy.
+    If given a threshold of 63, the pixel is disabled.
+        In that case, return the maximum detectable energy of 100 keV
+    Parameters
+    ----------
+    threshold_value : int
+        The threshold value
+    Returns
+    -------
+    threshold_energy : u.Quantity
+        The energy value of the threshold.
+    """
+    MAX_ENERGY = 100 * u.keV
+    max_threshold = 63
+    if (0 > threshold_value) or (threshold_value > max_threshold):
+        raise ValueError("Threshold value should be between 0 and 63.")
+    if threshold_value == 63:
+        return MAX_ENERGY
+    msb = 0.8 * u.keV
+    lsb = 0.2 * u.keV
+    lsb_array = np.arange(-3, 60, 1)
+    lsb_array[lsb_array > 52] = 52
+    msb_array = np.zeros(max_threshold)
+    msb_array[-8:] = np.arange(0, 8)
+    threshold_energy = msb_array * msb + lsb_array * lsb
+    return threshold_energy[threshold_value]
