@@ -17,14 +17,14 @@ def test_fit_peak_parabola():
     p = Polynomial([0, 4, -1])
     x = np.arange(-5, 5)
     this_spec = Spectrum1D(spectral_axis=x * u.keV, flux=p(x) * u.ct)
-    assert np.allclose([2], [cal.fit_peak_parabola(this_spec).value], rtol=1e-4)
+    assert u.allclose([2], [cal.fit_peak_parabola(this_spec)], rtol=1e-4)
     p = models.Gaussian1D(amplitude=1, mean=2.4, stddev=1)
     x = np.arange(0, 5, 0.1)
     this_spec = Spectrum1D(spectral_axis=x * u.keV, flux=p(x) * u.ct)
-    assert np.allclose([2.4], [cal.fit_peak_parabola(this_spec).value], rtol=1e-2)
+    assert u.allclose([2.4], [cal.fit_peak_parabola(this_spec)], rtol=1e-2)
     p = models.Lorentz1D(amplitude=10.0, x_0=1.33, fwhm=1.0)
     this_spec = Spectrum1D(spectral_axis=x * u.keV, flux=p(x) * u.ct)
-    assert np.allclose([1.33], [cal.fit_peak_parabola(this_spec).value], rtol=1e-2)
+    assert u.allclose([1.33], [cal.fit_peak_parabola(this_spec)], rtol=1e-2)
 
 
 def test_fit_peaks():
