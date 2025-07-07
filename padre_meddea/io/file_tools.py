@@ -26,6 +26,7 @@ import padre_meddea.util.util as util
 from padre_meddea.housekeeping.housekeeping import parse_housekeeping_packets
 from padre_meddea.spectrum.raw import parse_ph_packets, parse_spectrum_packets
 from padre_meddea.spectrum.spectrum import PhotonList, SpectrumList
+from padre_meddea.housekeeping.register import add_register_address_name
 
 __all__ = ["read_file", "read_raw_file", "read_fits"]
 
@@ -288,13 +289,14 @@ def parse_cmd_response_packets(filename: Path):
     data = pkt.load(packet_bytes, include_primary_header=True)
     timestamps = util.calc_time(data["TIME_S"], data["TIME_CLOCKS"])
     data = {
-        "time_s": data["TIME_S"],
-        "time_clock": data["TIME_CLOCKS"],
+        "pkttimes": data["TIME_S"],
+        "pktclock": data["TIME_CLOCKS"],
         "address": data["ADDR"],
         "value": data["VALUE"],
         "seqcount": data["CCSDS_SEQUENCE_COUNT"],
     }
     ts = TimeSeries(time=timestamps, data=data)
+    ts = add_register_address_name(ts)
     ts.meta.update({"ORIGFILE": f"{filename.name}"})
     return ts
 
