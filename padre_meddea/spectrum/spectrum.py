@@ -134,7 +134,7 @@ class PhotonList:
         spectrum : Spectrum1D
         """
         if bins is None:
-            bins = np.arange(0, 2 ** 12 - 1)
+            bins = np.arange(0, 2**12 - 1)
         if (asic_num is None) and (pixel_num is None):
             this_event_list = self.event_list
         else:

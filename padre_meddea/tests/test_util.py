@@ -39,7 +39,7 @@ def test_is_consecutive():
     assert util.is_consecutive(np.arange(10, 100, 1))
     # test if the array loops over
     assert util.is_consecutive(
-        np.concatenate((np.arange(0, 2 ** 14), np.arange(0, 2000)))
+        np.concatenate((np.arange(0, 2**14), np.arange(0, 2000)))
     )
 
 
