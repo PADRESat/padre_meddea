@@ -8,6 +8,7 @@ import numpy as np
 
 from astropy.time import Time, TimeDelta
 import astropy.units as u
+from astropy.table import Table
 from ccsdspy.utils import split_packet_bytes, split_by_apid
 
 from swxsoc.util import parse_science_filename, create_science_filename
@@ -21,8 +22,80 @@ __all__ = [
     "has_baseline",
     "is_consecutive",
     "channel_to_pixel",
+    "PixelList",
 ]
 
+
+class PixelList(Table):
+    """A list of pixels
+
+    Parameters
+    ----------
+    asics : list
+        The asic numbers
+    pixels : list
+        The pixel numbers
+
+    Raises
+    ------
+    ValueError
+
+    Examples
+    --------
+    >>> from padre_meddea.util.util import PixelList
+    >>> px_list = PixelList(asics=[0, 0], pixels=[0, 1])  # two pixels both from asic 0
+    >>> px_list = PixelList(asics=[0, 1], pixels=[8, 9])  # two small pixels, one from asic 0 and another from asic 1
+    >>> large_pixs = PixelList().all_large()  # every large pixel
+    >>> small_pixs = PixelList().all_small()  # every large pixel
+    >>> large_pixs_det1 = PixelList().all_large(asics=[1])  # all large pixels from asic 1
+    """
+    def __init__(self, *args, **kwargs):
+        if ("asics" in kwargs) and ("pixels" in kwargs):
+            asics = kwargs.pop('asics')
+            pixels = kwargs.pop('pixels')
+            super().__init__(*args, **kwargs)
+            self['asic'] = np.array(asics, dtype=np.uint8)
+            self['pixel'] = np.array(pixels, dtype=np.uint8)
+        else:
+            super().__init__(*args, **kwargs)
+
+        if len(self) > 0:
+            self._add_helper_columns()
+
+    @classmethod
+    def all_large(cls, asics: list = [0, 1, 2, 3]):
+        asic_nums = np.repeat(np.array(asics, dtype=np.uint8), 8)
+        pixel_nums = np.resize(np.arange(8, dtype=np.uint8), 8 * len(asics))
+        print(asic_nums)
+        print(pixel_nums)
+        out = Table()
+        out['asic'] = asic_nums
+        out['pixel'] = pixel_nums
+        return cls(out)
+
+    @classmethod
+    def all_small(cls, asics: list = [0, 1, 2, 3]):
+        asic_nums = np.repeat(np.array(asics, dtype=np.uint8), 4)
+        pixel_nums = np.resize(np.arange(8, 12, dtype=np.uint8), 4 * len(asics))
+        print(asic_nums)
+        print(pixel_nums)
+        out = Table()
+        out['asic'] = asic_nums
+        out['pixel'] = pixel_nums
+        return cls(out)
+
+    def _verify(self):
+        """Verify consistency of the data."""
+        if np.all(self['pixel'] > 12):
+            raise ValueError(f"Found a pixel number that is too large, {self['pixel'].max()}")
+        if np.all(self['asic'] > 4):
+            raise ValueError(f"Found an asic number that is too large, {self['asic'].max()}")
+    
+    def _add_helper_columns(self):
+        """Add additional helper columns"""
+        self['channel'] = np.array([pixel_to_channel(this_pixel) for this_pixel in self['pixel']], dtype=np.uint8)
+        self['id'] = np.array([get_pixelid(this_asic, this_pixel) for this_asic, this_pixel in zip(self['asic'], self['pixel'])], dtype=np.uint16)
+        self['label'] = [get_pixel_str(this_asic, this_pixel) for this_asic, this_pixel in zip(self['asic'], self['pixel'])]
 
 def calc_time(pkt_time_s, pkt_time_clk=0, ph_clk=0) -> Time:
     """
