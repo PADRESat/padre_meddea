@@ -6,13 +6,6 @@ import pandas as pd
 
 import astropy.units as u
 
-import specutils
-from specutils import Spectrum1D, SpectralRegion
-from specutils.manipulation import extract_region
-
-from padre_meddea.spectrum.spectrum import PhotonList, SpectrumList
-import padre_meddea.util.util as util
-
 
 
 def event_rate(event_list, plot_hist=False):
@@ -55,3 +48,5 @@ def event_rate(event_list, plot_hist=False):
     min_delta_t=np.min(toto[toto!=0])*1E6 #microseconds
     print(f'Minimum nonzero time interval between two triggers: %4.2f µs'%(min_delta_t))
     return delta_t, avg_event_rate, min_delta_t
+
+
