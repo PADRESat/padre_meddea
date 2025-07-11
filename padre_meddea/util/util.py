@@ -100,6 +100,14 @@ class PixelList(Table):
         out['pixel'] = pixel_nums
         return cls(out)
 
+    def select_large(self, asics: list = [0, 1, 2, 3]):
+        """Return only large pixels from an existing pixel list"""
+        pass
+
+    def select_small(self, asics: list = [0, 1, 2, 3]):
+        """Return only small pixels from an existing pixel list"""
+        pass
+
     def _verify(self):
         """Verify consistency of the data."""
         if np.any(self['pixel'] > 12):
