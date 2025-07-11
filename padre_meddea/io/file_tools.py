@@ -4,29 +4,23 @@ This module provides a generic file reader.
 
 from pathlib import Path
 
-import numpy as np
+import astropy.io.fits as fits
 import astropy.units as u
-from astropy.timeseries import TimeSeries
+import ccsdspy
+import numpy as np
 from astropy.table import Table
 from astropy.time import Time
-
-import ccsdspy
-from ccsdspy import PacketField, PacketArray
-from ccsdspy.utils import (
-    count_packets,
-    split_by_apid,
-)
-import astropy.io.fits as fits
-
+from astropy.timeseries import TimeSeries
+from ccsdspy import PacketArray, PacketField
+from ccsdspy.utils import count_packets, split_by_apid
 from specutils import Spectrum1D
 
-from padre_meddea import log
-from padre_meddea import APID
 import padre_meddea.util.util as util
+from padre_meddea import APID, log
 from padre_meddea.housekeeping.housekeeping import parse_housekeeping_packets
+from padre_meddea.housekeeping.register import add_register_address_name
 from padre_meddea.spectrum.raw import parse_ph_packets, parse_spectrum_packets
 from padre_meddea.spectrum.spectrum import PhotonList, SpectrumList
-from padre_meddea.housekeeping.register import add_register_address_name
 
 __all__ = ["read_file", "read_raw_file", "read_fits"]
 
@@ -201,7 +195,7 @@ def read_fits_l0l1_photon(filename: Path) -> PhotonList:
     return PhotonList(packet_list, event_list)
 
 
-def read_fits_l0l1_housekeeping(filename: Path) -> TimeSeries:
+def read_fits_l0l1_housekeeping(filename: Path) -> tuple[TimeSeries, TimeSeries]:
     """Read a level 0 housekeeping file
 
     Returns
@@ -215,9 +209,13 @@ def read_fits_l0l1_housekeeping(filename: Path) -> TimeSeries:
     hk_ts = TimeSeries(hk_table)
 
     cmd_table = Table.read(filename, hdu=2)
-    cmd_times = util.calc_time(cmd_table["time_s"], cmd_table["time_clock"])
-    cmd_table["time"] = cmd_times
-    cmd_ts = TimeSeries(cmd_table)
+    if len(cmd_table) == 0:
+        log.warning(f"No command response data found in {filename}")
+        cmd_ts = TimeSeries()
+    else:
+        cmd_times = util.calc_time(cmd_table["time_s"], cmd_table["time_clock"])
+        cmd_table["time"] = cmd_times
+        cmd_ts = TimeSeries(cmd_table)
 
     return hk_ts, cmd_ts
 
@@ -298,6 +296,59 @@ def parse_cmd_response_packets(filename: Path):
     ts = TimeSeries(time=timestamps, data=data)
     ts = add_register_address_name(ts)
     ts.meta.update({"ORIGFILE": f"{filename.name}"})
+
+    # Clean Command Response Times
+    ts = clean_cmd_response_data(ts)
+
+    return ts
+
+
+def clean_cmd_response_data(ts: TimeSeries) -> TimeSeries:
+    """Given raw command response packet data, perform a cleaning operation that removes bad data.
+    The most common cause of which are bits that are turned to zero when they should not be.
+
+    This function finds unphysical times (before 2024-01-01) and replaces the time with an estimated time
+    by using the median time between command responses.
+
+    Parameters
+    ----------
+    ts : TimeSeries
+        A TimeSeries object containing the command response data.
+
+    Returns
+    -------
+    TimeSeries
+        A TimeSeries containing the cleaned command response data.
+    """
+    # Calculate Differences in Time-Related Columns
+    dts = ts.time[1:] - ts.time[:-1]
+    pkttimes_diff = ts["pkttimes"][1:] - ts["pkttimes"][:-1]
+    pktclock_diff = ts["pktclock"][1:] - ts["pktclock"][:-1]
+
+    # Calculate the Cadence to use for Interpolation
+    median_dt = np.median(dts)
+    pkttimes_diff_median = np.median(pkttimes_diff)
+    pktclock_diff_median = np.median(pktclock_diff)
+
+    bad_indices = np.argwhere(ts.time <= Time("2024-01-01T00:00"))
+    for this_bad_index in bad_indices:
+        if this_bad_index < len(ts.time) - 1:
+            ts.time[this_bad_index] = ts.time[this_bad_index + 1] - median_dt
+            ts["pkttimes"][this_bad_index] = (
+                ts["pkttimes"][this_bad_index + 1] - pkttimes_diff_median
+            )
+            ts["pktclock"][this_bad_index] = (
+                ts["pktclock"][this_bad_index + 1] - pktclock_diff_median
+            )
+        else:
+            ts.time[this_bad_index] = ts.time[this_bad_index - 1] + median_dt
+            ts["pkttimes"][this_bad_index] = (
+                ts["pkttimes"][this_bad_index - 1] + pkttimes_diff_median
+            )
+            ts["pktclock"][this_bad_index] = (
+                ts["pktclock"][this_bad_index - 1] + pktclock_diff_median
+            )
+
     return ts
 
 
@@ -328,35 +379,3 @@ def inspect_raw_file(filename: Path):
             print(
                 f"There are {count_packets(stream_by_apid[val])} {key} packets (APID {val})."
             )
-
-
-def clean_spectra_data(parsed_data):
-    """Given raw spectrum packet data, perform a cleaning operation that removes bad data.
-    The most common cause of which are bits that are turned to zero when they should not be.
-
-    This function finds unphysical times (before 2022-01-01) and replaces the time with an estimated time by using the median time between spectra.
-    It also replaces all pixel ids with the median pixel id set.
-
-    Returns
-    -------
-    cleaned_parsed_data
-    """
-    ts, spectra, ids = parsed_data
-    # remove bad times
-    dts = ts.time[1:] - ts.time[:-1]
-    median_dt = np.median(dts)
-    bad_indices = np.argwhere(ts.time <= Time("2024-01-01T00:00"))
-    for this_bad_index in bad_indices:
-        if this_bad_index < len(ts.time) - 1:
-            ts.time[this_bad_index] = ts.time[this_bad_index + 1] - median_dt
-        else:
-            ts.time[this_bad_index] = ts.time[this_bad_index - 1] + median_dt
-
-    # remove bad pixel ids
-    median_ids = np.median(ids, axis=0)
-    fixed_ids = (
-        np.tile(median_ids, ids.shape[0])
-        .reshape(ids.shape[0], len(median_ids))
-        .astype(ids.dtype)
-    )
-    return ts, spectra, fixed_ids
