@@ -19,9 +19,10 @@ from specutils.manipulation import extract_region
 from specutils.fitting import estimate_line_parameters, fit_lines
 
 import padre_meddea.util.util as util
+from padre_meddea.util.util import PixelList
 import padre_meddea
 
-DEFAULT_PIXEL_IDS = np.array(
+DEFAULT_SPEC_PIXEL_IDS = np.array(
     [
         51738,
         51720,
@@ -52,8 +53,9 @@ DEFAULT_PIXEL_IDS = np.array(
 )
 MAX_PH_DATA_RATE = 100 * u.kilobyte / u.s
 
+DEFAULT_SPEC_PIXEL_LIST = PixelList(pixelids = DEFAULT_SPEC_PIXEL_IDS)
+
 __all__ = [
-    "get_calib_energy_func",
     "PhotonList",
     "SpectrumList",
 ]
@@ -107,8 +109,7 @@ class PhotonList:
 
     def spectrum(
         self,
-        asic_num: int,
-        pixel_num: int,
+        pixel_list: PixelList,
         bins=None,
         baseline_sub: bool = False,
         calibrate: bool = False,
@@ -118,10 +119,8 @@ class PhotonList:
 
         Parameters
         ----------
-        asic_num : int
-            The asic or detector number (0 to 3)
-        pixel_num : int
-            The pixel number (0 to 11)
+        pixel_list : PixelList
+            A list of one or more pixels
         bins : np.array
             The bin edges for the spectrum (see ~np.histogram).
             If None, then uses np.arange(0, 2**12 - 1)
@@ -135,10 +134,7 @@ class PhotonList:
         """
         if bins is None:
             bins = np.arange(0, 2**12 - 1)
-        if (asic_num is None) and (pixel_num is None):
-            this_event_list = self.event_list
-        else:
-            this_event_list = self._slice_event_list(asic_num, pixel_num)
+        this_event_list = self._slice_event_list(pixel_list)
         data, new_bins = np.histogram(this_event_list["atod"], bins=bins)
         # the spectral axis is at the center of the bins
         result = Spectrum1D(
@@ -167,7 +163,7 @@ class PhotonList:
         return spec
 
     def lightcurve(
-        self, asic_num: int, pixel_num: int, int_time: u.Quantity[u.s], step: int = 10
+        self, pixel_list: PixelList, int_time: u.Quantity[u.s], step: int = 10
     ) -> TimeSeries:
         """
         Create a light curve
@@ -189,10 +185,7 @@ class PhotonList:
         -------
         lc : TimeSeries
         """
-        if (asic_num is None) and (pixel_num is None):
-            this_event_list = self.event_list
-        else:
-            this_event_list = self._slice_event_list(asic_num, pixel_num)
+        this_event_list = self._slice_event_list(pixel_list)
         this_event_list = TimeSeries(
             time=self.event_list.time[::step]
         )  # not sure why this is necessary
@@ -227,11 +220,13 @@ class PhotonList:
         data_rate_ts["data_rate"] = data_rate_ts["data_rate"] / u.s
         return data_rate_ts
 
-    def _slice_event_list(self, asic_num: int, pixel_num: int) -> TimeSeries:
+    def _slice_event_list(self, pixel_list: PixelList) -> TimeSeries:
         """Slice the event list to only contain events from asic_num and pixel_num"""
-        ind = (self.event_list["pixel"] == pixel_num) * (
-            self.event_list["asic"] == asic_num
-        )
+        ind = np.zeros(len(self.event_list), dtype=np.bool)
+        for this_pixel in pixel_list.iterrows():
+            asic_num = this_pixel[0]
+            pixel_num = this_pixel[1]
+            ind =  np.logical_or(ind, (self.event_list["pixel"] == pixel_num) * (self.event_list["asic"] == asic_num))
         return self.event_list[ind]
 
 
@@ -271,16 +266,10 @@ class SpectrumList:
         if len(np.unique(pixel_ids)) > 24:
             print("Found too many unique pixel IDs.")
             print("Forcing to default set")
-            self.pixel_ids = np.median(pixel_ids, axis=0)
-            self.pixel_str = util.pixelid_to_str(self.pixel_ids)
-            self.asics, self.channel_nums = util.parse_pixelids(self.pixel_ids)
-            self.pixel_nums = util.channel_to_pixel(self.channel_nums)
+            self.pixel_ids = PixelList(pixelids = np.median(pixel_ids, axis=0).astype('uint16'))
         else:
             if np.all(np.unique(pixel_ids) == sorted(pixel_ids[0, :])):
-                self.pixel_ids = np.median(pixel_ids, axis=0)
-                self.pixel_str = util.pixelid_to_str(pixel_ids[0])
-                self.asics, self.channel_nums = util.parse_pixelids(pixel_ids[0])
-                self.pixel_nums = util.channel_to_pixel(self.channel_nums)
+                self.pixel_ids = PixelList(pixelids = np.median(pixel_ids, axis=0).astype('uint16'))
             else:
                 raise ValueError("Found change in pixel ids")
         self.index = len(pkt_list)
@@ -301,7 +290,7 @@ class SpectrumList:
             result += f"{self.time[0]} - {self.time[-1]} ({dt})\n"
         return result
 
-    def spectrum(self, asic_num: int = 0, pixel_num: int = 0, spec_index: int = -1):
+    def spectrum(self, pixel_list: PixelList):
         """Create a spectrum, integrates over all times
 
         Parameters
