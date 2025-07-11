@@ -213,7 +213,7 @@ def read_fits_l0l1_housekeeping(filename: Path) -> tuple[TimeSeries, TimeSeries]
         log.warning(f"No command response data found in {filename}")
         cmd_ts = TimeSeries()
     else:
-        cmd_times = util.calc_time(cmd_table["time_s"], cmd_table["time_clock"])
+        cmd_times = util.calc_time(cmd_table["pkttimes"], cmd_table["pktclock"])
         cmd_table["time"] = cmd_times
         cmd_ts = TimeSeries(cmd_table)
 
