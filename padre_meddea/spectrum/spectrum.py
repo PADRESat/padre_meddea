@@ -127,55 +127,46 @@ class PhotonList:
         baseline_sub : bool
             If True, then baseline measurements are subtracted if they exist
             Note: not yet implemented.
+        calibrate : bool
+            If True, provide the calibrated spectrum
 
         Returns
         -------
         spectrum : Spectrum1D
         """
-        if bins is None:
-            bins = np.arange(0, 2**12 - 1)
-        this_event_list = self._slice_event_list(pixel_list)
-        data, new_bins = np.histogram(this_event_list["atod"], bins=bins)
+        if not calibrate and bins is None:
+            bins = np.arange(0, 2**12 - 1) * u.pix
+        if calibrate and bins is None:
+            bins = np.arange(0, 100, 0.2) * u.keV
+        this_event_list = self._slice_event_list_pixels(pixel_list)
+        if calibrate:
+            hit_energy = this_event_list["energy"]
+        else:
+            hit_energy = this_event_list["atod"]
+        data, new_bins = np.histogram(hit_energy, bins=bins.value)
+
         # the spectral axis is at the center of the bins
         result = Spectrum1D(
             flux=u.Quantity(data, "count"),
-            spectral_axis=u.Quantity(bins, "pix"),
+            spectral_axis=bins,
             uncertainty=StdDevUncertainty(np.sqrt(data) * u.count),
         )
         return result
 
-    def calspectrum(self, asic_num: int, pixel_num: int, bins=None):
-        if "energy" not in self.event_list.keys():
-            raise ValueError("Spectrum is not calibrated.")
-        if bins is None:
-            bins = np.arange(0, 100, 0.2)
-        if (asic_num is None) and (pixel_num is None):
-            this_event_list = self.event_list
-        else:
-            this_event_list = self._slice_event_list(asic_num, pixel_num)
-        data, new_bins = np.histogram(this_event_list["energy"], bins=bins)
-        # the spectral axis is at the center of the bins
-        spec = Spectrum1D(
-            flux=u.Quantity(data, "count"),
-            spectral_axis=u.Quantity(bins, "keV"),
-            uncertainty=StdDevUncertainty(np.sqrt(data) * u.count),
-        )
-        return spec
-
     def lightcurve(
-        self, pixel_list: PixelList, int_time: u.Quantity[u.s], step: int = 10
+        self, pixel_list: PixelList, int_time: u.Quantity[u.s], sr: SpectralRegion, step: int = 10
     ) -> TimeSeries:
         """
         Create a light curve
 
         Parameters
         ----------
-        asic_num : int
-            The asic or detector number (0 to 3)
-        pixel_num : int
-            The pixel number (0 to 11)
+        pixel_list : PixelList
+            The pixels to integrate over
         int_time : u.Quantity[u.s]
-            The integration time
+            The integration time for each time step
+        sr : SpectralRegion
+            The spectral region(s) to integrate over
         step : int
             To speed up processing, skip every `step` photons.
             Default is ten.
@@ -185,15 +176,19 @@ class PhotonList:
         -------
         lc : TimeSeries
         """
-        this_event_list = self._slice_event_list(pixel_list)
+        this_event_list = self._slice_event_list_pixels(pixel_list)
+        # downsample the event list
         this_event_list = TimeSeries(
-            time=self.event_list.time[::step]
-        )  # not sure why this is necessary
-        this_event_list["count"] = np.ones(len(this_event_list))
-        ts = aggregate_downsample(
-            this_event_list, time_bin_size=int_time, aggregate_func=np.sum
-        )
-        ts["count"] *= step
+                time=self.event_list.time[::step]
+            )
+        for this_sr in sr:
+            this_event_list = self._slice_event_list_sr(sr)
+            col_label = f"{this_sr.lower}-{this_sr.upper}_cts"
+            this_event_list[col_label] = np.ones(len(this_event_list))
+            ts = aggregate_downsample(
+                this_event_list, time_bin_size=int_time, aggregate_func=np.sum
+            )
+            ts[col_label] *= step
         return ts
 
     def data_rate(self) -> BinnedTimeSeries:
@@ -220,7 +215,7 @@ class PhotonList:
         data_rate_ts["data_rate"] = data_rate_ts["data_rate"] / u.s
         return data_rate_ts
 
-    def _slice_event_list(self, pixel_list: PixelList) -> TimeSeries:
+    def _slice_event_list_pixels(self, pixel_list: PixelList) -> TimeSeries:
         """Slice the event list to only contain events from asic_num and pixel_num"""
         ind = np.zeros(len(self.event_list), dtype=np.bool)
         for this_pixel in pixel_list.iterrows():
@@ -228,6 +223,19 @@ class PhotonList:
             pixel_num = this_pixel[1]
             ind =  np.logical_or(ind, (self.event_list["pixel"] == pixel_num) * (self.event_list["asic"] == asic_num))
         return self.event_list[ind]
+
+    def _slide_event_list_sr(self, sr: SpectralRegion):
+        """Slice the envt list to only contain events inside the spectral region."""
+        if len(sr) > 1:
+            raise ValueError("Only supports Spectral Regions of length 1.")
+        if sr[0].lower.unit == u.Unit('keV'):
+            data = self.event_list['energy']
+        elif sr[0].lower.unit == u.Unit('pix'):
+            data = self.event_list['atod']
+        else:
+            raise ValueError(f"Unit of Spectral Region, {sr[0].lower.unit}, not recognized.")
+        ind = (data > sr[0].lower) * (data < sr[0].upper)
+        return self.event_list[ind] 
 
 
 class SpectrumList:
