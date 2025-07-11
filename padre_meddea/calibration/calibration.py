@@ -3,29 +3,24 @@ A module for all things calibration.
 """
 
 import os
-from pathlib import Path
 import tempfile
+from pathlib import Path
 
 from astropy.io import fits
-from astropy.time import Time
 from astropy.table import Table
+from astropy.time import Time
 
 import padre_meddea
+import padre_meddea.io.aws_db as aws_db
 from padre_meddea import log
 from padre_meddea.io import file_tools
+from padre_meddea.io.file_tools import read_raw_file
+from padre_meddea.io.fits_tools import get_comment, get_obs_header, get_primary_header
 from padre_meddea.util import util, validation
-import padre_meddea.io.aws_db as aws_db
-
 from padre_meddea.util.util import (
+    calc_time,
     create_science_filename,
     parse_science_filename,
-    calc_time,
-)
-from padre_meddea.io.file_tools import read_raw_file
-from padre_meddea.io.fits_tools import (
-    get_primary_header,
-    get_obs_header,
-    get_comment,
 )
 
 __all__ = [
@@ -257,7 +252,7 @@ def process_file(filename: Path, overwrite=False) -> list:
             # TODO check that asic_nums and channel_nums do not change
             # the function below will remove any change in pixel ids
 
-            ts, spectra, ids = file_tools.clean_spectra_data(parsed_data["spectra"])
+            ts, spectra, ids = parsed_data["spectra"]
             try:
                 aws_db.record_spectra(ts, spectra, ids)
             except ValueError:

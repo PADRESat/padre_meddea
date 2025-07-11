@@ -53,7 +53,6 @@ DEFAULT_PIXEL_IDS = np.array(
 MAX_PH_DATA_RATE = 100 * u.kilobyte / u.s
 
 __all__ = [
-    "get_calib_energy_func",
     "PhotonList",
     "SpectrumList",
 ]

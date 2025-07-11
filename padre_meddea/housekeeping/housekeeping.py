@@ -1,15 +1,17 @@
 """Module to provide functions for housekeeping data"""
 
-from pathlib import Path
 import datetime
-from astropy.io import ascii
-from astropy.timeseries import TimeSeries
-
-from padre_meddea import _package_directory, _data_directory, APID, log, EPOCH
+from pathlib import Path
 
 import ccsdspy
-from ccsdspy.utils import split_by_apid
+import numpy as np
+from astropy.io import ascii
+from astropy.time import Time
+from astropy.timeseries import TimeSeries
 from ccsdspy import PacketField
+from ccsdspy.utils import split_by_apid
+
+from padre_meddea import APID, EPOCH, _data_directory, _package_directory, log
 
 _data_directory = _package_directory / "data" / "housekeeping"
 hk_definitions = ascii.read(_data_directory / "hk_packet_def.csv")
@@ -46,6 +48,10 @@ def parse_housekeeping_packets(filename: Path):
     ]
     hk_data = TimeSeries(time=hk_timestamps, data=hk_data)
     hk_data.meta.update({"ORIGFILE": f"{filename.name}"})
+
+    # Clean Housekeeping Times
+    hk_data = clean_housekeeping_data(hk_data)
+
     return hk_data
 
 
@@ -56,3 +62,41 @@ def packet_definition_hk():
         p += [PacketField(name=this_hk, data_type="uint", bit_length=16)]
     p += [PacketField(name="CHECKSUM", data_type="uint", bit_length=16)]
     return p
+
+
+def clean_housekeeping_data(hk_data: TimeSeries) -> TimeSeries:
+    """
+    Clean the housekeeping data by removing any bad timestamps.
+
+    Parameters
+    ----------
+    hk_data : TimeSeries
+        The housekeeping data to clean.
+
+    Returns
+    -------
+    TimeSeries
+        The cleaned housekeeping data.
+    """
+    # Calculates Differences in Time-Related Columns
+    dts = hk_data.time[1:] - hk_data.time[:-1]
+    timestamp_diff = hk_data["timestamp"][1:] - hk_data["timestamp"][:-1]
+
+    # Calculate the Cadence for Interpolation
+    median_dt = np.median(dts)
+    median_timestamp_diff = np.median(timestamp_diff)
+
+    bad_indices = np.argwhere(hk_data.time <= Time("2024-01-01T00:00"))
+    for this_bad_index in bad_indices:
+        if this_bad_index < len(hk_data.time) - 1:
+            hk_data.time[this_bad_index] = hk_data.time[this_bad_index + 1] - median_dt
+            hk_data["timestamp"][this_bad_index] = (
+                hk_data["timestamp"][this_bad_index + 1] - median_timestamp_diff
+            )
+        else:
+            hk_data.time[this_bad_index] = hk_data.time[this_bad_index - 1] + median_dt
+            hk_data["timestamp"][this_bad_index] = (
+                hk_data["timestamp"][this_bad_index - 1] + median_timestamp_diff
+            )
+
+    return hk_data

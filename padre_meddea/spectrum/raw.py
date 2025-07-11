@@ -2,18 +2,17 @@
 
 from pathlib import Path
 
-import numpy as np
-
-import ccsdspy
-from ccsdspy.utils import split_by_apid
-
-from astropy.timeseries import TimeSeries
 import astropy.units as u
+import ccsdspy
+import numpy as np
+from astropy.time import Time
+from astropy.timeseries import TimeSeries
+from ccsdspy.utils import split_by_apid
 from specutils import Spectrum1D
 
 import padre_meddea
-from padre_meddea import log
 import padre_meddea.util.util as util
+from padre_meddea import log
 
 
 def parse_ph_packets(filename: Path):
@@ -174,6 +173,10 @@ def parse_ph_packets(filename: Path):
     center_index = int(len(time_s) / 2.0)
     date_avg = util.calc_time(time_s[center_index], time_clk[center_index])
     event_list.meta.update({"DATE-AVG": date_avg.fits})
+
+    # Clean Photon Times
+    pkt_list, event_list = clean_photon_data(pkt_list, event_list)
+
     return pkt_list, event_list
 
 
@@ -220,12 +223,16 @@ def parse_spectrum_packets(filename: Path):
         flux=histogram_data * u.ct,
     )
     ts.meta.update({"ORIGFILE": f"{filename.name}"})
+
+    # Clean Spectrum Times
+    ts, specs, pixel_ids = clean_spectra_data(ts, specs, pixel_ids)
+
     return ts, specs, pixel_ids
 
 
 def packet_definition_hist():
     """Return the packet definition for the histogram packets."""
-    from ccsdspy import PacketField, PacketArray
+    from ccsdspy import PacketArray, PacketField
 
     # NOTE: This is an outdated packet definition.
     # the number of pixels provided by a histogram packet
@@ -263,7 +270,7 @@ def packet_definition_hist2():
     # the number of pixels provided by a histogram packet
     NUM_BINS = 512
     NUM_PIXELS = 24
-    from ccsdspy import PacketField, PacketArray
+    from ccsdspy import PacketArray, PacketField
 
     # the header
     p = [
@@ -289,7 +296,7 @@ def packet_definition_hist2():
 
 def packet_definition_ph():
     """Return the packet definition for the photon packets."""
-    from ccsdspy import PacketField, PacketArray
+    from ccsdspy import PacketArray, PacketField
 
     p = [
         PacketField(name="TIME_S", data_type="uint", bit_length=32),
@@ -303,3 +310,93 @@ def packet_definition_ph():
         ),
     ]
     return p
+
+
+def clean_photon_data(
+    pkt_list: TimeSeries, event_list: TimeSeries
+) -> tuple[TimeSeries, TimeSeries]:
+    """
+    Given raw photon packet data, perform a cleaning operation that removes bad data.
+
+    Parameters
+    ----------
+    pkt_list : TimeSeries
+        A TimeSeries object containing the packet data.
+    event_list : TimeSeries
+        A TimeSeries object containing the event data.
+
+    Returns
+    -------
+    tuple[TimeSeries, TimeSeries]
+        A tuple containing the cleaned packet list and event list.
+    """
+    for ts in [pkt_list, event_list]:
+        # Find the Bad Indices
+        bad_indices = np.argwhere(ts.time <= Time("2024-01-01T00:00"))
+        log.warning(f"Removing {len(bad_indices)} bad indices from Photon TimeSeries.")
+        # Drop the Bad Indices from the TimeSeries
+        ts.remove_rows(bad_indices.flatten())
+
+    return pkt_list, event_list
+
+
+def clean_spectra_data(
+    ts: TimeSeries, spectra: Spectrum1D, ids: np.ndarray
+) -> tuple[TimeSeries, Spectrum1D, np.ndarray]:
+    """Given raw spectrum packet data, perform a cleaning operation that removes bad data.
+    The most common cause of which are bits that are turned to zero when they should not be.
+
+    This function finds unphysical times (before 2022-01-01) and replaces the time with an estimated time by using the median time between spectra.
+    It also replaces all pixel ids with the median pixel id set.
+
+    Parameters
+    ----------
+    ts : TimeSeries
+        A TimeSeries object containing the time and other metadata.
+    spectra : Spectrum1D
+        A Spectrum1D object containing the spectral data.
+    ids : np.ndarray
+        An array of pixel ids corresponding to the spectra.
+
+    Returns
+    -------
+    tuple[TimeSeries, Spectrum1D, np.ndarray]
+        A tuple containing the cleaned TimeSeries, Spectrum1D, and pixel ids.
+    """
+    # Calculate Differences in Time-Related Columns
+    dts = ts.time[1:] - ts.time[:-1]
+    pkttimes_diff = ts["pkttimes"][1:] - ts["pkttimes"][:-1]
+    pktclock_diff = ts["pktclock"][1:] - ts["pktclock"][:-1]
+
+    # Calculate the Cadence to use for Interpolation
+    median_dt = np.median(dts)
+    pkttimes_diff_median = np.median(pkttimes_diff)
+    pktclock_diff_median = np.median(pktclock_diff)
+
+    bad_indices = np.argwhere(ts.time <= Time("2024-01-01T00:00"))
+    for this_bad_index in bad_indices:
+        if this_bad_index < len(ts.time) - 1:
+            ts.time[this_bad_index] = ts.time[this_bad_index + 1] - median_dt
+            ts["pkttimes"][this_bad_index] = (
+                ts["pkttimes"][this_bad_index + 1] - pkttimes_diff_median
+            )
+            ts["pktclock"][this_bad_index] = (
+                ts["pktclock"][this_bad_index + 1] - pktclock_diff_median
+            )
+        else:
+            ts.time[this_bad_index] = ts.time[this_bad_index - 1] + median_dt
+            ts["pkttimes"][this_bad_index] = (
+                ts["pkttimes"][this_bad_index - 1] + pkttimes_diff_median
+            )
+            ts["pktclock"][this_bad_index] = (
+                ts["pktclock"][this_bad_index - 1] + pktclock_diff_median
+            )
+
+    # remove bad pixel ids
+    median_ids = np.median(ids, axis=0)
+    fixed_ids = (
+        np.tile(median_ids, ids.shape[0])
+        .reshape(ids.shape[0], len(median_ids))
+        .astype(ids.dtype)
+    )
+    return ts, spectra, fixed_ids

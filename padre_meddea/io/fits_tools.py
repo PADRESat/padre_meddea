@@ -728,7 +728,7 @@ def get_hdu_data_times(hdul_dict: dict[int, dict], hdu_name: str) -> Time:
     elif data_type == "housekeeping" and hdu_name == "HK":
         return calc_time(data["timestamp"])
     elif data_type == "housekeeping" and hdu_name == "READ":
-        return calc_time(data["time_s"], data["time_clock"])
+        return calc_time(data["pkttimes"], data["pktclock"])
 
     # Spectrum HDUs
     elif data_type == "spectrum" and hdu_name == "PKT":
