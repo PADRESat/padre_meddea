@@ -263,3 +263,26 @@ def calibrate_linear_phlist(
                 ph_list.event_list["atod"][ind]
             )
     return ph_list
+
+
+
+def calibrate_linear_speclist(
+    spec_list: SpectrumList, lin_cal_params: np.array
+) -> SpectrumList:
+    """Given an uncalibrated SpectrumList and a complete set of linear calibration parameters
+    produced by calibrate_phlist_barium_linear, apply the calibration to the
+    PhotonList. Adds a new energy column.
+
+    Paramters
+    ---------
+    Uncalibrated PhotonList
+
+    Linear calibration parameter array
+
+    Returns
+    -------
+    calibrated SpectrumList
+    """
+    for i,  in range(24):
+        cal_func = np.poly1d(lin_cal_params[i, :])
+    pass
