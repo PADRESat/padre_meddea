@@ -200,14 +200,13 @@ def calibrate_speclist_barium_linear(spec_list: SpectrumList, plot: bool = False
     lin_cal_params = np.zeros((24, 2))
     for this_index in range(24):
         # fitting barium lines
-        this_spec = spec_list.spectrum(spec_index=this_index)
+        this_spec = spec_list.spectrum(pixel_index=this_index)
         f = get_calfunc_barium_rough(this_spec)
-        this_asic, this_pixel = util.parse_pixelids(
-            int(spec_list.pixel_ids[this_index])
-        )
-        ba_line_centers = f(BA_LINE_ENERGIES.value)
+        # TODO: test lines for flux
+        STRONG_BA_LINE_ENERGIES = [7.8, 30.85, 35, 81] * u.keV
+        ba_line_centers = f(STRONG_BA_LINE_ENERGIES.value)
         fit_line_centers = fit_peaks(
-            this_spec, u.Quantity(ba_line_centers, this_spec.spectral_axis.unit)
+            this_spec, u.Quantity(ba_line_centers, this_spec.spectral_axis.unit), window=5
         )
         if plot:
             plt.figure()
@@ -215,21 +214,21 @@ def calibrate_speclist_barium_linear(spec_list: SpectrumList, plot: bool = False
             for this_line, that_line in zip(fit_line_centers, ba_line_centers):
                 plt.axvline(this_line, color="red", label="fit")
                 plt.axvline(that_line, color="green", label="rough")
-            plt.title(f"{this_asic} {this_pixel}")
+            plt.title(spec_list.pixel_list[this_index]['label'])
+            plt.legend()
             plt.show()
         # if this_pixel > 8:  # small pixel, remove the weak escape lines
         #    x = [fit_line_centers[0], fit_line_centers[1], fit_line_centers[-1]]
         #    y = [line_energies[0].value, line_energies[1].value, line_energies[-1].value]
         # else:
         x = fit_line_centers
-        y = BA_LINE_ENERGIES.value
+        y = STRONG_BA_LINE_ENERGIES.value
         p = np.polyfit(x, y, 1)
         f = np.poly1d(p)
         if plot:
             plt.figure()
             plt.plot(x, y, "x")
             plt.plot(x, f(x.value))
-            plt.title(f"asic {this_asic} pixel {this_pixel}")
             plt.show()
         lin_cal_params[this_index, :] = p
     return lin_cal_params
@@ -283,6 +282,20 @@ def calibrate_linear_speclist(
     -------
     calibrated SpectrumList
     """
-    for i,  in range(24):
-        cal_func = np.poly1d(lin_cal_params[i, :])
-    pass
+    from scipy.interpolate import RectBivariateSpline
+    new_spectral_axis = np.arange(0, 100, 0.1) * u.keV
+    num_ts = spec_list.specs.shape[0]
+    new_spec_data = np.zeros((num_ts, 24, len(new_spectral_axis)))
+    this_y = (spec_list.time - spec_list.time[0]).to('s').value
+    for i in range(24):
+        f = np.poly1d(lin_cal_params[i, :])
+        this_x = f(spec_list.specs[0, i].spectral_axis.value)
+        z = spec_list.specs[:, i].data
+        f2d = RectBivariateSpline(this_x, this_y, z.T)
+        new_spec_data[:, i, :] = f2d(new_spectral_axis.value, this_y).T
+    specs = Spectrum1D(
+        spectral_axis=new_spectral_axis, flux=new_spec_data * u.ct
+    )
+    new_spec_list = SpectrumList(spec_list.pkt_list, specs, pixel_ids=spec_list._pixel_ids)
+
+    return new_spec_list
