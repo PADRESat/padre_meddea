@@ -137,7 +137,7 @@ class PhotonList:
         if not calibrate and bins is None:
             bins = np.arange(0, 2**12 - 1) * u.pix
         if calibrate and bins is None:
-            bins = np.arange(0, 100, 0.2) * u.keV
+            bins = np.arange(0, 100, 0.1) * u.keV
         this_event_list = self._slice_event_list_pixels(pixel_list)
         if calibrate:
             hit_energy = this_event_list["energy"]
@@ -274,10 +274,10 @@ class SpectrumList:
         if len(np.unique(pixel_ids)) > 24:
             print("Found too many unique pixel IDs.")
             print("Forcing to default set")
-            self.pixel_ids = PixelList(pixelids = np.median(pixel_ids, axis=0).astype('uint16'))
+            self.pixel_list = PixelList(pixelids = DEFAULT_SPEC_PIXEL_IDS)
         else:
             if np.all(np.unique(pixel_ids) == sorted(pixel_ids[0, :])):
-                self.pixel_ids = PixelList(pixelids = np.median(pixel_ids, axis=0).astype('uint16'))
+                self.pixel_list = PixelList(pixelids = np.median(pixel_ids, axis=0).astype('uint16'))
             else:
                 raise ValueError("Found change in pixel ids")
         self.index = len(pkt_list)
@@ -298,7 +298,7 @@ class SpectrumList:
             result += f"{self.time[0]} - {self.time[-1]} ({dt})\n"
         return result
 
-    def spectrum(self, pixel_list: PixelList):
+    def spectrum(self, pixel_index: int):
         """Create a spectrum, integrates over all times
 
         Parameters
@@ -320,24 +320,67 @@ class SpectrumList:
         -------
         spectrum : Spectrum1D
         """
-        if spec_index == -1:
-            spec_index = self.get_spec_index(asic_num, pixel_num)
-        flux = np.sum(self.specs[:, spec_index, :].data, axis=0)
+        if isinstance(pixel_index, int):
+            flux = np.sum(self.specs.data[:, pixel_index, :], axis=0)
+        elif isinstance(pixel_index, list) or isinstance(pixel_index, np.ndarray):
+            flux = np.zeros(len(self.specs[0,0].spectral_axis))
+            for this_pixel in pixel_index:
+                flux += np.sum(self.specs.data[:, this_pixel, :], axis=0)
         # the spectral axis is at the center of the bins
         result = Spectrum1D(
-            flux=u.Quantity(flux, "count"),
-            spectral_axis=u.Quantity(self.bins, "pix"),
+            flux=flux * self.specs[:, pixel_index].flux.unit,
+            spectral_axis=self.specs[0, pixel_index].spectral_axis,
             uncertainty=StdDevUncertainty(np.sqrt(flux) * u.count),
         )
         return result
 
-    def get_spec_index(self, asic_num: int, pixel_num: int) -> int:
-        """Given an asic number and pixel number, find the corresponding spectrum index."""
-        match_index = (self.asics == asic_num) * (self.pixel_nums == pixel_num)
-        if np.sum(match_index) == 0:
-            raise ValueError(f"asic {asic_num} and {pixel_num} not found.")
-        pixel_id = util.get_pixelid(asic_num, pixel_num)
-        return int(np.where(pixel_id == self._pixel_ids)[0][0])
+    def lightcurve(self, pixel_index: int, sr: SpectralRegion) -> TimeSeries:
+        """
+        Create a light curve
+
+        Parameters
+        ----------
+        pixel_index : int
+            The pixels to integrate over
+        sr : SpectralRegion
+            The spectral region(s) to integrate over
+
+        Returns
+        -------
+        lc : TimeSeries
+        """
+        lc = TimeSeries(time=self.time)
+        if isinstance(pixel_index, int):
+            flux = self.specs.data[:, pixel_index, :].copy()
+        elif isinstance(pixel_index, list) or isinstance(pixel_index, np.ndarray):
+            flux = np.zeros([self.specs.data.shape[0], self.specs.data.shape[2]])
+            for this_pixel in pixel_index:
+                flux += self.specs.data[:, this_pixel, :]
+        for i, this_sr in enumerate(sr):
+            this_flux = flux.copy()
+            ind = (self.specs[0, 0].spectral_axis > this_sr.lower) * (self.specs[0, 0].spectral_axis < this_sr.upper)
+            this_flux[:, ~ind] = 0
+            col_label = f"{this_sr.lower}-{this_sr.upper}_cts"
+            total_cts = np.sum(this_flux, axis=1)
+            lc[col_label] = total_cts
+        return lc
+
+    def plot_spectrogram(self, **imshow_kwargs):
+        """Plot a spectrogram"""
+        import matplotlib.pyplot as plt
+        import matplotlib.dates as mdates
+        ts = [mdates.date2num(this_time) for this_time in self.time.to_datetime()]
+        x_lims = [ts[0], ts[-1]]
+        y_lims = [self.specs[0,0].spectral_axis[0].value, self.specs[0,0].spectral_axis[-1].value]
+        fig, ax = plt.subplots()
+        specgram = np.sum(self.specs.data, axis=1)
+        ax.imshow(specgram.transpose(), origin='lower', interpolation='nearest', extent = [x_lims[0], x_lims[1],  y_lims[0], y_lims[1]], **imshow_kwargs)
+        date_format = mdates.DateFormatter('%H:%M:%S')
+        ax.xaxis.set_major_formatter(date_format)
+        # This simply sets the x-axis data to diagonal so it fits better.
+        fig.autofmt_xdate()
+        plt.show()
+
 
     def __getitem__(self, key):
         if isinstance(key, int):
