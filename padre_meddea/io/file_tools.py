@@ -215,7 +215,7 @@ def read_fits_l0l1_housekeeping(filename: Path) -> TimeSeries:
     hk_ts = TimeSeries(hk_table)
 
     cmd_table = Table.read(filename, hdu=2)
-    cmd_times = util.calc_time(cmd_table["time_s"], cmd_table["time_clock"])
+    cmd_times = util.calc_time(cmd_table["pkttimes"], cmd_table["pktclock"])
     cmd_table["time"] = cmd_times
     cmd_ts = TimeSeries(cmd_table)
 
