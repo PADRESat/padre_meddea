@@ -218,10 +218,11 @@ class PhotonList:
     def _slice_event_list_pixels(self, pixel_list: PixelList) -> TimeSeries:
         """Slice the event list to only contain events from asic_num and pixel_num"""
         ind = np.zeros(len(self.event_list), dtype=np.bool)
-        for this_pixel in pixel_list.iterrows():
-            asic_num = this_pixel[0]
-            pixel_num = this_pixel[1]
-            ind =  np.logical_or(ind, (self.event_list["pixel"] == pixel_num) * (self.event_list["asic"] == asic_num))
+        if isinstance(pixel_list, Table.Row):
+            ind =  np.logical_or(ind, (self.event_list["pixel"] == int(pixel_list['pixel'])) * (self.event_list["asic"] == int(pixel_list['asic'])))
+        else:
+            for this_pixel in pixel_list:
+                ind =  np.logical_or(ind, (self.event_list["pixel"] == int(this_pixel['pixel'])) * (self.event_list["asic"] == int(this_pixel['asic'])))
         return self.event_list[ind]
 
     def _slide_event_list_sr(self, sr: SpectralRegion):
@@ -324,7 +325,7 @@ class SpectrumList:
         if isinstance(pixel_list, Table.Row):
             if pixel_list in self.pixel_list:
                 pixel_index = np.where(pixel_list == self.pixel_list)[0][0]
-                flux += np.sum(self.specs.data[:, pixel_list['index'], :], axis=0)
+                flux += np.sum(self.specs.data[:, pixel_index, :], axis=0)
         else:
             for this_pixel in pixel_list:
                 if this_pixel in self.pixel_list:

@@ -52,20 +52,21 @@ class PixelList(Table):
     >>> small_pixs = PixelList().all_small()  # every large pixel
     >>> large_pixs_det1 = PixelList().all_large(asics=[1])  # all large pixels from asic 1
     """
+
     def __init__(self, *args, **kwargs):
         if ("asics" in kwargs) and ("pixels" in kwargs):
-            asics = kwargs.pop('asics')
-            pixels = kwargs.pop('pixels')
+            asics = kwargs.pop("asics")
+            pixels = kwargs.pop("pixels")
             super().__init__(*args, **kwargs)
-            self['asic'] = np.array(asics, dtype=np.uint8)
-            self['pixel'] = np.array(pixels, dtype=np.uint8)
+            self["asic"] = np.array(asics, dtype=np.uint8)
+            self["pixel"] = np.array(pixels, dtype=np.uint8)
         elif "pixelids" in kwargs:
-            pixelids = kwargs.pop('pixelids')
+            pixelids = kwargs.pop("pixelids")
             asics, channels = parse_pixelids(pixelids)
             pixels = channel_to_pixel(channels)
             super().__init__(*args, **kwargs)
-            self['asic'] = np.array(asics, dtype=np.uint8)
-            self['pixel'] = np.array(pixels, dtype=np.uint8)
+            self["asic"] = np.array(asics, dtype=np.uint8)
+            self["pixel"] = np.array(pixels, dtype=np.uint8)
         else:
             super().__init__(*args, **kwargs)
         self._verify()
@@ -78,8 +79,8 @@ class PixelList(Table):
         asic_nums = np.repeat(np.array(asics, dtype=np.uint8), 8)
         pixel_nums = np.resize(np.arange(8, dtype=np.uint8), 8 * len(asics))
         out = Table()
-        out['asic'] = asic_nums
-        out['pixel'] = pixel_nums
+        out["asic"] = asic_nums
+        out["pixel"] = pixel_nums
         return cls(out)
 
     @classmethod
@@ -87,8 +88,8 @@ class PixelList(Table):
         asic_nums = np.repeat(np.array(asics, dtype=np.uint8), 4)
         pixel_nums = np.resize(np.arange(8, 12, dtype=np.uint8), 4 * len(asics))
         out = Table()
-        out['asic'] = asic_nums
-        out['pixel'] = pixel_nums
+        out["asic"] = asic_nums
+        out["pixel"] = pixel_nums
         return cls(out)
 
     @classmethod
@@ -96,8 +97,8 @@ class PixelList(Table):
         asic_nums = np.repeat(np.array(asics, dtype=np.uint8), 12)
         pixel_nums = np.resize(np.arange(0, 12, dtype=np.uint8), 12 * len(asics))
         out = Table()
-        out['asic'] = asic_nums
-        out['pixel'] = pixel_nums
+        out["asic"] = asic_nums
+        out["pixel"] = pixel_nums
         return cls(out)
 
     def select_large(self, asics: list = [0, 1, 2, 3]):
@@ -106,11 +107,11 @@ class PixelList(Table):
         asic_list = []
         pixel_list = []
         for this_asic in asics:
-            this_pixel_list = self[self['asic'] == this_asic]
+            this_pixel_list = self[self["asic"] == this_asic]
             for this_pixel in this_pixel_list:
-                if this_pixel['pixel'] in good_pixels:
-                    asic_list.append(this_pixel['asic'])
-                    pixel_list.append(this_pixel['pixel'])
+                if this_pixel["pixel"] in good_pixels:
+                    asic_list.append(this_pixel["asic"])
+                    pixel_list.append(this_pixel["pixel"])
         return PixelList(asics=asic_list, pixels=pixel_list)
 
     def select_small(self, asics: list = [0, 1, 2, 3]):
@@ -119,11 +120,11 @@ class PixelList(Table):
         asic_list = []
         pixel_list = []
         for this_asic in asics:
-            this_pixel_list = self[self['asic'] == this_asic]
+            this_pixel_list = self[self["asic"] == this_asic]
             for this_pixel in this_pixel_list:
-                if this_pixel['pixel'] in good_pixels:
-                    asic_list.append(this_pixel['asic'])
-                    pixel_list.append(this_pixel['pixel'])
+                if this_pixel["pixel"] in good_pixels:
+                    asic_list.append(this_pixel["asic"])
+                    pixel_list.append(this_pixel["pixel"])
         return PixelList(asics=asic_list, pixels=pixel_list)
 
     def _verify(self):
@@ -139,10 +140,21 @@ class PixelList(Table):
 
     def _add_helper_columns(self):
         """Add additional helper columns"""
-        self['channel'] = np.array([pixel_to_channel(this_pixel) for this_pixel in self['pixel']], dtype=np.uint8)
-        self['id'] = np.array([get_pixelid(this_asic, this_pixel) for this_asic, this_pixel in zip(self['asic'], self['pixel'])], dtype=np.uint16)
-        self['label'] = [get_pixel_str(this_asic, this_pixel) for this_asic, this_pixel in zip(self['asic'], self['pixel'])]
-
+        self["channel"] = np.array(
+            [pixel_to_channel(this_pixel) for this_pixel in self["pixel"]],
+            dtype=np.uint8,
+        )
+        self["id"] = np.array(
+            [
+                get_pixelid(this_asic, this_pixel)
+                for this_asic, this_pixel in zip(self["asic"], self["pixel"])
+            ],
+            dtype=np.uint16,
+        )
+        self["label"] = [
+            get_pixel_str(this_asic, this_pixel)
+            for this_asic, this_pixel in zip(self["asic"], self["pixel"])
+        ]
 
 
 def calc_time(pkt_time_s, pkt_time_clk=0, ph_clk=0) -> Time:

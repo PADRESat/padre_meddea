@@ -144,42 +144,40 @@ def calibrate_phlist_barium_linear(ph_list: PhotonList, plot: bool = False):
         An array of linear calibration values for each pixel.
     """
 
-    spec_bins = np.arange(0, 4097, 8, dtype=np.uint16)
+    spec_bins = np.arange(0, 4097, 8, dtype=np.uint16) * u.pix
     lin_cal_params = np.zeros((4, 12, 2))
-    for this_asic in range(4):
-        for this_pixel in range(12):
-            # fitting barium lines
-            this_spec = ph_list.spectrum(
-                asic_num=this_asic, pixel_num=this_pixel, bins=spec_bins
-            )
-            f = get_calfunc_barium_rough(this_spec)
-            ba_line_centers = f(BA_LINE_ENERGIES.value)
-            fit_line_centers = fit_peaks(
-                this_spec, u.Quantity(ba_line_centers, this_spec.spectral_axis.unit)
-            )
-            if plot:
-                plt.figure()
-                plt.plot(this_spec.spectral_axis.value, this_spec.flux.value)
-                for this_line, that_line in zip(fit_line_centers, ba_line_centers):
-                    plt.axvline(this_line, color="red", label="fit")
-                    plt.axvline(that_line, color="green", label="rough")
-                plt.title(f"{this_asic} {this_pixel}")
-                plt.show()
-            # if this_pixel > 8:  # small pixel, remove the weak escape lines
-            #    x = [fit_line_centers[0], fit_line_centers[1], fit_line_centers[-1]]
-            #    y = [line_energies[0].value, line_energies[1].value, line_energies[-1].value]
-            # else:
-            x = fit_line_centers
-            y = BA_LINE_ENERGIES.value
-            p = np.polyfit(x, y, 1)
-            f = np.poly1d(p)
-            if plot:
-                plt.figure()
-                plt.plot(x, y, "x")
-                plt.plot(x, f(x.value))
-                plt.title(f"asic {this_asic} pixel {this_pixel}")
-                plt.show()
-            lin_cal_params[this_asic, this_pixel, :] = p
+    all_pixels = util.PixelList.all()
+    for i, this_pixel in enumerate(all_pixels):
+        # fitting barium lines
+        this_spec = ph_list.spectrum(pixel_list=this_pixel, bins=spec_bins)
+        f = get_calfunc_barium_rough(this_spec)
+        ba_line_centers = f(BA_LINE_ENERGIES.value)
+        fit_line_centers = fit_peaks(
+            this_spec, u.Quantity(ba_line_centers, this_spec.spectral_axis.unit)
+        )
+        if plot:
+            plt.figure()
+            plt.plot(this_spec.spectral_axis.value, this_spec.flux.value)
+            for this_line, that_line in zip(fit_line_centers, ba_line_centers):
+                plt.axvline(this_line, color="red", label="fit")
+                plt.axvline(that_line, color="green", label="rough")
+            plt.title(f"{this_spec['label'].value}")
+            plt.show()
+        # if this_pixel > 8:  # small pixel, remove the weak escape lines
+        #    x = [fit_line_centers[0], fit_line_centers[1], fit_line_centers[-1]]
+        #    y = [line_energies[0].value, line_energies[1].value, line_energies[-1].value]
+        # else:
+        x = fit_line_centers
+        y = BA_LINE_ENERGIES.value
+        p = np.polyfit(x, y, 1)
+        f = np.poly1d(p)
+        if plot:
+            plt.figure()
+            plt.plot(x, y, "x")
+            plt.plot(x, f(x.value))
+            plt.title(f"{this_spec['label'].value}")
+            plt.show()
+        lin_cal_params[this_pixel['asic'], this_pixel['pixel'], :] = p
     return lin_cal_params
 
 
