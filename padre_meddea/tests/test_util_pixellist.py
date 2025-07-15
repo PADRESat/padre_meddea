@@ -63,3 +63,31 @@ def test_raises():
     with pytest.raises(ValueError):
         PixelList(asics=[5], pixels=[0])
         PixelList(asics=[0], pixels=[13])
+
+
+def test_iterate():
+    asics = [0, 1]
+    pixels = [2, 3]
+    px_list = PixelList(asics=[0, 1], pixels=[2, 3])
+    for this_pixel in px_list:
+        assert this_pixel['asic'] in asics
+        assert this_pixel['pixel'] in pixels
+
+
+def test_select():
+    px_list = PixelList().all()
+    asics = [0, 1]
+    large_pixels = px_list.select_large(asics=asics)
+    for this_pixel in large_pixels:
+        assert this_pixel['asic'] in asics
+    assert len(large_pixels) == 8 * len(asics)
+    small_pixels = px_list.select_small(asics=asics)
+    for this_pixel in small_pixels:
+        assert this_pixel['asic'] in asics
+    assert len(small_pixels) == 4 * len(asics)
+    select_pixels = PixelList(asics=[0, 2], pixels=[1, 11])
+    assert len(select_pixels.select_large()) == 1
+    assert len(select_pixels.select_small()) == 1
+    select_pixels = PixelList(asics=[1, 3], pixels=[1, 2])
+    assert len(select_pixels.select_large()) == 2
+    assert len(select_pixels.select_small()) == 0
