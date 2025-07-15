@@ -198,9 +198,9 @@ def calibrate_speclist_barium_linear(spec_list: SpectrumList, plot: bool = False
     """
 
     lin_cal_params = np.zeros((24, 2))
-    for this_index in range(24):
+    for pixel_index, this_pixel in enumerate(spec_list.pixel_list):
         # fitting barium lines
-        this_spec = spec_list.spectrum(pixel_index=this_index)
+        this_spec = spec_list.spectrum(pixel_list=this_pixel)
         f = get_calfunc_barium_rough(this_spec)
         # TODO: test lines for flux
         STRONG_BA_LINE_ENERGIES = [7.8, 30.85, 35, 81] * u.keV
@@ -214,7 +214,7 @@ def calibrate_speclist_barium_linear(spec_list: SpectrumList, plot: bool = False
             for this_line, that_line in zip(fit_line_centers, ba_line_centers):
                 plt.axvline(this_line, color="red", label="fit")
                 plt.axvline(that_line, color="green", label="rough")
-            plt.title(spec_list.pixel_list[this_index]['label'])
+            plt.title(this_pixel['label'])
             plt.legend()
             plt.show()
         # if this_pixel > 8:  # small pixel, remove the weak escape lines
@@ -230,7 +230,7 @@ def calibrate_speclist_barium_linear(spec_list: SpectrumList, plot: bool = False
             plt.plot(x, y, "x")
             plt.plot(x, f(x.value))
             plt.show()
-        lin_cal_params[this_index, :] = p
+        lin_cal_params[pixel_index, :] = p
     return lin_cal_params
 
 

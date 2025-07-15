@@ -102,18 +102,40 @@ class PixelList(Table):
 
     def select_large(self, asics: list = [0, 1, 2, 3]):
         """Return only large pixels from an existing pixel list"""
-        pass
+        good_pixels = np.arange(0, 8)
+        asic_list = []
+        pixel_list = []
+        for this_asic in asics:
+            this_pixel_list = self[self['asic'] == this_asic]
+            for this_pixel in this_pixel_list:
+                if this_pixel['pixel'] in good_pixels:
+                    asic_list.append(this_pixel['asic'])
+                    pixel_list.append(this_pixel['pixel'])
+        return PixelList(asics=asic_list, pixels=pixel_list)
 
     def select_small(self, asics: list = [0, 1, 2, 3]):
         """Return only small pixels from an existing pixel list"""
-        pass
+        good_pixels = np.arange(8, 12)
+        asic_list = []
+        pixel_list = []
+        for this_asic in asics:
+            this_pixel_list = self[self['asic'] == this_asic]
+            for this_pixel in this_pixel_list:
+                if this_pixel['pixel'] in good_pixels:
+                    asic_list.append(this_pixel['asic'])
+                    pixel_list.append(this_pixel['pixel'])
+        return PixelList(asics=asic_list, pixels=pixel_list)
 
     def _verify(self):
         """Verify consistency of the data."""
-        if np.any(self['pixel'] > 12):
-            raise ValueError(f"Found a pixel number that is too large, {self['pixel'].max()}")
-        if np.any(self['asic'] > 4):
-            raise ValueError(f"Found an asic number that is too large, {self['asic'].max()}")
+        if "pixel" in self.columns and len(self) > 0 and np.any(self["pixel"] > 12):
+            raise ValueError(
+                f"Found a pixel number that is too large, {self['pixel'].max()}"
+            )
+        if "asic" in self.columns and len(self) > 0 and np.any(self["asic"] > 4):
+            raise ValueError(
+                f"Found an asic number that is too large, {self['asic'].max()}"
+            )
 
     def _add_helper_columns(self):
         """Add additional helper columns"""

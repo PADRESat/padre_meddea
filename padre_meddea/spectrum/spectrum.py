@@ -298,7 +298,7 @@ class SpectrumList:
             result += f"{self.time[0]} - {self.time[-1]} ({dt})\n"
         return result
 
-    def spectrum(self, pixel_index: int):
+    def spectrum(self, pixel_list: PixelList):
         """Create a spectrum, integrates over all times
 
         Parameters
@@ -320,21 +320,25 @@ class SpectrumList:
         -------
         spectrum : Spectrum1D
         """
-        if isinstance(pixel_index, int):
-            flux = np.sum(self.specs.data[:, pixel_index, :], axis=0)
-        elif isinstance(pixel_index, list) or isinstance(pixel_index, np.ndarray):
-            flux = np.zeros(len(self.specs[0,0].spectral_axis))
-            for this_pixel in pixel_index:
-                flux += np.sum(self.specs.data[:, this_pixel, :], axis=0)
+        flux = np.zeros([self.specs.data.shape[2]])
+        if isinstance(pixel_list, Table.Row):
+            if pixel_list in self.pixel_list:
+                pixel_index = np.where(pixel_list == self.pixel_list)[0][0]
+                flux += np.sum(self.specs.data[:, pixel_list['index'], :], axis=0)
+        else:
+            for this_pixel in pixel_list:
+                if this_pixel in self.pixel_list:
+                    pixel_index = np.where(this_pixel == self.pixel_list)[0][0]
+                    flux += np.sum(self.specs.data[:, pixel_index, :], axis=0)
         # the spectral axis is at the center of the bins
         result = Spectrum1D(
-            flux=flux * self.specs[:, pixel_index].flux.unit,
-            spectral_axis=self.specs[0, pixel_index].spectral_axis,
+            flux=flux * self.specs[0, 0].flux.unit,
+            spectral_axis=self.specs[0, 0].spectral_axis,
             uncertainty=StdDevUncertainty(np.sqrt(flux) * u.count),
         )
         return result
 
-    def lightcurve(self, pixel_index: int, sr: SpectralRegion) -> TimeSeries:
+    def lightcurve(self, pixel_list: PixelList, sr: SpectralRegion) -> TimeSeries:
         """
         Create a light curve
 
@@ -350,12 +354,16 @@ class SpectrumList:
         lc : TimeSeries
         """
         lc = TimeSeries(time=self.time)
-        if isinstance(pixel_index, int):
-            flux = self.specs.data[:, pixel_index, :].copy()
-        elif isinstance(pixel_index, list) or isinstance(pixel_index, np.ndarray):
-            flux = np.zeros([self.specs.data.shape[0], self.specs.data.shape[2]])
-            for this_pixel in pixel_index:
-                flux += self.specs.data[:, this_pixel, :]
+        flux = np.zeros([self.specs.data.shape[0], self.specs.data.shape[2]])
+        if isinstance(pixel_list, Table.Row):
+            if pixel_list in self.pixel_list:
+                pixel_index = np.where(pixel_list == self.pixel_list)[0][0]
+                flux += self.specs.data[:, pixel_index, :]
+        else:
+            for this_pixel in pixel_list:
+                if this_pixel in self.pixel_list:
+                    pixel_index = np.where(this_pixel == self.pixel_list)[0][0]
+                    flux += self.specs.data[:, pixel_index, :]
         for i, this_sr in enumerate(sr):
             this_flux = flux.copy()
             ind = (self.specs[0, 0].spectral_axis > this_sr.lower) * (self.specs[0, 0].spectral_axis < this_sr.upper)
