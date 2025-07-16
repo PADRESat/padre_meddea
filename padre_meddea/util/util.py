@@ -69,10 +69,9 @@ class PixelList(Table):
             self["pixel"] = np.array(pixels, dtype=np.uint8)
         else:
             super().__init__(*args, **kwargs)
-        self._verify()
-
         if len(self) > 0:
             self._add_helper_columns()
+            self._verify()
 
     @classmethod
     def all_large(cls, asics: list = [0, 1, 2, 3]):
@@ -133,10 +132,18 @@ class PixelList(Table):
             raise ValueError(
                 f"Found a pixel number that is too large, {self['pixel'].max()}"
             )
-        if "asic" in self.columns and len(self) > 0 and np.any(self["asic"] > 4):
-            raise ValueError(
-                f"Found an asic number that is too large, {self['asic'].max()}"
-            )
+        if "asic" in self.columns and len(self) > 0:
+            good_asic_inds = (self["asic"] < 4) | (self["asic"] == 7)
+            bad_asic_inds = ~good_asic_inds
+            if np.any(bad_asic_inds):
+                raise ValueError(
+                    f"Found an unexpected asic number(s), {np.array(self['asic'][bad_asic_inds])}"
+                )
+        if "id" in self.columns and len(self) > 0:
+            if len(np.unique(self['id'])) < len(self['id']):
+                raise ValueError(
+                    f"Found duplicate pixels."
+                )
 
     def _add_helper_columns(self):
         """Add additional helper columns"""

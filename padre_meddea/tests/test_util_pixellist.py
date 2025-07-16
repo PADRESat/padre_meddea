@@ -58,6 +58,11 @@ def test_init():
     assert np.allclose(px_list['pixel'], np.array([2, 3], dtype=np.uint8))
     assert np.allclose(px_list['asic'], np.array([0, 1], dtype=np.uint8))
 
+    # test with lab asic number 7
+    px_list = PixelList(asics=[7, 7], pixels=[2, 3])
+    assert np.allclose(px_list['pixel'], np.array([2, 3], dtype=np.uint8))
+    assert np.allclose(px_list['asic'], np.array([0, 1], dtype=np.uint8))
+
 
 def test_raises():
     with pytest.raises(ValueError):
@@ -91,3 +96,9 @@ def test_select():
     select_pixels = PixelList(asics=[1, 3], pixels=[1, 2])
     assert len(select_pixels.select_large()) == 2
     assert len(select_pixels.select_small()) == 0
+
+
+def test_duplicates():
+    with pytest.raises(ValueError):
+        PixelList(asics=[0, 0, 1], pixels=[0, 0, 1])
+        PixelList(asics=[0, 0, 7, 1, 1], pixels=[11, 8, 0, 2, 2])
