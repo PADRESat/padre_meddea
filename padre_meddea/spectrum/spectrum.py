@@ -107,6 +107,20 @@ class PhotonList:
             result += f"{self.data['event_list'].time[0]} - {self.data['event_list'].time[-1]} ({dt})\n"
         return result
 
+    @property
+    def calibrated(self):
+        if 'energy' in self.event_list.colnames:
+            return True
+        else:
+            return False
+
+    @property
+    def pixel_list(self) -> PixelList:
+        """Return the set of pixels that have events"""
+        # note this is calculated on the fly instead of at init because it can take a few seconds to compute for large event lists
+        pixel_ids = np.unique(util.get_pixelid(self.event_list['asic'], self.event_list['pixel']))
+        return PixelList(pixelids=pixel_ids)
+
     def spectrum(
         self,
         pixel_list: PixelList,
@@ -145,7 +159,8 @@ class PhotonList:
             hit_energy = this_event_list["atod"]
         data, new_bins = np.histogram(hit_energy, bins=bins.value)
 
-        # the spectral axis is at the center of the bins
+        # for Spectrum1D, the spectral axis is at the center of the bins
+        # TODO: the histogram results are not consistent with the above
         result = Spectrum1D(
             flux=u.Quantity(data, "count"),
             spectral_axis=bins,
@@ -282,6 +297,13 @@ class SpectrumList:
             else:
                 raise ValueError("Found change in pixel ids")
         self.index = len(pkt_list)
+
+    @property
+    def calibrated(self):
+        if self.specs[0,0].spectral_axis.unit == u.Unit('keV'):
+            return True
+        else:
+            return False
 
     def __str__(self):
         return f"{self._text_summary()}{self.data['specs'].__repr__()}"
