@@ -62,7 +62,7 @@ def record_housekeeping(hk_ts: TimeSeries):
     for this_col in colnames_to_calibrate:
         if this_col in hk_ts.colnames:
             f = get_calibration_func(this_col)
-            my_hk_ts[f"cal_{this_col}"] = f(hk_ts[this_col])
+            my_hk_ts[f"cal_{this_col}"] = f(hk_ts[this_col]).value
 
     record_timeseries(my_hk_ts, "housekeeping", "meddea")
     create_annotation(my_hk_ts.time[0], f"{hk_ts.meta['ORIGFILE']}", ["meta"])
