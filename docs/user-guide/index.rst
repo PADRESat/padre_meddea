@@ -12,6 +12,7 @@ For more details checkout the :ref:`reference`.
 
    Brief Tour <tour>
    data
+   pixels
    raw
    level0
    simul_spectrum

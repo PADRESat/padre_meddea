@@ -6,13 +6,13 @@ from astropy.timeseries import TimeSeries
 from swxsoc.util.util import record_timeseries, create_annotation
 
 from padre_meddea import log
-import padre_meddea.util.util as util
+import padre_meddea.util.pixels as pixels
 from padre_meddea.housekeeping.calibration import get_calibration_func
 
 
 def record_spectra(pkt_ts, spectra, ids):
     """Send spectrum time series data to AWS."""
-    asic_nums, channel_nums = util.parse_pixelids(ids)
+    asic_nums, channel_nums = pixels.parse_pixelids(ids)
     # TODO: need to check that the pixelids have not changed during this time period
 
     NUM_LC_PER_SPEC = 4
@@ -23,7 +23,7 @@ def record_spectra(pkt_ts, spectra, ids):
     for i, (this_asic, this_chan) in enumerate(
         zip(median_asic_nums, median_channel_nums)
     ):
-        this_col = f"Det{this_asic}{util.pixel_to_str(util.channel_to_pixel(this_chan))[:-1]}"  # remove L or S
+        this_col = f"Det{this_asic}{pixels.pixel_to_str(pixels.channel_to_pixel(this_chan))[:-1]}"  # remove L or S
         for j in range(NUM_LC_PER_SPEC):
             this_lc = np.sum(
                 spectra.data[:, i, ADC_RANGES[j] : ADC_RANGES[j + 1]], axis=1

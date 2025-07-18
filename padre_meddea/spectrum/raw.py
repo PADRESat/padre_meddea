@@ -14,6 +14,7 @@ from specutils import Spectrum1D
 import padre_meddea
 from padre_meddea import log
 import padre_meddea.util.util as util
+import padre_meddea.util.pixels as pixels
 
 
 def parse_ph_packets(filename: Path):
@@ -165,7 +166,7 @@ def parse_ph_packets(filename: Path):
     event_list["baseline"] = hit_list[6, :]  # if baseline not present then all zeros
     event_list["pkttimes"] = time_s
     event_list["pktclock"] = time_clk
-    event_list["pixel"] = util.channel_to_pixel(event_list["channel"])
+    event_list["pixel"] = pixels.channel_to_pixel(event_list["channel"])
     date_beg = util.calc_time(time_s[0], time_clk[0])
     date_end = util.calc_time(time_s[-1], time_clk[-1])
     event_list.meta.update({"DATE-BEG": date_beg.fits})
