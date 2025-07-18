@@ -14,6 +14,7 @@ import padre_meddea
 from padre_meddea import log
 from padre_meddea.io import file_tools
 from padre_meddea.util import util, validation
+import padre_meddea.util.pixels as pixels 
 import padre_meddea.io.aws_db as aws_db
 
 from padre_meddea.util.util import (
@@ -263,7 +264,7 @@ def process_file(filename: Path, overwrite=False) -> list:
             #except ValueError:
             #    pass
 
-            asic_nums, channel_nums = util.parse_pixelids(ids)
+            asic_nums, channel_nums = pixels.parse_pixelids(ids)
             # asic_nums = (ids & 0b11100000) >> 5
             # channel_nums = ids & 0b00011111
 

@@ -19,7 +19,7 @@ from specutils.manipulation import extract_region
 from specutils.fitting import estimate_line_parameters, fit_lines
 
 import padre_meddea.util.util as util
-from padre_meddea.util.util import PixelList
+from padre_meddea.util.pixels import PixelList
 import padre_meddea
 
 DEFAULT_SPEC_PIXEL_IDS = np.array(
