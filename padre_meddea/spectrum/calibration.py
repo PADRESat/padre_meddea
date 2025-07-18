@@ -177,7 +177,7 @@ def calibrate_phlist_barium_linear(ph_list: PhotonList, plot: bool = False):
             plt.plot(x, f(x.value))
             plt.title(f"{this_spec['label'].value}")
             plt.show()
-        lin_cal_params[this_pixel['asic'], this_pixel['pixel'], :] = p
+        lin_cal_params[this_pixel["asic"], this_pixel["pixel"], :] = p
     return lin_cal_params
 
 
@@ -204,7 +204,9 @@ def calibrate_speclist_barium_linear(spec_list: SpectrumList, plot: bool = False
         STRONG_BA_LINE_ENERGIES = [7.8, 30.85, 35, 81] * u.keV
         ba_line_centers = f(STRONG_BA_LINE_ENERGIES.value)
         fit_line_centers = fit_peaks(
-            this_spec, u.Quantity(ba_line_centers, this_spec.spectral_axis.unit), window=5
+            this_spec,
+            u.Quantity(ba_line_centers, this_spec.spectral_axis.unit),
+            window=5,
         )
         if plot:
             plt.figure()
@@ -212,7 +214,7 @@ def calibrate_speclist_barium_linear(spec_list: SpectrumList, plot: bool = False
             for this_line, that_line in zip(fit_line_centers, ba_line_centers):
                 plt.axvline(this_line, color="red", label="fit")
                 plt.axvline(that_line, color="green", label="rough")
-            plt.title(this_pixel['label'])
+            plt.title(this_pixel["label"])
             plt.legend()
             plt.show()
         # if this_pixel > 8:  # small pixel, remove the weak escape lines
@@ -262,7 +264,6 @@ def calibrate_linear_phlist(
     return ph_list
 
 
-
 def calibrate_linear_speclist(
     spec_list: SpectrumList, lin_cal_params: np.array
 ) -> SpectrumList:
@@ -281,19 +282,20 @@ def calibrate_linear_speclist(
     calibrated SpectrumList
     """
     from scipy.interpolate import RectBivariateSpline
+
     new_spectral_axis = np.arange(0, 100, 0.1) * u.keV
     num_ts = spec_list.specs.shape[0]
     new_spec_data = np.zeros((num_ts, 24, len(new_spectral_axis)))
-    this_y = (spec_list.time - spec_list.time[0]).to('s').value
+    this_y = (spec_list.time - spec_list.time[0]).to("s").value
     for i in range(24):
         f = np.poly1d(lin_cal_params[i, :])
         this_x = f(spec_list.specs[0, i].spectral_axis.value)
         z = spec_list.specs[:, i].data
         f2d = RectBivariateSpline(this_x, this_y, z.T)
         new_spec_data[:, i, :] = f2d(new_spectral_axis.value, this_y).T
-    specs = Spectrum1D(
-        spectral_axis=new_spectral_axis, flux=new_spec_data * u.ct
+    specs = Spectrum1D(spectral_axis=new_spectral_axis, flux=new_spec_data * u.ct)
+    new_spec_list = SpectrumList(
+        spec_list.pkt_list, specs, pixel_ids=spec_list._pixel_ids
     )
-    new_spec_list = SpectrumList(spec_list.pkt_list, specs, pixel_ids=spec_list._pixel_ids)
 
     return new_spec_list

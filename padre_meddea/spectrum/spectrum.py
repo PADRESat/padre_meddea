@@ -53,7 +53,7 @@ DEFAULT_SPEC_PIXEL_IDS = np.array(
 )
 MAX_PH_DATA_RATE = 100 * u.kilobyte / u.s
 
-DEFAULT_SPEC_PIXEL_LIST = PixelList(pixelids = DEFAULT_SPEC_PIXEL_IDS)
+DEFAULT_SPEC_PIXEL_LIST = PixelList(pixelids=DEFAULT_SPEC_PIXEL_IDS)
 
 __all__ = [
     "PhotonList",
@@ -109,7 +109,7 @@ class PhotonList:
 
     @property
     def calibrated(self):
-        if 'energy' in self.event_list.colnames:
+        if "energy" in self.event_list.colnames:
             return True
         else:
             return False
@@ -118,7 +118,9 @@ class PhotonList:
     def pixel_list(self) -> PixelList:
         """Return the set of pixels that have events"""
         # note this is calculated on the fly instead of at init because it can take a few seconds to compute for large event lists
-        pixel_ids = np.unique(util.get_pixelid(self.event_list['asic'], self.event_list['pixel']))
+        pixel_ids = np.unique(
+            util.get_pixelid(self.event_list["asic"], self.event_list["pixel"])
+        )
         return PixelList(pixelids=pixel_ids)
 
     def spectrum(
@@ -169,7 +171,11 @@ class PhotonList:
         return result
 
     def lightcurve(
-        self, pixel_list: PixelList, int_time: u.Quantity[u.s], sr: SpectralRegion, step: int = 10
+        self,
+        pixel_list: PixelList,
+        int_time: u.Quantity[u.s],
+        sr: SpectralRegion,
+        step: int = 10,
     ) -> TimeSeries:
         """
         Create a light curve
@@ -193,9 +199,7 @@ class PhotonList:
         """
         this_event_list = self._slice_event_list_pixels(pixel_list)
         # downsample the event list
-        this_event_list = TimeSeries(
-                time=self.event_list.time[::step]
-            )
+        this_event_list = TimeSeries(time=self.event_list.time[::step])
         for this_sr in sr:
             this_event_list = self._slice_event_list_sr(sr)
             col_label = f"{this_sr.lower}-{this_sr.upper}_cts"
@@ -234,24 +238,34 @@ class PhotonList:
         """Slice the event list to only contain events from asic_num and pixel_num"""
         ind = np.zeros(len(self.event_list), dtype=np.bool)
         if isinstance(pixel_list, Table.Row):
-            ind =  np.logical_or(ind, (self.event_list["pixel"] == int(pixel_list['pixel'])) * (self.event_list["asic"] == int(pixel_list['asic'])))
+            ind = np.logical_or(
+                ind,
+                (self.event_list["pixel"] == int(pixel_list["pixel"]))
+                * (self.event_list["asic"] == int(pixel_list["asic"])),
+            )
         else:
             for this_pixel in pixel_list:
-                ind =  np.logical_or(ind, (self.event_list["pixel"] == int(this_pixel['pixel'])) * (self.event_list["asic"] == int(this_pixel['asic'])))
+                ind = np.logical_or(
+                    ind,
+                    (self.event_list["pixel"] == int(this_pixel["pixel"]))
+                    * (self.event_list["asic"] == int(this_pixel["asic"])),
+                )
         return self.event_list[ind]
 
     def _slide_event_list_sr(self, sr: SpectralRegion):
         """Slice the envt list to only contain events inside the spectral region."""
         if len(sr) > 1:
             raise ValueError("Only supports Spectral Regions of length 1.")
-        if sr[0].lower.unit == u.Unit('keV'):
-            data = self.event_list['energy']
-        elif sr[0].lower.unit == u.Unit('pix'):
-            data = self.event_list['atod']
+        if sr[0].lower.unit == u.Unit("keV"):
+            data = self.event_list["energy"]
+        elif sr[0].lower.unit == u.Unit("pix"):
+            data = self.event_list["atod"]
         else:
-            raise ValueError(f"Unit of Spectral Region, {sr[0].lower.unit}, not recognized.")
+            raise ValueError(
+                f"Unit of Spectral Region, {sr[0].lower.unit}, not recognized."
+            )
         ind = (data > sr[0].lower) * (data < sr[0].upper)
-        return self.event_list[ind] 
+        return self.event_list[ind]
 
 
 class SpectrumList:
@@ -290,17 +304,19 @@ class SpectrumList:
         if len(np.unique(pixel_ids)) > 24:
             print("Found too many unique pixel IDs.")
             print("Forcing to default set")
-            self.pixel_list = PixelList(pixelids = DEFAULT_SPEC_PIXEL_IDS)
+            self.pixel_list = PixelList(pixelids=DEFAULT_SPEC_PIXEL_IDS)
         else:
             if np.all(np.unique(pixel_ids) == sorted(pixel_ids[0, :])):
-                self.pixel_list = PixelList(pixelids = np.median(pixel_ids, axis=0).astype('uint16'))
+                self.pixel_list = PixelList(
+                    pixelids=np.median(pixel_ids, axis=0).astype("uint16")
+                )
             else:
                 raise ValueError("Found change in pixel ids")
         self.index = len(pkt_list)
 
     @property
     def calibrated(self):
-        if self.specs[0,0].spectral_axis.unit == u.Unit('keV'):
+        if self.specs[0, 0].spectral_axis.unit == u.Unit("keV"):
             return True
         else:
             return False
@@ -389,7 +405,9 @@ class SpectrumList:
                     flux += self.specs.data[:, pixel_index, :]
         for i, this_sr in enumerate(sr):
             this_flux = flux.copy()
-            ind = (self.specs[0, 0].spectral_axis > this_sr.lower) * (self.specs[0, 0].spectral_axis < this_sr.upper)
+            ind = (self.specs[0, 0].spectral_axis > this_sr.lower) * (
+                self.specs[0, 0].spectral_axis < this_sr.upper
+            )
             this_flux[:, ~ind] = 0
             col_label = f"{this_sr.lower}-{this_sr.upper}_cts"
             total_cts = np.sum(this_flux, axis=1)
@@ -400,18 +418,27 @@ class SpectrumList:
         """Plot a spectrogram"""
         import matplotlib.pyplot as plt
         import matplotlib.dates as mdates
+
         ts = [mdates.date2num(this_time) for this_time in self.time.to_datetime()]
         x_lims = [ts[0], ts[-1]]
-        y_lims = [self.specs[0,0].spectral_axis[0].value, self.specs[0,0].spectral_axis[-1].value]
+        y_lims = [
+            self.specs[0, 0].spectral_axis[0].value,
+            self.specs[0, 0].spectral_axis[-1].value,
+        ]
         fig, ax = plt.subplots()
         specgram = np.sum(self.specs.data, axis=1)
-        ax.imshow(specgram.transpose(), origin='lower', interpolation='nearest', extent = [x_lims[0], x_lims[1],  y_lims[0], y_lims[1]], **imshow_kwargs)
-        date_format = mdates.DateFormatter('%H:%M:%S')
+        ax.imshow(
+            specgram.transpose(),
+            origin="lower",
+            interpolation="nearest",
+            extent=[x_lims[0], x_lims[1], y_lims[0], y_lims[1]],
+            **imshow_kwargs,
+        )
+        date_format = mdates.DateFormatter("%H:%M:%S")
         ax.xaxis.set_major_formatter(date_format)
         # This simply sets the x-axis data to diagonal so it fits better.
         fig.autofmt_xdate()
         plt.show()
-
 
     def __getitem__(self, key):
         if isinstance(key, int):

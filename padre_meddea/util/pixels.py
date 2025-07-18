@@ -12,7 +12,7 @@ __all__ = [
     "get_pixelid",
     "get_pixel_str",
     "pixelid_to_str",
-    "pixel_to_str"
+    "pixel_to_str",
 ]
 
 
@@ -130,10 +130,8 @@ class PixelList(Table):
                     f"Found an unexpected asic number(s), {np.array(self['asic'][bad_asic_inds])}"
                 )
         if "id" in self.columns and len(self) > 0:
-            if len(np.unique(self['id'])) < len(self['id']):
-                raise ValueError(
-                    "Found duplicate pixels."
-                )
+            if len(np.unique(self["id"])) < len(self["id"]):
+                raise ValueError("Found duplicate pixels.")
 
     def _add_helper_columns(self):
         """Add additional helper columns"""
@@ -152,7 +150,6 @@ class PixelList(Table):
             get_pixel_str(this_asic, this_pixel)
             for this_asic, this_pixel in zip(self["asic"], self["pixel"])
         ]
-
 
 
 def _channel_to_pixel(channel: int) -> int:
@@ -258,4 +255,3 @@ def pixel_to_str(pixel_num: int) -> str:
     elif 8 <= pixel_num <= 12:
         pixel_size = "S"
     return f"Pixel{pixel_num}{pixel_size}"
-

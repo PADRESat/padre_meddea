@@ -51,7 +51,6 @@ def test_is_not_consecutive():
     )
 
 
-
 def test_has_baseline():
     assert not util.has_baseline(
         padre_meddea._test_files_directory / "apid160_4packets.bin"
@@ -82,6 +81,7 @@ def test_has_baseline_error():
 )
 def test_calc_time(pkt_time_s, pkt_time_clk, ph_clk, output):
     assert util.calc_time(pkt_time_s, pkt_time_clk, ph_clk) == output
+
 
 def test_threshold_to_energy_error():
     with pytest.raises(ValueError):

@@ -21,6 +21,7 @@ __all__ = [
     "is_consecutive",
 ]
 
+
 def calc_time(pkt_time_s, pkt_time_clk=0, ph_clk=0) -> Time:
     """
     Convert times to a Time object
