@@ -55,7 +55,6 @@ def test_read_file_fits():
     # TODO re-enable this once the test spec files are fixed.
     # assert isinstance(read_file(fits_spec_packet_file), SpectrumList)
 
-    # note that there are no command packets in this file
     hk_ts, cmd_ts = read_file(fits_hk_packet_file)
     assert isinstance(hk_ts, TimeSeries)
     assert isinstance(cmd_ts, TimeSeries)
