@@ -174,9 +174,6 @@ def parse_ph_packets(filename: Path):
     date_avg = util.calc_time(time_s[center_index], time_clk[center_index])
     event_list.meta.update({"DATE-AVG": date_avg.fits})
 
-    # Clean Photon Times
-    pkt_list, event_list = clean_photon_data(pkt_list, event_list)
-
     return pkt_list, event_list
 
 
@@ -312,34 +309,6 @@ def packet_definition_ph():
     return p
 
 
-def clean_photon_data(
-    pkt_list: TimeSeries, event_list: TimeSeries
-) -> tuple[TimeSeries, TimeSeries]:
-    """
-    Given raw photon packet data, perform a cleaning operation that removes bad data.
-
-    Parameters
-    ----------
-    pkt_list : TimeSeries
-        A TimeSeries object containing the packet data.
-    event_list : TimeSeries
-        A TimeSeries object containing the event data.
-
-    Returns
-    -------
-    tuple[TimeSeries, TimeSeries]
-        A tuple containing the cleaned packet list and event list.
-    """
-    for ts in [pkt_list, event_list]:
-        # Find the Bad Indices
-        bad_indices = np.argwhere(ts.time <= Time("2024-01-01T00:00"))
-        log.warning(f"Removing {len(bad_indices)} bad indices from Photon TimeSeries.")
-        # Drop the Bad Indices from the TimeSeries
-        ts.remove_rows(bad_indices.flatten())
-
-    return pkt_list, event_list
-
-
 def clean_spectra_data(
     ts: TimeSeries, spectra: Spectrum1D, ids: np.ndarray
 ) -> tuple[TimeSeries, Spectrum1D, np.ndarray]:
@@ -373,7 +342,7 @@ def clean_spectra_data(
     pkttimes_diff_median = np.median(pkttimes_diff)
     pktclock_diff_median = np.median(pktclock_diff)
 
-    bad_indices = np.argwhere(ts.time <= Time("2024-01-01T00:00"))
+    bad_indices = np.argwhere(ts.time <= util.MIN_TIME_BAD)
     for this_bad_index in bad_indices:
         if this_bad_index < len(ts.time) - 1:
             ts.time[this_bad_index] = ts.time[this_bad_index + 1] - median_dt

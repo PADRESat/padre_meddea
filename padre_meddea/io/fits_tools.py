@@ -726,7 +726,10 @@ def get_hdu_data_times(hdul_dict: dict[int, dict], hdu_name: str) -> Time:
 
     # Housekeeping HDUs
     elif data_type == "housekeeping" and hdu_name == "HK":
-        return calc_time(data["pkttimes"])
+        if "pkttimes" in data.keys():
+            return calc_time(data["pkttimes"])
+        else:
+            return calc_time(data["timestamp"])
     elif data_type == "housekeeping" and hdu_name == "READ":
         return calc_time(data["pkttimes"], data["pktclock"])
 

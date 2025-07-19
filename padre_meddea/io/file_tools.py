@@ -6,20 +6,24 @@ from pathlib import Path
 
 import astropy.io.fits as fits
 import astropy.units as u
-import ccsdspy
 import numpy as np
 from astropy.table import Table
-from astropy.time import Time
 from astropy.timeseries import TimeSeries
-from ccsdspy import PacketArray, PacketField
 from ccsdspy.utils import count_packets, split_by_apid
 from specutils import Spectrum1D
 
 import padre_meddea.util.util as util
 from padre_meddea import APID, log
-from padre_meddea.housekeeping.housekeeping import parse_housekeeping_packets, parse_cmd_response_packets
-from padre_meddea.housekeeping.register import add_register_address_name
-from padre_meddea.spectrum.raw import parse_ph_packets, parse_spectrum_packets
+from padre_meddea.housekeeping.housekeeping import (
+    parse_housekeeping_packets,
+    parse_cmd_response_packets,
+    clean_hk_data,
+)
+from padre_meddea.spectrum.raw import (
+    parse_ph_packets,
+    parse_spectrum_packets,
+    clean_spectra_data,
+)
 from padre_meddea.spectrum.spectrum import PhotonList, SpectrumList
 
 __all__ = ["read_file", "read_raw_file", "read_fits"]
@@ -191,6 +195,8 @@ def read_fits_l0l1_photon(filename: Path) -> PhotonList:
     )
     packet_list_table["time"] = pkt_times
     packet_list = TimeSeries(packet_list_table)
+    packet_list = util.trim_timeseries(packet_list)
+    event_list = util.trim_timeseries(event_list)
 
     return PhotonList(packet_list, event_list)
 
@@ -204,10 +210,13 @@ def read_fits_l0l1_housekeeping(filename: Path) -> tuple[TimeSeries, TimeSeries]
         TimeSeries of housekeeping data, TimeSeries of reads
     """
     hk_table = Table.read(filename, hdu=1)
-    hk_times = util.calc_time(hk_table["pkttimes"])
+    if "pkttimes" in hk_table.columns:
+        hk_times = util.calc_time(hk_table["pkttimes"])
+    elif "timestamp" in hk_table.columns:
+        hk_times = util.calc_time(hk_table["timestamp"])
     hk_table["time"] = hk_times
     hk_ts = TimeSeries(hk_table)
-
+    hk_ts = clean_hk_data(hk_ts)
     cmd_table = Table.read(filename, hdu=2)
     if len(cmd_table) == 0:
         log.warning(f"No command response data found in {filename}")
@@ -216,6 +225,7 @@ def read_fits_l0l1_housekeeping(filename: Path) -> tuple[TimeSeries, TimeSeries]
         cmd_times = util.calc_time(cmd_table["pkttimes"], cmd_table["pktclock"])
         cmd_table["time"] = cmd_times
         cmd_ts = TimeSeries(cmd_table)
+        cmd_ts = util.trim_timeseries(cmd_ts)
 
     return hk_ts, cmd_ts
 
@@ -241,6 +251,8 @@ def read_fits_l0l1_spectrum(filename: Path):
     )
     # reconstruct pixel ids TODO use util.get_pixelid
     pixel_ids = (hdu["PKT"].data["asic"] << 5) + (hdu["PKT"].data["channel"]) + 0xCA00
+    pkt_ts, specs, pixel_ids = clean_spectra_data(pkt_ts, specs, pixel_ids)
+
     return SpectrumList(pkt_ts, specs, pixel_ids)
 
 

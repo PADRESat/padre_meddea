@@ -6,7 +6,6 @@ from pathlib import Path
 import ccsdspy
 import numpy as np
 from astropy.io import ascii
-from astropy.time import Time
 from astropy.timeseries import TimeSeries
 from ccsdspy import PacketField
 from ccsdspy.utils import split_by_apid
@@ -52,7 +51,7 @@ def parse_housekeeping_packets(filename: Path):
     hk_data.meta.update({"ORIGFILE": f"{filename.name}"})
 
     # Clean Housekeeping Times
-    #hk_data = clean_housekeeping_data(hk_data)
+    # hk_data = clean_housekeeping_data(hk_data)
 
     return hk_data
 
@@ -64,7 +63,6 @@ def packet_definition_hk():
         p += [PacketField(name=this_hk, data_type="uint", bit_length=16)]
     p += [PacketField(name="checksum", data_type="uint", bit_length=16)]
     return p
-
 
 
 def parse_cmd_response_packets(filename: Path):
@@ -121,7 +119,7 @@ def parse_cmd_response_packets(filename: Path):
     ts.meta.update({"ORIGFILE": f"{filename.name}"})
 
     # Clean Command Response Times
-    #ts = clean_cmd_response_data(ts)
+    # ts = clean_cmd_response_data(ts)
 
     return ts
 
@@ -154,7 +152,12 @@ def clean_hk_data(hk_ts: TimeSeries) -> TimeSeries:
     """
     # Calculates Differences in Time-Related Columns
     dts = hk_ts.time[1:] - hk_ts.time[:-1]
-    pkttimes_diff = hk_ts["pkttimes"][1:] - hk_ts["pkttimes"][:-1]
+    if "pkttimes" in hk_ts.columns:
+        time_col_name = "pkttimes"
+    else:
+        time_col_name = "timestamp"
+
+    pkttimes_diff = hk_ts[time_col_name][1:] - hk_ts[time_col_name][:-1]
 
     # Calculate the Cadence for Interpolation
     median_dt = np.median(dts)
@@ -164,13 +167,13 @@ def clean_hk_data(hk_ts: TimeSeries) -> TimeSeries:
     for this_bad_index in bad_indices:
         if this_bad_index < len(hk_ts.time) - 1:
             hk_ts.time[this_bad_index] = hk_ts.time[this_bad_index + 1] - median_dt
-            hk_ts["pkttimes"][this_bad_index] = (
-                hk_ts["pkttimes"][this_bad_index + 1] - median_pkttimes_diff
+            hk_ts[time_col_name][this_bad_index] = (
+                hk_ts[time_col_name][this_bad_index + 1] - median_pkttimes_diff
             )
         else:
             hk_ts.time[this_bad_index] = hk_ts.time[this_bad_index - 1] + median_dt
-            hk_ts["pkttimes"][this_bad_index] = (
-                hk_ts["pkttimes"][this_bad_index - 1] + median_pkttimes_diff
+            hk_ts[time_col_name][this_bad_index] = (
+                hk_ts[time_col_name][this_bad_index - 1] + median_pkttimes_diff
             )
 
     return hk_ts
