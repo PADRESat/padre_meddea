@@ -159,7 +159,7 @@ def process_file(filename: Path, overwrite=False) -> list:
                 file_path, data_level="l0", data_type=data_type
             )
 
-            date_beg = calc_time(hk_data["timestamp"][0])
+            date_beg = calc_time(hk_data["pkttimes"][0])
             primary_hdr["DATE-BEG"] = (date_beg.fits, get_comment("DATE-BEG"))
             primary_hdr["DATEREF"] = (date_beg.fits, get_comment("DATEREF"))
 
