@@ -40,7 +40,7 @@ def test_is_consecutive():
     assert util.is_consecutive(np.arange(10, 100, 1))
     # test if the array loops over
     assert util.is_consecutive(
-        np.concatenate((np.arange(0, 2**14), np.arange(0, 2000)))
+        np.concatenate((np.arange(0, 2 ** 14), np.arange(0, 2000)))
     )
 
 
@@ -179,10 +179,14 @@ def test_threshold_to_energy(input, output):
 
 def test_trim_timeseries():
     # all bad
-    ts = TimeSeries(time_start=(util.MIN_TIME_BAD - 10 * u.year), time_delta=1 * u.year, n_samples=5)
+    ts = TimeSeries(
+        time_start=(util.MIN_TIME_BAD - 10 * u.year), time_delta=1 * u.year, n_samples=5
+    )
     assert len(util.trim_timeseries(ts)) == 0
     # some bad
-    ts = TimeSeries(time_start=(util.MIN_TIME_BAD - 1 * u.year), time_delta=1 * u.year, n_samples=5)
+    ts = TimeSeries(
+        time_start=(util.MIN_TIME_BAD - 1 * u.year), time_delta=1 * u.year, n_samples=5
+    )
     assert len(util.trim_timeseries(ts)) == len(ts) - 1
     # all good
     ts = TimeSeries(time_start=util.MIN_TIME_BAD, time_delta=1 * u.year, n_samples=5)
