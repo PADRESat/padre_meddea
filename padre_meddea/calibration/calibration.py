@@ -3,30 +3,27 @@ A module for all things calibration.
 """
 
 import os
-from pathlib import Path
 import tempfile
+from pathlib import Path
 
 from astropy.io import fits
-from astropy.time import Time
 from astropy.table import Table
+from astropy.time import Time
 
 import padre_meddea
+import padre_meddea.io.aws_db as aws_db
 from padre_meddea import log
 from padre_meddea.io import file_tools
+from padre_meddea.io.file_tools import read_raw_file
+from padre_meddea.io.fits_tools import get_comment, get_obs_header, get_primary_header
 from padre_meddea.util import util, validation
 import padre_meddea.util.pixels as pixels
 import padre_meddea.io.aws_db as aws_db
 
 from padre_meddea.util.util import (
+    calc_time,
     create_science_filename,
     parse_science_filename,
-    calc_time,
-)
-from padre_meddea.io.file_tools import read_raw_file
-from padre_meddea.io.fits_tools import (
-    get_primary_header,
-    get_obs_header,
-    get_comment,
 )
 
 __all__ = [
@@ -165,7 +162,7 @@ def process_file(filename: Path, overwrite=False) -> list:
                 file_path, data_level="l0", data_type=data_type
             )
 
-            date_beg = calc_time(hk_data["timestamp"][0])
+            date_beg = calc_time(hk_data["pkttimes"][0])
             primary_hdr["DATE-BEG"] = (date_beg.fits, get_comment("DATE-BEG"))
             primary_hdr["DATEREF"] = (date_beg.fits, get_comment("DATEREF"))
 

@@ -151,7 +151,7 @@ class PhotonList:
         spectrum : Spectrum1D
         """
         if not calibrate and bins is None:
-            bins = np.arange(0, 2**12 - 1) * u.pix
+            bins = np.arange(0, 2 ** 12 - 1) * u.pix
         if calibrate and bins is None:
             bins = np.arange(0, 100, 0.1) * u.keV
         this_event_list = self._slice_event_list_pixels(pixel_list)

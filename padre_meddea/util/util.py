@@ -6,12 +6,16 @@ from pathlib import Path
 import numpy as np
 
 from astropy.time import Time, TimeDelta
+from astropy.timeseries import TimeSeries
 import astropy.units as u
 from ccsdspy.utils import split_packet_bytes, split_by_apid
 
 from swxsoc.util import parse_science_filename, create_science_filename
 
-from padre_meddea import EPOCH, APID
+from padre_meddea import EPOCH, APID, log
+
+# used to identify bad times
+MIN_TIME_BAD = Time("2024-02-01T00:00")
 
 __all__ = [
     "parse_science_filename",
@@ -82,7 +86,7 @@ def str_to_fits_keyword(keyword: str) -> str:
 
 def is_consecutive(arr: np.array) -> bool:
     """Return True if the packet sequence numbers are all consecutive integers, has no missing numbers."""
-    MAX_SEQCOUNT = 2**14 - 1  # 16383
+    MAX_SEQCOUNT = 2 ** 14 - 1  # 16383
 
     # Ensure arr is at least 1D
     arr = np.atleast_1d(arr)
@@ -104,10 +108,23 @@ def is_consecutive(arr: np.array) -> bool:
         return result
 
 
-def verify_file(filename: Path):
-    packet_bytes = split_packet_bytes(filename)
-    # for i in range(num):
-    #    checksum = np.bitwise_xor.reduce(np.frombuffer(packet_bytes[i], dtype=np.uint16))
+def trim_timeseries(ts: TimeSeries, t0=MIN_TIME_BAD) -> TimeSeries:
+    """Remove all times in a time series before a given time.
+    Parameters
+    ----------
+    ts : Time
+        The time before which all data should be removed.
+
+    Returns
+    -------
+    TimeSeries
+        A TimeSeries containing the trimmed time series.
+    """
+    inds = ts.time < t0
+    bad_count = np.sum(inds)
+    if bad_count > 0:
+        log.warning(f"Found {bad_count} bad times. Removing them.")
+    return ts[~inds]
 
 
 def parse_ph_flags(ph_flags):
