@@ -7,12 +7,15 @@
 # http://www.sphinx-doc.org/en/master/config
 import os
 import sys
+from datetime import datetime
 
 sys.path.insert(0, os.path.abspath(".."))
 # -- Project information -----------------------------------------------------
 
+now = datetime.now()
+
 project = "padre_meddea"
-copyright = "US Government (not copyrighted) 2023"
+copyright = f"US Government (not copyrighted) 2023-{now.year}"
 author = "The PADRE MeDDEA Team"
 
 # The full version, including alpha/beta/rc tags
@@ -37,8 +40,6 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.doctest",
     "sphinx.ext.mathjax",
-    "sphinx_automodapi.automodapi",
-    "sphinx_automodapi.smart_resolver",
     "matplotlib.sphinxext.plot_directive",
     "sphinx_copybutton",
 ]
@@ -50,11 +51,14 @@ copybutton_prompt_text = ">>> "
 plot_include_source = True
 
 # Set automodapi to generate files inside the generated directory
-automodapi_toctreedirnm = "_build/api"
+#automodapi_toctreedirnm = "_build/api"
+autosummary_generate = True  # Turn on sphinx.ext.autosummary
 numpydoc_show_class_members = False
 # generate autosummary even if no references
 autosummary_generate = True
-autosummary_imported_members = True
+
+autosummary_ignore_module_all = False
+autosummary_imported_members = False
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
