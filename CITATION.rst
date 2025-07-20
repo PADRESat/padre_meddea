@@ -1,5 +1,5 @@
-Acknowledging this Package
-==========================
+Citing
+======
 
 If you use this package in your scientific work, we would appreciate citing it in your publications.
 Proper citations and acknowledgement is key to a healthy scientific community and enables scientific reproducibility.
@@ -14,3 +14,5 @@ Please add the following line within your methods, conclusion or acknowledgement
 
 The software citation should be the specific Zenodo DOI for the version used in your work.
 A paper citation does not yet exist.
+
+Note that citation are not yet available.

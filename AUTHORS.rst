@@ -5,9 +5,11 @@ Credits
 Development Lead
 ----------------
 
-* Steven Christe <steven.christe@nasa.gov>
+* `Steven D. Christe <https://github.com/ehsteve>`_
 
 Contributors
 ------------
 
-None yet. Why not be the first?
+* `Andrew Robbertz <https://github.com/Alrobbertz>`_
+* `Damian Barrous-Dume https://github.com/dbarrous>`_
+* `Niharika Godbole https://github.com/nhgodbole>`_``

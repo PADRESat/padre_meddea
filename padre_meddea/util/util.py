@@ -1,18 +1,17 @@
 """
-This module provides general utility functions.
+Provides general utility functions.
 """
 
 from pathlib import Path
-import numpy as np
 
+import astropy.units as u
+import numpy as np
 from astropy.time import Time, TimeDelta
 from astropy.timeseries import TimeSeries
-import astropy.units as u
-from ccsdspy.utils import split_packet_bytes, split_by_apid
+from ccsdspy.utils import split_by_apid, split_packet_bytes
+from swxsoc.util import create_science_filename, parse_science_filename
 
-from swxsoc.util import parse_science_filename, create_science_filename
-
-from padre_meddea import EPOCH, APID, log
+from padre_meddea import APID, EPOCH, log
 
 # used to identify bad times
 MIN_TIME_BAD = Time("2024-02-01T00:00")

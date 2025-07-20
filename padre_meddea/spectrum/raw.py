@@ -1,4 +1,4 @@
-"""Provides support for parsing raw files"""
+"""Provides support for parsing raw event list and spectrum files"""
 
 from pathlib import Path
 
@@ -10,9 +10,9 @@ from ccsdspy.utils import split_by_apid
 from specutils import Spectrum1D
 
 import padre_meddea
-from padre_meddea import log
-import padre_meddea.util.util as util
 import padre_meddea.util.pixels as pixels
+import padre_meddea.util.util as util
+from padre_meddea import log
 
 
 def parse_ph_packets(filename: Path):
