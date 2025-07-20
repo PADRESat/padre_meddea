@@ -121,6 +121,7 @@ exclude = [
   "node_modules",
   "site-packages",
   "venv",
+  "conftest.py"
 ]
 
 # Same as Black.

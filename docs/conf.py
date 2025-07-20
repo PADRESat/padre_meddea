@@ -9,6 +9,10 @@ import os
 import sys
 from datetime import datetime
 
+from padre_meddea import __version__
+
+release = __version__
+is_development = ".dev" in __version__
 sys.path.insert(0, os.path.abspath(".."))
 # -- Project information -----------------------------------------------------
 
@@ -18,11 +22,6 @@ project = "padre_meddea"
 copyright = f"US Government (not copyrighted) 2023-{now.year}"
 author = "The PADRE MeDDEA Team"
 
-# The full version, including alpha/beta/rc tags
-from padre_meddea import __version__
-
-release = __version__
-is_development = ".dev" in __version__
 
 # -- General configuration ---------------------------------------------------
 
@@ -51,7 +50,7 @@ copybutton_prompt_text = ">>> "
 plot_include_source = True
 
 # Set automodapi to generate files inside the generated directory
-#automodapi_toctreedirnm = "_build/api"
+# automodapi_toctreedirnm = "_build/api"
 autosummary_generate = True  # Turn on sphinx.ext.autosummary
 numpydoc_show_class_members = False
 # generate autosummary even if no references

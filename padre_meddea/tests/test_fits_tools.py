@@ -1,20 +1,16 @@
-import json
 import os
 import platform
 import pytest
 from pathlib import Path
 import tempfile
-import time
 import numpy as np
 
 from astropy.table import Table
 import astropy.io.fits as fits
-import pytest
 
 from padre_meddea.io.fits_tools import (
     concatenate_files,
     _init_hdul_structure,
-    hdu_to_dict,
     get_hdu_data_times,
 )
 
@@ -301,9 +297,9 @@ def test_concatenate_fits_cases(
 
             expected_rows.append(expected_row)
 
-        assert (
-            expected_rows == expected_provenance_rows
-        ), "Expected rows do not match actual rows in provenance table"
+        assert expected_rows == expected_provenance_rows, (
+            "Expected rows do not match actual rows in provenance table"
+        )
 
     if len(output_files) > 1:
         secondary_output_file = output_files[1]

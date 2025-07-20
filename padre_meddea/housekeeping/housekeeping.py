@@ -10,12 +10,11 @@ from astropy.timeseries import TimeSeries
 from ccsdspy import PacketField
 from ccsdspy.utils import split_by_apid
 
-from padre_meddea import APID, EPOCH, _data_directory, _package_directory, log
+from padre_meddea import APID, EPOCH, _data_directory, log
 from padre_meddea.housekeeping.register import add_register_address_name
-from padre_meddea.util.util import calc_time, MIN_TIME_BAD
+from padre_meddea.util.util import MIN_TIME_BAD, calc_time
 
-_data_directory = _package_directory / "data" / "housekeeping"
-hk_definitions = ascii.read(_data_directory / "hk_packet_def.csv")
+hk_definitions = ascii.read(_data_directory / "housekeeping" / "hk_packet_def.csv")
 hk_definitions.add_index("name")
 
 

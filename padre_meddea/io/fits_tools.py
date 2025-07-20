@@ -3,16 +3,14 @@ This module provides a utilities to manage fits files reading and writing.
 """
 
 import gc
-import json
 import os
 import re
 import tempfile
-import time
 import warnings
 from collections import OrderedDict, defaultdict
 from datetime import datetime, time, timedelta
 from pathlib import Path
-from typing import List, Tuple
+from typing import Tuple
 
 import astropy.io.fits as fits
 import ccsdspy
