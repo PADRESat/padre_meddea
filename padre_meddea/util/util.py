@@ -3,16 +3,19 @@ This module provides general utility functions.
 """
 
 from pathlib import Path
-import warnings
 import numpy as np
 
 from astropy.time import Time, TimeDelta
+from astropy.timeseries import TimeSeries
 import astropy.units as u
 from ccsdspy.utils import split_packet_bytes, split_by_apid
 
 from swxsoc.util import parse_science_filename, create_science_filename
 
-from padre_meddea import EPOCH, APID
+from padre_meddea import EPOCH, APID, log
+
+# used to identify bad times
+MIN_TIME_BAD = Time("2024-02-01T00:00")
 
 __all__ = [
     "parse_science_filename",
@@ -20,7 +23,6 @@ __all__ = [
     "calc_time",
     "has_baseline",
     "is_consecutive",
-    "channel_to_pixel",
 ]
 
 
@@ -35,111 +37,6 @@ def calc_time(pkt_time_s, pkt_time_clk=0, ph_clk=0) -> Time:
     )
     result = Time(EPOCH + deltat)
     return result
-
-
-def _channel_to_pixel(channel: int) -> int:
-    """
-    Given a channel pixel number, return the pixel number.
-    """
-    CHANNEL_TO_PIX = {
-        26: 0,
-        15: 1,
-        8: 2,
-        1: 3,
-        29: 4,
-        18: 5,
-        5: 6,
-        0: 7,
-        30: 8,
-        21: 9,
-        11: 10,
-        3: 11,
-        31: 12,
-    }
-
-    if channel in CHANNEL_TO_PIX.keys():
-        return CHANNEL_TO_PIX[channel]
-    else:
-        warnings.warn(
-            f"Found unconnected channel, {channel}. Returning channel + 12 ={channel + 12}."
-        )
-        return channel + 12
-
-
-channel_to_pixel = np.vectorize(_channel_to_pixel)
-
-
-def _pixel_to_channel(pixel_num: int) -> int:
-    """
-    Given a pixel number, return the channel number.
-    """
-    PIXEL_TO_CHANNEL = {
-        0: 26,
-        1: 15,
-        2: 8,
-        3: 1,
-        4: 29,
-        5: 18,
-        6: 5,
-        7: 0,
-        8: 30,
-        9: 21,
-        10: 11,
-        11: 3,
-        12: 31,  # not a pixel, guard ring
-    }
-
-    if pixel_num in PIXEL_TO_CHANNEL.keys():
-        return PIXEL_TO_CHANNEL[pixel_num]
-    else:
-        raise ValueError(f"Pixel number, {pixel_num}, not found.")
-
-
-pixel_to_channel = np.vectorize(_pixel_to_channel)
-
-
-def parse_pixelids(ids):
-    """
-    Given pixel id infomration, return the asic numbers and channel numbers
-    """
-    asic_nums = (ids & 0b11100000) >> 5
-    channel_nums = ids & 0b00011111
-    return asic_nums, channel_nums
-
-
-def get_pixelid(asic_num: int, pixel_num: int) -> int:
-    """Given an asic number and a pixel number return the pixelid"""
-    return (asic_num << 5) + pixel_to_channel(pixel_num) + 0xCA00
-
-
-def get_pixel_str(asic_num: int, pixel_num: int):
-    return f"Det{str(asic_num)}{pixel_to_str(pixel_num)}"
-
-
-def pixelid_to_str(ids):
-    """
-    Given unparsed pixel ids, return strings for each
-    """
-    asic_nums, channel_nums = parse_pixelids(ids)
-    pixel_nums = [channel_to_pixel(this_chan) for this_chan in channel_nums]
-    result = [
-        get_pixel_str(this_asic, this_pixel)
-        for this_asic, this_pixel in zip(asic_nums, pixel_nums)
-    ]
-    return result
-
-
-def pixel_to_str(pixel_num: int) -> str:
-    """
-    Given a pixel number, return a standardized string.
-    """
-    if not (0 <= pixel_num <= 11):
-        raise ValueError("Pixel integer number must be 0 to 11.")
-    if 0 <= pixel_num <= 7:
-        pixel_size = "L"
-    elif 8 <= pixel_num <= 12:
-        pixel_size = "S"
-    return f"Pixel{pixel_num}{pixel_size}"
 
 
 def has_baseline(filename: Path, packet_count=10) -> bool:
@@ -189,7 +86,7 @@ def str_to_fits_keyword(keyword: str) -> str:
 
 def is_consecutive(arr: np.array) -> bool:
     """Return True if the packet sequence numbers are all consecutive integers, has no missing numbers."""
-    MAX_SEQCOUNT = 2**14 - 1  # 16383
+    MAX_SEQCOUNT = 2 ** 14 - 1  # 16383
 
     # Ensure arr is at least 1D
     arr = np.atleast_1d(arr)
@@ -211,10 +108,23 @@ def is_consecutive(arr: np.array) -> bool:
         return result
 
 
-def verify_file(filename: Path):
-    packet_bytes = split_packet_bytes(filename)
-    # for i in range(num):
-    #    checksum = np.bitwise_xor.reduce(np.frombuffer(packet_bytes[i], dtype=np.uint16))
+def trim_timeseries(ts: TimeSeries, t0=MIN_TIME_BAD) -> TimeSeries:
+    """Remove all times in a time series before a given time.
+    Parameters
+    ----------
+    ts : Time
+        The time before which all data should be removed.
+
+    Returns
+    -------
+    TimeSeries
+        A TimeSeries containing the trimmed time series.
+    """
+    inds = ts.time < t0
+    bad_count = np.sum(inds)
+    if bad_count > 0:
+        log.warning(f"Found {bad_count} bad times. Removing them.")
+    return ts[~inds]
 
 
 def parse_ph_flags(ph_flags):

@@ -21,11 +21,11 @@ def get_decimation(this_time: Time):
 def get_decimation_file(this_time: Time) -> Path:
     """Given a time, return the decimation filename that was in effect at the time"""
     file_table = get_decimation_ftable()
-    ind = file_table.time < this_time
+    ind = file_table.time <= this_time
     if np.any(ind):
-        return Path(str(file_table["filename"][ind][-1]))
+        return Path(_data_directory / "decimation" / file_table[ind][-1]["filename"])
     else:
-        return None
+        return Path("")
 
 
 def get_decimation_ftable():

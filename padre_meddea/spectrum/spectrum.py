@@ -19,9 +19,10 @@ from specutils.manipulation import extract_region
 from specutils.fitting import estimate_line_parameters, fit_lines
 
 import padre_meddea.util.util as util
+from padre_meddea.util.pixels import PixelList
 import padre_meddea
 
-DEFAULT_PIXEL_IDS = np.array(
+DEFAULT_SPEC_PIXEL_IDS = np.array(
     [
         51738,
         51720,
@@ -52,8 +53,9 @@ DEFAULT_PIXEL_IDS = np.array(
 )
 MAX_PH_DATA_RATE = 100 * u.kilobyte / u.s
 
+DEFAULT_SPEC_PIXEL_LIST = PixelList(pixelids=DEFAULT_SPEC_PIXEL_IDS)
+
 __all__ = [
-    "get_calib_energy_func",
     "PhotonList",
     "SpectrumList",
 ]
@@ -105,10 +107,25 @@ class PhotonList:
             result += f"{self.data['event_list'].time[0]} - {self.data['event_list'].time[-1]} ({dt})\n"
         return result
 
+    @property
+    def calibrated(self):
+        if "energy" in self.event_list.colnames:
+            return True
+        else:
+            return False
+
+    @property
+    def pixel_list(self) -> PixelList:
+        """Return the set of pixels that have events"""
+        # note this is calculated on the fly instead of at init because it can take a few seconds to compute for large event lists
+        pixel_ids = np.unique(
+            util.get_pixelid(self.event_list["asic"], self.event_list["pixel"])
+        )
+        return PixelList(pixelids=pixel_ids)
+
     def spectrum(
         self,
-        asic_num: int,
-        pixel_num: int,
+        pixel_list: PixelList,
         bins=None,
         baseline_sub: bool = False,
         calibrate: bool = False,
@@ -118,68 +135,59 @@ class PhotonList:
 
         Parameters
         ----------
-        asic_num : int
-            The asic or detector number (0 to 3)
-        pixel_num : int
-            The pixel number (0 to 11)
+        pixel_list : PixelList
+            A list of one or more pixels
         bins : np.array
             The bin edges for the spectrum (see ~np.histogram).
             If None, then uses np.arange(0, 2**12 - 1)
         baseline_sub : bool
             If True, then baseline measurements are subtracted if they exist
             Note: not yet implemented.
+        calibrate : bool
+            If True, provide the calibrated spectrum
 
         Returns
         -------
         spectrum : Spectrum1D
         """
-        if bins is None:
-            bins = np.arange(0, 2**12 - 1)
-        if (asic_num is None) and (pixel_num is None):
-            this_event_list = self.event_list
+        if not calibrate and bins is None:
+            bins = np.arange(0, 2 ** 12 - 1) * u.pix
+        if calibrate and bins is None:
+            bins = np.arange(0, 100, 0.1) * u.keV
+        this_event_list = self._slice_event_list_pixels(pixel_list)
+        if calibrate:
+            hit_energy = this_event_list["energy"]
         else:
-            this_event_list = self._slice_event_list(asic_num, pixel_num)
-        data, new_bins = np.histogram(this_event_list["atod"], bins=bins)
-        # the spectral axis is at the center of the bins
+            hit_energy = this_event_list["atod"]
+        data, new_bins = np.histogram(hit_energy, bins=bins.value)
+
+        # for Spectrum1D, the spectral axis is at the center of the bins
+        # TODO: the histogram results are not consistent with the above
         result = Spectrum1D(
             flux=u.Quantity(data, "count"),
-            spectral_axis=u.Quantity(bins, "pix"),
+            spectral_axis=bins,
             uncertainty=StdDevUncertainty(np.sqrt(data) * u.count),
         )
         return result
 
-    def calspectrum(self, asic_num: int, pixel_num: int, bins=None):
-        if "energy" not in self.event_list.keys():
-            raise ValueError("Spectrum is not calibrated.")
-        if bins is None:
-            bins = np.arange(0, 100, 0.2)
-        if (asic_num is None) and (pixel_num is None):
-            this_event_list = self.event_list
-        else:
-            this_event_list = self._slice_event_list(asic_num, pixel_num)
-        data, new_bins = np.histogram(this_event_list["energy"], bins=bins)
-        # the spectral axis is at the center of the bins
-        spec = Spectrum1D(
-            flux=u.Quantity(data, "count"),
-            spectral_axis=u.Quantity(bins, "keV"),
-            uncertainty=StdDevUncertainty(np.sqrt(data) * u.count),
-        )
-        return spec
-
     def lightcurve(
-        self, asic_num: int, pixel_num: int, int_time: u.Quantity[u.s], step: int = 10
+        self,
+        pixel_list: PixelList,
+        int_time: u.Quantity[u.s],
+        sr: SpectralRegion,
+        step: int = 10,
     ) -> TimeSeries:
         """
         Create a light curve
 
         Parameters
         ----------
-        asic_num : int
-            The asic or detector number (0 to 3)
-        pixel_num : int
-            The pixel number (0 to 11)
+        pixel_list : PixelList
+            The pixels to integrate over
         int_time : u.Quantity[u.s]
-            The integration time
+            The integration time for each time step
+        sr : SpectralRegion
+            The spectral region(s) to integrate over
         step : int
             To speed up processing, skip every `step` photons.
             Default is ten.
@@ -189,18 +197,17 @@ class PhotonList:
         -------
         lc : TimeSeries
         """
-        if (asic_num is None) and (pixel_num is None):
-            this_event_list = self.event_list
-        else:
-            this_event_list = self._slice_event_list(asic_num, pixel_num)
-        this_event_list = TimeSeries(
-            time=self.event_list.time[::step]
-        )  # not sure why this is necessary
-        this_event_list["count"] = np.ones(len(this_event_list))
-        ts = aggregate_downsample(
-            this_event_list, time_bin_size=int_time, aggregate_func=np.sum
-        )
-        ts["count"] *= step
+        this_event_list = self._slice_event_list_pixels(pixel_list)
+        # downsample the event list
+        this_event_list = TimeSeries(time=self.event_list.time[::step])
+        for this_sr in sr:
+            this_event_list = self._slice_event_list_sr(sr)
+            col_label = f"{this_sr.lower}-{this_sr.upper}_cts"
+            this_event_list[col_label] = np.ones(len(this_event_list))
+            ts = aggregate_downsample(
+                this_event_list, time_bin_size=int_time, aggregate_func=np.sum
+            )
+            ts[col_label] *= step
         return ts
 
     def data_rate(self) -> BinnedTimeSeries:
@@ -227,11 +234,37 @@ class PhotonList:
         data_rate_ts["data_rate"] = data_rate_ts["data_rate"] / u.s
         return data_rate_ts
 
-    def _slice_event_list(self, asic_num: int, pixel_num: int) -> TimeSeries:
+    def _slice_event_list_pixels(self, pixel_list: PixelList) -> TimeSeries:
         """Slice the event list to only contain events from asic_num and pixel_num"""
-        ind = (self.event_list["pixel"] == pixel_num) * (
-            self.event_list["asic"] == asic_num
-        )
+        ind = np.zeros(len(self.event_list), dtype=np.bool)
+        if isinstance(pixel_list, Table.Row):
+            ind = np.logical_or(
+                ind,
+                (self.event_list["pixel"] == int(pixel_list["pixel"]))
+                * (self.event_list["asic"] == int(pixel_list["asic"])),
+            )
+        else:
+            for this_pixel in pixel_list:
+                ind = np.logical_or(
+                    ind,
+                    (self.event_list["pixel"] == int(this_pixel["pixel"]))
+                    * (self.event_list["asic"] == int(this_pixel["asic"])),
+                )
+        return self.event_list[ind]
+
+    def _slide_event_list_sr(self, sr: SpectralRegion):
+        """Slice the envt list to only contain events inside the spectral region."""
+        if len(sr) > 1:
+            raise ValueError("Only supports Spectral Regions of length 1.")
+        if sr[0].lower.unit == u.Unit("keV"):
+            data = self.event_list["energy"]
+        elif sr[0].lower.unit == u.Unit("pix"):
+            data = self.event_list["atod"]
+        else:
+            raise ValueError(
+                f"Unit of Spectral Region, {sr[0].lower.unit}, not recognized."
+            )
+        ind = (data > sr[0].lower) * (data < sr[0].upper)
         return self.event_list[ind]
 
 
@@ -271,19 +304,22 @@ class SpectrumList:
         if len(np.unique(pixel_ids)) > 24:
             print("Found too many unique pixel IDs.")
             print("Forcing to default set")
-            self.pixel_ids = np.median(pixel_ids, axis=0)
-            self.pixel_str = util.pixelid_to_str(self.pixel_ids)
-            self.asics, self.channel_nums = util.parse_pixelids(self.pixel_ids)
-            self.pixel_nums = util.channel_to_pixel(self.channel_nums)
+            self.pixel_list = PixelList(pixelids=DEFAULT_SPEC_PIXEL_IDS)
         else:
             if np.all(np.unique(pixel_ids) == sorted(pixel_ids[0, :])):
-                self.pixel_ids = np.median(pixel_ids, axis=0)
-                self.pixel_str = util.pixelid_to_str(pixel_ids[0])
-                self.asics, self.channel_nums = util.parse_pixelids(pixel_ids[0])
-                self.pixel_nums = util.channel_to_pixel(self.channel_nums)
+                self.pixel_list = PixelList(
+                    pixelids=np.median(pixel_ids, axis=0).astype("uint16")
+                )
             else:
                 raise ValueError("Found change in pixel ids")
         self.index = len(pkt_list)
+
+    @property
+    def calibrated(self):
+        if self.specs[0, 0].spectral_axis.unit == u.Unit("keV"):
+            return True
+        else:
+            return False
 
     def __str__(self):
         return f"{self._text_summary()}{self.data['specs'].__repr__()}"
@@ -301,7 +337,7 @@ class SpectrumList:
             result += f"{self.time[0]} - {self.time[-1]} ({dt})\n"
         return result
 
-    def spectrum(self, asic_num: int = 0, pixel_num: int = 0, spec_index: int = -1):
+    def spectrum(self, pixel_list: PixelList):
         """Create a spectrum, integrates over all times
 
         Parameters
@@ -323,24 +359,86 @@ class SpectrumList:
         -------
         spectrum : Spectrum1D
         """
-        if spec_index == -1:
-            spec_index = self.get_spec_index(asic_num, pixel_num)
-        flux = np.sum(self.specs[:, spec_index, :].data, axis=0)
+        flux = np.zeros([self.specs.data.shape[2]])
+        if isinstance(pixel_list, Table.Row):
+            if pixel_list in self.pixel_list:
+                pixel_index = np.where(pixel_list == self.pixel_list)[0][0]
+                flux += np.sum(self.specs.data[:, pixel_index, :], axis=0)
+        else:
+            for this_pixel in pixel_list:
+                if this_pixel in self.pixel_list:
+                    pixel_index = np.where(this_pixel == self.pixel_list)[0][0]
+                    flux += np.sum(self.specs.data[:, pixel_index, :], axis=0)
         # the spectral axis is at the center of the bins
         result = Spectrum1D(
-            flux=u.Quantity(flux, "count"),
-            spectral_axis=u.Quantity(self.bins, "pix"),
+            flux=flux * self.specs[0, 0].flux.unit,
+            spectral_axis=self.specs[0, 0].spectral_axis,
             uncertainty=StdDevUncertainty(np.sqrt(flux) * u.count),
         )
         return result
 
-    def get_spec_index(self, asic_num: int, pixel_num: int) -> int:
-        """Given an asic number and pixel number, find the corresponding spectrum index."""
-        match_index = (self.asics == asic_num) * (self.pixel_nums == pixel_num)
-        if np.sum(match_index) == 0:
-            raise ValueError(f"asic {asic_num} and {pixel_num} not found.")
-        pixel_id = util.get_pixelid(asic_num, pixel_num)
-        return int(np.where(pixel_id == self._pixel_ids)[0][0])
+    def lightcurve(self, pixel_list: PixelList, sr: SpectralRegion) -> TimeSeries:
+        """
+        Create a light curve
+
+        Parameters
+        ----------
+        pixel_index : int
+            The pixels to integrate over
+        sr : SpectralRegion
+            The spectral region(s) to integrate over
+
+        Returns
+        -------
+        lc : TimeSeries
+        """
+        lc = TimeSeries(time=self.time)
+        flux = np.zeros([self.specs.data.shape[0], self.specs.data.shape[2]])
+        if isinstance(pixel_list, Table.Row):
+            if pixel_list in self.pixel_list:
+                pixel_index = np.where(pixel_list == self.pixel_list)[0][0]
+                flux += self.specs.data[:, pixel_index, :]
+        else:
+            for this_pixel in pixel_list:
+                if this_pixel in self.pixel_list:
+                    pixel_index = np.where(this_pixel == self.pixel_list)[0][0]
+                    flux += self.specs.data[:, pixel_index, :]
+        for i, this_sr in enumerate(sr):
+            this_flux = flux.copy()
+            ind = (self.specs[0, 0].spectral_axis > this_sr.lower) * (
+                self.specs[0, 0].spectral_axis < this_sr.upper
+            )
+            this_flux[:, ~ind] = 0
+            col_label = f"{this_sr.lower}-{this_sr.upper}_cts"
+            total_cts = np.sum(this_flux, axis=1)
+            lc[col_label] = total_cts
+        return lc
+
+    def plot_spectrogram(self, **imshow_kwargs):
+        """Plot a spectrogram"""
+        import matplotlib.pyplot as plt
+        import matplotlib.dates as mdates
+
+        ts = [mdates.date2num(this_time) for this_time in self.time.to_datetime()]
+        x_lims = [ts[0], ts[-1]]
+        y_lims = [
+            self.specs[0, 0].spectral_axis[0].value,
+            self.specs[0, 0].spectral_axis[-1].value,
+        ]
+        fig, ax = plt.subplots()
+        specgram = np.sum(self.specs.data, axis=1)
+        ax.imshow(
+            specgram.transpose(),
+            origin="lower",
+            interpolation="nearest",
+            extent=[x_lims[0], x_lims[1], y_lims[0], y_lims[1]],
+            **imshow_kwargs,
+        )
+        date_format = mdates.DateFormatter("%H:%M:%S")
+        ax.xaxis.set_major_formatter(date_format)
+        # This simply sets the x-axis data to diagonal so it fits better.
+        fig.autofmt_xdate()
+        plt.show()
 
     def __getitem__(self, key):
         if isinstance(key, int):
