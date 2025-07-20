@@ -51,7 +51,7 @@ copybutton_prompt_text = ">>> "
 plot_include_source = True
 
 # Set automodapi to generate files inside the generated directory
-#automodapi_toctreedirnm = "_build/api"
+# automodapi_toctreedirnm = "_build/api"
 autosummary_generate = True  # Turn on sphinx.ext.autosummary
 numpydoc_show_class_members = False
 # generate autosummary even if no references
@@ -119,7 +119,7 @@ intersphinx_mapping = {
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = "bizstyle"
+html_theme = "pydata_sphinx_theme"
 html_static_path = ["_static"]
 
 html_logo = "logo/padre_logo.png"
