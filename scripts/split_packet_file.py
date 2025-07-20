@@ -34,4 +34,4 @@ for key, val in packets_split.items():
 
     # now confirm that this file is CCSDS and has the right number of packets
     print(f"Created {output_filename} with {count_packets(output_filename)} packets.")
-    print(f"Filesize is {os.path.getsize(output_filename)/1000.0} kilobytes.")
+    print(f"Filesize is {os.path.getsize(output_filename) / 1000.0} kilobytes.")

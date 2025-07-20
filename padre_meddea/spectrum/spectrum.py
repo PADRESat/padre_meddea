@@ -2,25 +2,18 @@
 This module provides tools to analyze and manipulate meddea spectral data both summary spectra and event lists.
 """
 
-from pathlib import Path
-
 import numpy as np
-from numpy.polynomial import Polynomial
 
 import astropy.units as u
-from astropy.modeling import models
 from astropy.time import Time
 from astropy.nddata import StdDevUncertainty
 from astropy.table import Table
 from astropy.timeseries import TimeSeries, BinnedTimeSeries, aggregate_downsample
 
 from specutils import Spectrum1D, SpectralRegion
-from specutils.manipulation import extract_region
-from specutils.fitting import estimate_line_parameters, fit_lines
 
 import padre_meddea.util.util as util
 from padre_meddea.util.pixels import PixelList
-import padre_meddea
 
 DEFAULT_SPEC_PIXEL_IDS = np.array(
     [
@@ -151,7 +144,7 @@ class PhotonList:
         spectrum : Spectrum1D
         """
         if not calibrate and bins is None:
-            bins = np.arange(0, 2 ** 12 - 1) * u.pix
+            bins = np.arange(0, 2**12 - 1) * u.pix
         if calibrate and bins is None:
             bins = np.arange(0, 100, 0.1) * u.keV
         this_event_list = self._slice_event_list_pixels(pixel_list)

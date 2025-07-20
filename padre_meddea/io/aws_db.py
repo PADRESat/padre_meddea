@@ -5,7 +5,6 @@ from astropy.timeseries import TimeSeries
 
 from swxsoc.util.util import record_timeseries, create_annotation
 
-from padre_meddea import log
 import padre_meddea.util.pixels as pixels
 from padre_meddea.housekeeping.calibration import get_calibration_func
 

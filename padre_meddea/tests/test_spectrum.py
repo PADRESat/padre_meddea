@@ -1,6 +1,6 @@
 from padre_meddea import _test_files_directory
 from padre_meddea.spectrum import spectrum
-from padre_meddea.io.file_tools import read_raw_a0, read_raw_a2, read_raw_u8
+from padre_meddea.io.file_tools import read_raw_a0, read_raw_a2
 
 f1 = _test_files_directory / "apid160_4packets.bin"
 f2 = _test_files_directory / "apid162_4packets.bin"

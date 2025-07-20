@@ -1,4 +1,3 @@
-import pytest
 from astropy.modeling import models
 from padre_meddea.spectrum import calibration as cal
 from numpy.polynomial import Polynomial

@@ -10,7 +10,6 @@ import sys
 from datetime import datetime
 
 sys.path.insert(0, os.path.abspath(".."))
-# -- Project information -----------------------------------------------------
 
 now = datetime.now()
 
@@ -18,11 +17,13 @@ project = "padre_meddea"
 copyright = f"US Government (not copyrighted) 2023-{now.year}"
 author = "The PADRE MeDDEA Team"
 
-# The full version, including alpha/beta/rc tags
 from padre_meddea import __version__
 
 release = __version__
 is_development = ".dev" in __version__
+# -- Project information -----------------------------------------------------
+
+
 
 # -- General configuration ---------------------------------------------------
 

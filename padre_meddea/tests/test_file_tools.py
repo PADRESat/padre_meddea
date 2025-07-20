@@ -7,10 +7,9 @@ import padre_meddea
 from padre_meddea.io.file_tools import (
     parse_ph_packets,
     parse_spectrum_packets,
-    parse_cmd_response_packets,
     read_file,
 )
-from padre_meddea.spectrum.spectrum import PhotonList, SpectrumList
+from padre_meddea.spectrum.spectrum import PhotonList
 from astropy.timeseries import TimeSeries
 
 ph_packet_file = padre_meddea._test_files_directory / "apid160_4packets.bin"
