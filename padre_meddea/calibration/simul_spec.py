@@ -4,11 +4,9 @@ import numpy as np
 from scipy import interpolate
 
 import astropy.units as u
-from astropy.table import QTable, Table
-from astropy.time import Time
+from astropy.table import QTable
 from astropy.io import ascii
 from astropy.modeling.models import Gaussian1D, custom_model
-from astropy.constants.codata2018 import h, c, e, k_B
 
 from scipy.stats.sampling import NumericalInversePolynomial
 
@@ -21,7 +19,7 @@ te_kalpha1 = 27472.3 * u.eV  # x-ray data booklet 2009
 # the expected count rate at the peak of an X-class flare
 # for all detectors combined
 # TODO: provide better justification for this number. Calculation can be found in proposal.
-XCLASS_FLARE_RATE = 22421.0 * u.s ** -1
+XCLASS_FLARE_RATE = 22421.0 * u.s**-1
 
 #  TODO: add escape lines to the ba133_lines Table
 
@@ -223,7 +221,7 @@ def setup_phgenerator_flare(factor, filename=None):
     return rng
 
 
-def next_ph_time(rate: u.s ** -1, size):
+def next_ph_time(rate: u.s**-1, size):
     """Generate a list of photon wait times based on a photon rate.
 
     rate : u.Quantity
@@ -241,7 +239,7 @@ def next_ph_time(rate: u.s ** -1, size):
 
 
 def generate_calib_ph_list(
-    rate: u.s ** -1, num: int, width: u.keV, output_file: bool = False
+    rate: u.s**-1, num: int, width: u.keV, output_file: bool = False
 ):
     """Generate a list of random photon generated from the calibration source.
 

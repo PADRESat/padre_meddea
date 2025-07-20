@@ -8,28 +8,22 @@ from pathlib import Path
 
 from astropy.io import fits
 from astropy.table import Table
-from astropy.time import Time
 
 import padre_meddea
 import padre_meddea.io.aws_db as aws_db
+import padre_meddea.util.pixels as pixels
 from padre_meddea import log
 from padre_meddea.io import file_tools
 from padre_meddea.io.file_tools import read_raw_file
 from padre_meddea.io.fits_tools import get_comment, get_obs_header, get_primary_header
-from padre_meddea.util import util, validation
-import padre_meddea.util.pixels as pixels
-import padre_meddea.io.aws_db as aws_db
-
+from padre_meddea.util import validation
 from padre_meddea.util.util import (
     calc_time,
     create_science_filename,
-    parse_science_filename,
 )
 
 __all__ = [
     "process_file",
-    "get_calibration_file",
-    "read_calibration_file",
 ]
 
 
@@ -334,54 +328,3 @@ def process_file(filename: Path, overwrite=False) -> list:
 
     # add other tasks below
     return output_files
-
-
-def raw_to_l0(filename: Path):
-    if not (filename.suffix == "bin"):
-        raise ValueError(f"File {filename} extension not recognized.")
-
-    data = file_tools.read_raw_file(filename)
-
-
-def get_calibration_file(time: Time) -> Path:
-    """
-    Given a time, return the appropriate calibration file.
-
-    Parameters
-    ----------
-    data_filename: str
-        Fully specificied filename of the non-calibrated file (data level < 2)
-    time: ~astropy.time.Time
-
-    Returns
-    -------
-    calib_filename: str
-        Fully specificied filename for the appropriate calibration file.
-
-    Examples
-    --------
-    """
-    return None
-
-
-def read_calibration_file(calib_filename: Path):
-    """
-    Given a calibration, return the calibration structure.
-
-    Parameters
-    ----------
-    calib_filename: str
-        Fully specificied filename of the non-calibrated file (data level < 2)
-
-    Returns
-    -------
-    output_filename: str
-        Fully specificied filename of the appropriate calibration file.
-
-    Examples
-    --------
-    """
-
-    # if can't read the file
-
-    return None

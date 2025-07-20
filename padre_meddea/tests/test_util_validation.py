@@ -1,7 +1,3 @@
-from pathlib import Path
-
-import pytest
-
 import padre_meddea
 from padre_meddea.util import validation
 

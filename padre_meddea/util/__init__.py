@@ -1,1 +1,1 @@
-from .pixels import PixelList
+from .pixels import PixelList as PixelList

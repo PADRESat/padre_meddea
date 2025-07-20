@@ -1,7 +1,14 @@
-import pytest
 import numpy as np
+import pytest
 
-from padre_meddea.util.pixels import *
+from padre_meddea.util.pixels import (
+    PixelList,
+    channel_to_pixel,
+    get_pixelid,
+    parse_pixelids,
+    pixel_to_channel,
+    pixel_to_str,
+)
 
 
 def test_all_large():
