@@ -87,6 +87,7 @@ You can also get a list of all large pixels or all small pixels:
     >>> print(len(all_large))
     32
     >>> all_small = PixelList().all_small()
+    >>> print(len(all_small))
     16
 
 It is also possible to get all large pixels or all small pixels from a set of asics:

@@ -5,12 +5,12 @@ from pathlib import Path
 import astropy.units as u
 import ccsdspy
 import numpy as np
-from astropy.time import Time
 from astropy.timeseries import TimeSeries
 from ccsdspy.utils import split_by_apid
 from specutils import Spectrum1D
 
 import padre_meddea
+from padre_meddea import log
 import padre_meddea.util.util as util
 import padre_meddea.util.pixels as pixels
 

@@ -254,8 +254,8 @@ def process_file(filename: Path, overwrite=False) -> list:
 
             # TODO check that asic_nums and channel_nums do not change
             # the function below will remove any change in pixel ids
-
-            ts, spectra, ids = file_tools.clean_spectra_data(parsed_data["spectra"])
+            pkt_ts, specs, pixel_ids = parsed_data["spectra"]
+            ts, spectra, ids = file_tools.clean_spectra_data(pkt_ts, specs, pixel_ids)
             # try:
             #    aws_db.record_spectra(ts, spectra, ids)
             # except ValueError:
