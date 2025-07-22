@@ -14,8 +14,11 @@ import padre_meddea.io.aws_db as aws_db
 import padre_meddea.util.pixels as pixels
 from padre_meddea import log
 from padre_meddea.io import file_tools
-from padre_meddea.io.file_tools import read_raw_file
 from padre_meddea.io.fits_tools import get_comment, get_obs_header, get_primary_header
+from padre_meddea.spectrum.calibration import (
+    calibrate_linear_speclist,
+    get_ql_calibration_file,
+)
 from padre_meddea.util import validation
 from padre_meddea.util.util import (
     calc_time,
@@ -59,7 +62,7 @@ def process_file(filename: Path, overwrite=False) -> list:
         for finding in validation_findings:
             log.warning(f"Validation Finding for File : {filename} : {finding}")
 
-        parsed_data = read_raw_file(file_path)
+        parsed_data = file_tools.read_raw_file(file_path)
         if parsed_data["photons"] is not None:  # we have event list data
             # Set Data Type for L0 Data
             data_type = "photon"
@@ -324,6 +327,13 @@ def process_file(filename: Path, overwrite=False) -> list:
                 path = temp_dir / path
 
             hdul.writeto(path, overwrite=overwrite, checksum=True)
+            hdul.close()
+            # calibrate to ql data and send to AWS
+            spec_list = file_tools.read_file(path)
+            lin_cal_params = get_ql_calibration_file(ts.time[0])
+            cal_spec_list = calibrate_linear_speclist(spec_list, lin_cal_params)
+            aws_db.record_spectra(cal_spec_list)
+
             output_files.append(path)
 
     # add other tasks below

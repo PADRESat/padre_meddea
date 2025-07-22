@@ -1,9 +1,15 @@
+import astropy.units as u
+import numpy as np
+import pytest
 from astropy.modeling import models
-from padre_meddea.spectrum import calibration as cal
+from astropy.time import Time
 from numpy.polynomial import Polynomial
 from specutils import Spectrum1D
-import numpy as np
-import astropy.units as u
+
+import padre_meddea
+from padre_meddea.io.file_tools import read_file
+from padre_meddea.spectrum import calibration as cal
+from padre_meddea.spectrum.spectrum import SpectrumList
 
 
 def test_fit_peak_parabola():
@@ -38,3 +44,24 @@ def test_fit_peaks():
     fit_centers = cal.fit_peaks(spec=this_spec, line_centers=guess_centers, window=5)
     assert len(line_centers) == len(fit_centers)
     assert u.allclose(line_centers, fit_centers, rtol=0.01)
+
+
+def test_get_ql_calibration_file():
+    with pytest.raises(FileNotFoundError):
+        cal.get_ql_calibration_file(Time("2023-03-01T00:00"))
+
+    result = cal.get_ql_calibration_file(Time("2025-03-01T00:00"))
+    assert result.name == "20250130_ql_spec_cal.npy"
+    assert result.exists()
+
+
+def test_cal_spec():
+    result = cal.get_ql_calibration_file(Time("2025-03-01T00:00"))
+    lin_cal_params = np.load(result)
+
+    spec_files = list((padre_meddea._test_files_directory / "spec").glob("*.fits"))
+    for this_spec_file in spec_files:
+        spec_list = read_file(this_spec_file)
+        cal_spec_list = cal.calibrate_linear_speclist(spec_list, lin_cal_params)
+        assert cal_spec_list.calibrated
+        assert isinstance(cal_spec_list, SpectrumList)

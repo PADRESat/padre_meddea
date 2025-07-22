@@ -169,3 +169,8 @@ def threshold_to_energy(threshold_value: int) -> u.Quantity:
     msb_array[-8:] = np.arange(0, 8)
     threshold_energy = msb_array * msb + lsb_array * lsb
     return threshold_energy[threshold_value]
+
+
+def get_file_time(filename) -> Time:
+    """Given filename return the time stamp."""
+    return Time(f"{filename[0:4]}-{filename[4:6]}-{filename[6:8]}T00:00")

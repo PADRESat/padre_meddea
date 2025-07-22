@@ -9,6 +9,7 @@ import astropy.units as u
 import numpy as np
 from astropy.table import Table
 from astropy.timeseries import TimeSeries
+from astropy.time import Time
 from ccsdspy.utils import count_packets, split_by_apid
 from specutils import Spectrum1D
 

@@ -1,16 +1,19 @@
 """Tools to analyze spectra"""
 
-import numpy as np
-import matplotlib.pyplot as plt
+from pathlib import Path
 
 import astropy.units as u
-
+import matplotlib.pyplot as plt
+import numpy as np
 import specutils
-from specutils import Spectrum1D, SpectralRegion
+from astropy.time import Time
+from astropy.timeseries import TimeSeries
+from specutils import SpectralRegion, Spectrum1D
 from specutils.manipulation import extract_region
 
-from padre_meddea.spectrum.spectrum import PhotonList, SpectrumList
 import padre_meddea.util.util as util
+from padre_meddea import _data_directory
+from padre_meddea.spectrum.spectrum import PhotonList, SpectrumList
 
 specutils.conf.do_continuum_function_check = False
 
@@ -299,3 +302,18 @@ def calibrate_linear_speclist(
     )
 
     return new_spec_list
+
+
+def get_ql_calibration_file(this_time: Time) -> Path:
+    """Given a time return a quicklook calibration file."""
+    file_directory = _data_directory / "science" / "calibration" / "quicklook"
+    file_list = list(file_directory.glob("*.npy"))
+    file_table = TimeSeries(
+        time=Time([util.get_file_time(this_file.name) for this_file in file_list]),
+        data={"filename": [this_file.name for this_file in file_list]},
+    )
+    ind = file_table.time <= this_time
+    if np.any(ind):
+        return file_directory / file_table[ind][-1]["filename"]
+    else:
+        raise FileNotFoundError(f"No calibration file valid for time {this_time}")
