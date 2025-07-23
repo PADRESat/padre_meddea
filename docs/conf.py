@@ -128,6 +128,13 @@ html_static_path = ["_static"]
 
 html_logo = "logo/padre_logo.png"
 
+html_theme_options = {
+   "announcement": "This package is under active development.  If you'd like to contribute, check out our <a href='https://github.com/PADRESat/padre_meddea/'>GitHub repository</a>.",
+   "use_edit_page_button": True,
+   "back_to_top_button": True,
+    
+}
+
 html_context = {
 	"display_github": True,
 	"github_user": "PadreSat",
