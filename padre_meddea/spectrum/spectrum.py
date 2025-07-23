@@ -61,6 +61,14 @@ class PhotonList:
         The time series of photon packet header data.
     event_list : TimeSeries
         The time series of event data
+
+    Examples
+    --------
+    >>> from padre_meddea.io.file_tools import read_file
+    >>> from padre_meddea.util.pixels import PixelList
+    >>> from astropy.time import Time
+    >>> ph_list = read_file("padre_meddea_l0test_photons_20250504T070411_v0.1.0.fits")  # doctest: +SKIP
+    >>> this_spectrum = this_spec_list.spectrum(pixel_list=PixelList().all())  # doctest: +SKIP
     """
 
     def __init__(self, pkt_list: TimeSeries, event_list: TimeSeries):
@@ -282,7 +290,7 @@ class SpectrumList:
     >>> from padre_meddea.io.file_tools import read_file
     >>> from astropy.time import Time
     >>> spec_list = read_file("padre_meddea_l0test_spectrum_20250504T070411_v0.1.0.fits")  # doctest: +SKIP
-    >>> this_spectrum = this_spec_list.spectrum(asic_num=0, pixel_num=0)  # doctest: +SKIP
+    >>> this_spectrum = this_spec_list.spectrum(pixel_list=spec_list.pixel_list)  # doctest: +SKIP
     """
 
     def __init__(self, pkt_list: TimeSeries, specs, pixel_ids):

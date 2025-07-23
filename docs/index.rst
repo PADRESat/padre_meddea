@@ -11,7 +11,8 @@ Data will become available soon.
 For information about the PADRE mission, see `PADRESat <https://github.com/PADRESat>`_.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 100
+   :caption: Table of Contents:
 
    about
    user-guide/index

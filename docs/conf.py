@@ -54,15 +54,17 @@ plot_include_source = True
 # Set automodapi to generate files inside the generated directory
 # automodapi_toctreedirnm = "_build/api"
 autosummary_generate = True  # Turn on sphinx.ext.autosummary
-numpydoc_show_class_members = False
-# generate autosummary even if no references
-autosummary_generate = True
-
 autosummary_ignore_module_all = False
 autosummary_imported_members = False
 
+autodoc_default_options = {
+    "members": True,
+    "undoc-members": False,
+    "private-members": True,
+}
+
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ["_templates"]
+# templates_path = ["_templates"]
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -108,12 +110,13 @@ intersphinx_mapping = {
     ),
     "astropy": (
         "http://docs.astropy.org/en/stable/",
-        "https://docs.astropy.org/en/stable/objects.inv",
+        (None, "https://docs.astropy.org/en/stable/objects.inv"),
     ),
     "sunpy": (
-        "https://docs.sunpy.org/en/stable/",
-        "https://docs.sunpy.org/en/stable/objects.inv",
-    ),
+        "https://docs.sunpy.org/en/stable/", None),
+    "specutils": (
+        "https://specutils.readthedocs.io/en/stable/", 
+        (None, "https://specutils.readthedocs.io/en/stable/objects.inv")),
 }
 
 # -- Options for HTML output -------------------------------------------------
@@ -124,6 +127,14 @@ html_theme = "pydata_sphinx_theme"
 html_static_path = ["_static"]
 
 html_logo = "logo/padre_logo.png"
+
+html_context = {
+	"display_github": True,
+	"github_user": "PadreSat",
+	"github_repo": "padre_meddea",
+	"github_version": "main",
+	"conf_py_path": "/docs/",
+}
 # html_favicon = "logo/favicon.ico"
 # html_css_files = ["css/custom.css"]
 # Add any paths that contain custom static files (such as style sheets) here,
