@@ -11,5 +11,5 @@ Contributors
 ------------
 
 * `Andrew Robbertz <https://github.com/Alrobbertz>`_
-* `Damian Barrous-Dume https://github.com/dbarrous>`_
-* `Niharika Godbole https://github.com/nhgodbole>`_``
+* `Damian Barrous-Dume <https://github.com/dbarrous>`_
+* `Niharika Godbole <https://github.com/nhgodbole>`_
