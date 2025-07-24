@@ -3,7 +3,7 @@
 import astropy.units as u
 import numpy as np
 from astropy.io import ascii
-from astropy.table import Column, QTable, Table
+from astropy.table import QTable, Table
 from astropy.timeseries import TimeSeries
 from scipy.optimize import fsolve
 
