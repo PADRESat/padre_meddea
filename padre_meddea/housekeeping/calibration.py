@@ -1,12 +1,11 @@
 """Module to provide functions to calibrate housekeeping data"""
 
-import numpy as np
-from scipy.optimize import fsolve
-
-from astropy.io import ascii
 import astropy.units as u
+import numpy as np
+from astropy.io import ascii
+from astropy.table import QTable, Table
 from astropy.timeseries import TimeSeries
-from astropy.table import Table, QTable
+from scipy.optimize import fsolve
 
 from .housekeeping import _data_directory
 
@@ -177,3 +176,36 @@ def get_calibration_data(hk_name: str) -> Table:
     result["adc"] = data["adc"]
     result["value"] = u.Quantity(data[unit_str], unit_str)
     return result
+
+
+def parse_error_summary(hk_ts: TimeSeries) -> TimeSeries:
+    """Given a time series with an error summary column, parse it out to its individual elements.
+
+    Parameters
+    ----------
+    hk_ts : TimeSeries
+
+    Returns
+    -------
+    error_summary_ts : TimeSeries
+    """
+    if "error_summary" not in hk_ts.colnames:
+        raise ValueError("Missing error_summary column.")
+    error_ts = TimeSeries(
+        time=hk_ts.time, data={"error_summary": hk_ts["error_summary"]}
+    )
+    col_names = [
+        "uart_parity_err",
+        "ping1_parity_err",
+        "ping2_parity_err",
+        "hist_parity_err",
+        "heater_err",
+        "caliste_reg_err",
+        "caliste_seu",
+        "rogue_pps",
+        "fake_evt_flg",
+        "freewheel_pps",
+    ]
+    for i, this_col in enumerate(col_names):
+        error_ts[this_col] = (error_ts["error_summary"] & 2**i) > 0
+    return error_ts
