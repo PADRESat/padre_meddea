@@ -1,16 +1,14 @@
 """
-This module provides tools to analyze and manipulate meddea spectral data both summary spectra and event lists.
+Provides data containers for both summary spectra and event list or photon data.
 """
 
-import numpy as np
-
 import astropy.units as u
-from astropy.time import Time
+import numpy as np
 from astropy.nddata import StdDevUncertainty
 from astropy.table import Table
-from astropy.timeseries import TimeSeries, BinnedTimeSeries, aggregate_downsample
-
-from specutils import Spectrum1D, SpectralRegion
+from astropy.time import Time
+from astropy.timeseries import BinnedTimeSeries, TimeSeries, aggregate_downsample
+from specutils import SpectralRegion, Spectrum1D
 
 import padre_meddea.util.util as util
 from padre_meddea.util.pixels import PixelList
@@ -63,6 +61,14 @@ class PhotonList:
         The time series of photon packet header data.
     event_list : TimeSeries
         The time series of event data
+
+    Examples
+    --------
+    >>> from padre_meddea.io.file_tools import read_file
+    >>> from padre_meddea.util.pixels import PixelList
+    >>> from astropy.time import Time
+    >>> ph_list = read_file("padre_meddea_l0test_photons_20250504T070411_v0.1.0.fits")  # doctest: +SKIP
+    >>> this_spectrum = this_spec_list.spectrum(pixel_list=PixelList().all())  # doctest: +SKIP
     """
 
     def __init__(self, pkt_list: TimeSeries, event_list: TimeSeries):
@@ -284,7 +290,7 @@ class SpectrumList:
     >>> from padre_meddea.io.file_tools import read_file
     >>> from astropy.time import Time
     >>> spec_list = read_file("padre_meddea_l0test_spectrum_20250504T070411_v0.1.0.fits")  # doctest: +SKIP
-    >>> this_spectrum = this_spec_list.spectrum(asic_num=0, pixel_num=0)  # doctest: +SKIP
+    >>> this_spectrum = this_spec_list.spectrum(pixel_list=spec_list.pixel_list)  # doctest: +SKIP
     """
 
     def __init__(self, pkt_list: TimeSeries, specs, pixel_ids):
@@ -409,8 +415,8 @@ class SpectrumList:
 
     def plot_spectrogram(self, **imshow_kwargs):
         """Plot a spectrogram"""
-        import matplotlib.pyplot as plt
         import matplotlib.dates as mdates
+        import matplotlib.pyplot as plt
 
         ts = [mdates.date2num(this_time) for this_time in self.time.to_datetime()]
         x_lims = [ts[0], ts[-1]]

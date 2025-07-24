@@ -1,16 +1,14 @@
-"""Tools to analyze spectra"""
-
-import numpy as np
-import matplotlib.pyplot as plt
+"""Tools to analyze and calibrate spectral data"""
 
 import astropy.units as u
-
+import matplotlib.pyplot as plt
+import numpy as np
 import specutils
-from specutils import Spectrum1D, SpectralRegion
+from specutils import SpectralRegion, Spectrum1D
 from specutils.manipulation import extract_region
 
-from padre_meddea.spectrum.spectrum import PhotonList, SpectrumList
 import padre_meddea.util.util as util
+from padre_meddea.spectrum.spectrum import PhotonList, SpectrumList
 
 specutils.conf.do_continuum_function_check = False
 

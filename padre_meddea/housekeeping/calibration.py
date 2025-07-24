@@ -1,12 +1,11 @@
-"""Module to provide functions to calibrate housekeeping data"""
+"""Provides functions to calibrate housekeeping data"""
 
-import numpy as np
-from scipy.optimize import fsolve
-
-from astropy.io import ascii
 import astropy.units as u
+import numpy as np
+from astropy.io import ascii
+from astropy.table import QTable, Table
 from astropy.timeseries import TimeSeries
-from astropy.table import Table, QTable
+from scipy.optimize import fsolve
 
 from .housekeeping import _data_directory
 

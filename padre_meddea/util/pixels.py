@@ -1,7 +1,8 @@
+"""Provides tools to deal with pixels"""
+
 import warnings
 
 import numpy as np
-
 from astropy.table import Table
 
 __all__ = [

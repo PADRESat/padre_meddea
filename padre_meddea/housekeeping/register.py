@@ -1,5 +1,7 @@
+"""Provides tools to parse register read housekeeping data"""
+
 from astropy.io import ascii
-from astropy.table import vstack, Table
+from astropy.table import Table, vstack
 from astropy.timeseries import TimeSeries
 
 from padre_meddea import _data_directory

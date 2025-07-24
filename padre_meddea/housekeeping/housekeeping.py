@@ -1,4 +1,4 @@
-"""Module to provide functions for housekeeping data"""
+"""Provides functions for housekeeping data"""
 
 import datetime
 from pathlib import Path
