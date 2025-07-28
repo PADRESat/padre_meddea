@@ -408,6 +408,7 @@ class SpectrumList:
     def spectrogram(self):
         specgram = np.sum(self.specs.data, axis=1) * u.ct
         ts = TimeSeries(time=self.time, data={"specgram": specgram * u.ct})
+        ts.meta["spectral_axis"] = u.Quantity(self.specs.spectral_axis)
         return ts
 
     def plot_spectrogram(self, **imshow_kwargs):
