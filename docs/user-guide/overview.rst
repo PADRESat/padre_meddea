@@ -33,3 +33,12 @@ solar flares.
 MeDDEA consists of 4 individual Caliste-SO detectors with 12 pixels each, 8 large pixels and 4 small pixels.
 It records individual x-ray events, the time of arrival, energy and pixel number.
 These data are downlinked on demand while an onboard process bins these data into individual spectra to provide summary data at a regular cadence.
+
+Publications and Presentations
+------------------------------
+For more information about this mission and the MeDDEA instrument, see the following references
+
+* `An Overview of the Measuring Directivity to Determine Electron Anisotropy (MeDDEA) CubeSat Observatory <https://agu.confex.com/agu/agu24/meetingapp.cgi/Paper/1696859>`_
+* `The solar PolArization and Directivity X-Ray Experiment (PADRE) Mission Concept <https://agu.confex.com/agu/agu24/meetingapp.cgi/Paper/1723945>`_
+* `Constraining Electron anisotropy in large solar flares with multi-point solar hard x-ray observations; the solar HARd x-ray polarization and Directivity X-Ray Experiment (PADRE) mission <https://agu.confex.com/agu/fm23/meetingapp.cgi/Paper/1354064>`_
+* `The Solar PolArization and Directivity X-Ray Experiment (PADRE) <https://agu.confex.com/agu/fm23/meetingapp.cgi/Paper/1431325>`_
