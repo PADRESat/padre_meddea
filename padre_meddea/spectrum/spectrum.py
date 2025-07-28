@@ -5,13 +5,13 @@ Provides data containers for both summary spectra and event list or photon data.
 import astropy.units as u
 import numpy as np
 from astropy.nddata import StdDevUncertainty
-from astropy.table import Table
+from astropy.table import Table, vstack
 from astropy.time import Time
 from astropy.timeseries import BinnedTimeSeries, TimeSeries, aggregate_downsample
 from specutils import SpectralRegion, Spectrum1D
 
 import padre_meddea.util.util as util
-from padre_meddea.util.pixels import PixelList
+from padre_meddea.util.pixels import PixelList, get_pixelid
 
 DEFAULT_SPEC_PIXEL_IDS = np.array(
     [
@@ -97,14 +97,21 @@ class PhotonList:
         return f"{object.__repr__(self)}\n{self}"
 
     def _text_summary(self):
-        dt = self.data["event_list"].time[-1] - self.data["event_list"].time[0]
-        dt.format = "quantity_str"
-        result = f"PhotonList ({len(self.data['event_list']):,} events)\n"
-        if dt < (1 * u.day):
-            result += f"{self.data['event_list'].time[0]} - {str(self.data['event_list'].time[-1])[11:]} ({dt})\n"
-        else:
-            result += f"{self.data['event_list'].time[0]} - {self.data['event_list'].time[-1]} ({dt})\n"
+        num_events = len(self.data["event_list"])
+        result = f"PhotonList ({num_events:,} events)\n"
+        if num_events > 0:
+            dt = self.data["event_list"].time[-1] - self.data["event_list"].time[0]
+            dt.format = "quantity_str"
+            if dt < (1 * u.day):
+                result += f"{self.data['event_list'].time[0]} - {str(self.data['event_list'].time[-1])[11:]} ({dt})\n"
+            else:
+                result += f"{self.data['event_list'].time[0]} - {self.data['event_list'].time[-1]} ({dt})\n"
         return result
+
+    def __add__(self, other: PixelList):
+        event_list = vstack([self.event_list, other.event_list])
+        pkt_list = vstack([self.pkt_list, other.pkt_list])
+        return type(self)(pkt_list, event_list)
 
     @property
     def calibrated(self):
@@ -118,7 +125,7 @@ class PhotonList:
         """Return the set of pixels that have events"""
         # note this is calculated on the fly instead of at init because it can take a few seconds to compute for large event lists
         pixel_ids = np.unique(
-            util.get_pixelid(self.event_list["asic"], self.event_list["pixel"])
+            get_pixelid(self.event_list["asic"], self.event_list["pixel"])
         )
         return PixelList(pixelids=pixel_ids)
 
@@ -251,14 +258,14 @@ class PhotonList:
                 )
         return self.event_list[ind]
 
-    def _slide_event_list_sr(self, sr: SpectralRegion):
+    def _slice_event_list_sr(self, sr: SpectralRegion):
         """Slice the envt list to only contain events inside the spectral region."""
         if len(sr) > 1:
             raise ValueError("Only supports Spectral Regions of length 1.")
         if sr[0].lower.unit == u.Unit("keV"):
-            data = self.event_list["energy"]
+            data = self.event_list["energy"] * u.pix
         elif sr[0].lower.unit == u.Unit("pix"):
-            data = self.event_list["atod"]
+            data = self.event_list["atod"] * u.pix
         else:
             raise ValueError(
                 f"Unit of Spectral Region, {sr[0].lower.unit}, not recognized."

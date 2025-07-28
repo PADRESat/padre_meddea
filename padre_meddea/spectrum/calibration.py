@@ -7,8 +7,8 @@ import specutils
 from specutils import SpectralRegion, Spectrum1D
 from specutils.manipulation import extract_region
 
-import padre_meddea.util.util as util
 from padre_meddea.spectrum.spectrum import PhotonList, SpectrumList
+from padre_meddea.util.pixels import PixelList
 
 specutils.conf.do_continuum_function_check = False
 
@@ -144,7 +144,7 @@ def calibrate_phlist_barium_linear(ph_list: PhotonList, plot: bool = False):
 
     spec_bins = np.arange(0, 4097, 8, dtype=np.uint16) * u.pix
     lin_cal_params = np.zeros((4, 12, 2))
-    all_pixels = util.PixelList.all()
+    all_pixels = PixelList.all()
     for i, this_pixel in enumerate(all_pixels):
         # fitting barium lines
         this_spec = ph_list.spectrum(pixel_list=this_pixel, bins=spec_bins)
