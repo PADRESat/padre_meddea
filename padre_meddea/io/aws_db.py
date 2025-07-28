@@ -16,6 +16,8 @@ def record_spectra(spec_list: SpectrumList):
         sr = SpectralRegion([[5, 10], [10, 15], [15, 25], [25, 50], [50, 100]] * u.keV)
         ts = spec_list.lightcurve(pixel_list=spec_list.pixel_list, sr=sr)
         record_timeseries(ts, "spectra_sum", "meddea")
+        ts_specgram = spec_list.spectrogram()
+        record_timeseries(ts_specgram, "spectragram", "meddea")
 
 
 def record_photons(pkt_list, event_list):

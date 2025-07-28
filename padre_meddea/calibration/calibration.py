@@ -6,6 +6,8 @@ import os
 import tempfile
 from pathlib import Path
 
+import astropy.units as u
+import numpy as np
 from astropy.io import fits
 from astropy.table import Table
 
@@ -253,10 +255,6 @@ def process_file(filename: Path, overwrite=False) -> list:
             # the function below will remove any change in pixel ids
             pkt_ts, specs, pixel_ids = parsed_data["spectra"]
             ts, spectra, ids = file_tools.clean_spectra_data(pkt_ts, specs, pixel_ids)
-            # try:
-            #    aws_db.record_spectra(ts, spectra, ids)
-            # except ValueError:
-            #    pass
 
             asic_nums, channel_nums = pixels.parse_pixelids(ids)
             # asic_nums = (ids & 0b11100000) >> 5
@@ -330,8 +328,10 @@ def process_file(filename: Path, overwrite=False) -> list:
             hdul.close()
             # calibrate to ql data and send to AWS
             spec_list = file_tools.read_file(path)
-            lin_cal_params = get_ql_calibration_file(ts.time[0])
-            cal_spec_list = calibrate_linear_speclist(spec_list, lin_cal_params)
+            lin_cal_params = np.load(get_ql_calibration_file(ts.time[0]))
+            cal_spec_list = calibrate_linear_speclist(
+                spec_list, lin_cal_params, spectral_axis=np.arange(5, 100, 2) * u.keV
+            )
             aws_db.record_spectra(cal_spec_list)
 
             output_files.append(path)

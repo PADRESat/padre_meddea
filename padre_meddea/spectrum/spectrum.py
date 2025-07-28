@@ -2,15 +2,13 @@
 This module provides tools to analyze and manipulate meddea spectral data both summary spectra and event lists.
 """
 
-import numpy as np
-
 import astropy.units as u
-from astropy.time import Time
+import numpy as np
 from astropy.nddata import StdDevUncertainty
 from astropy.table import Table
-from astropy.timeseries import TimeSeries, BinnedTimeSeries, aggregate_downsample
-
-from specutils import Spectrum1D, SpectralRegion
+from astropy.time import Time
+from astropy.timeseries import BinnedTimeSeries, TimeSeries, aggregate_downsample
+from specutils import SpectralRegion, Spectrum1D
 
 import padre_meddea.util.util as util
 from padre_meddea.util.pixels import PixelList
@@ -407,10 +405,15 @@ class SpectrumList:
             lc[col_label] = total_cts
         return lc
 
+    def spectrogram(self):
+        specgram = np.sum(self.specs.data, axis=1) * u.ct
+        ts = TimeSeries(time=self.time, data={"specgram": specgram * u.ct})
+        return ts
+
     def plot_spectrogram(self, **imshow_kwargs):
         """Plot a spectrogram"""
-        import matplotlib.pyplot as plt
         import matplotlib.dates as mdates
+        import matplotlib.pyplot as plt
 
         ts = [mdates.date2num(this_time) for this_time in self.time.to_datetime()]
         x_lims = [ts[0], ts[-1]]
