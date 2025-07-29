@@ -10,7 +10,6 @@ from astropy.time import Time
 from astropy.timeseries import BinnedTimeSeries, TimeSeries, aggregate_downsample
 from specutils import SpectralRegion, Spectrum1D
 
-import padre_meddea.util.util as util
 from padre_meddea.util.pixels import PixelList, get_pixelid
 
 DEFAULT_SPEC_PIXEL_IDS = np.array(
