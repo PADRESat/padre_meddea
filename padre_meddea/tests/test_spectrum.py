@@ -49,6 +49,11 @@ def test_spectrumlist(file):
     )
     assert np.all(speclist.data["pkt_list"] == speclist.pkt_list)
     assert np.all(speclist.data["specs"] == speclist.specs)
+    # perform basic test on the string representation
+    str_list = ["SpectrumList", "spectra", "events", "Spectrum1D"]
+    repr_str = str(speclist)
+    for this_str in str_list:
+        assert repr_str.count(this_str) >= 1
 
 
 @pytest.mark.parametrize(
@@ -56,7 +61,7 @@ def test_spectrumlist(file):
     [_test_files_directory / "apid160_4packets.bin"]
     + list((_test_files_directory / "eventlist").glob("*.fits")),
 )
-def test_photonlist_(file):
+def test_photonlist(file):
     """Test that we can create a spectrumlist from a raw file"""
     if file.suffix == ".bin":
         phlist = read_raw_a0(file)
@@ -91,3 +96,8 @@ def test_photonlist_(file):
             phlist.data_rate(),  # need to recreate this fits file to include pktlength
             BinnedTimeSeries,
         )
+    # perform basic test on the string representation
+    str_list = ["PhotonList", "events", "TimeSeries", "event_list"]
+    repr_str = str(phlist)
+    for this_str in str_list:
+        assert repr_str.count(this_str) >= 1
