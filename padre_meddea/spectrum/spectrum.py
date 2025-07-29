@@ -64,7 +64,7 @@ class PhotonList:
 
     Examples
     --------
-    >>> from padre_meddea.io.file_tools import read_file
+    >>> from padre_meddea.io import read_file
     >>> from padre_meddea.util.pixels import PixelList
     >>> from astropy.time import Time
     >>> ph_list = read_file("padre_meddea_l0test_photons_20250504T070411_v0.1.0.fits")  # doctest: +SKIP
@@ -242,7 +242,7 @@ class PhotonList:
 
     def _slice_event_list_pixels(self, pixel_list: PixelList) -> TimeSeries:
         """Slice the event list to only contain events from asic_num and pixel_num"""
-        ind = np.zeros(len(self.event_list), dtype=np.bool)
+        ind = np.zeros(len(self.event_list))
         if isinstance(pixel_list, Table.Row):
             ind = np.logical_or(
                 ind,
@@ -294,7 +294,7 @@ class SpectrumList:
 
     Examples
     --------
-    >>> from padre_meddea.io.file_tools import read_file
+    >>> from padre_meddea.io import read_file
     >>> from astropy.time import Time
     >>> spec_list = read_file("padre_meddea_l0test_spectrum_20250504T070411_v0.1.0.fits")  # doctest: +SKIP
     >>> this_spectrum = this_spec_list.spectrum(pixel_list=spec_list.pixel_list)  # doctest: +SKIP

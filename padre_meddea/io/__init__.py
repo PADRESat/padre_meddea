@@ -4,6 +4,8 @@ from astropy.table import Table
 
 import padre_meddea
 
+from .file_tools import read_file
+
 detector_values = Table(
     ascii.read(
         padre_meddea._data_directory / "detector_values.csv",
