@@ -1,3 +1,4 @@
+from pathlib import Path
 import urllib
 from collections import OrderedDict
 from datetime import timedelta
@@ -116,6 +117,11 @@ class PADREClient(GenericClient):
                 if info["descriptor"] not in data_types:
                     continue  # Skip files with wrong DataType
 
+            # Extract filename and extension using Path
+            path_obj = Path(file_url)
+            filename = path_obj.name
+            file_extension = path_obj.suffix
+
             rowdict = OrderedDict()
             rowdict["Instrument"] = info.get("instrument", "unknown")
             rowdict["Mode"] = info.get("mode", "unknown")
@@ -124,6 +130,8 @@ class PADREClient(GenericClient):
             rowdict["Level"] = info.get("level", "unknown")
             rowdict["Version"] = info.get("version", "unknown")
             rowdict["Descriptor"] = info.get("descriptor", "unknown")
+            rowdict["File Name"] = filename
+            rowdict["File Extension"] = file_extension
             rowdict["url"] = file_url  # Key
             metalist.append(rowdict)
 
