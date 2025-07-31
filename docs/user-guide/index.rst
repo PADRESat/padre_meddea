@@ -18,6 +18,6 @@ For more details checkout the :ref:`reference`.
    simul_spectrum
    amptek
    photons/decimation
-   raw_spectrum_data
+   retrieving_data
    customization
    logger
