@@ -21,7 +21,7 @@ the electron pitch angle anisotropy. In coordination with Solar Orbiter
 STIX, MeDDEA will determine the amount of X-ray Bremsstrahlung directiv-
 ity. MeDDEA includes Solar Orbiter STIX spare Caliste-SO
 detectors and will compare its spectral x-ray measurements with those taken by
-STIX while at different heliographic angles. 
+STIX while at different heliographic angles.
 
 MeDDEA provides hard X-ray spectroscopy measurements with a full Sun
 field of view. Unlike STIX is does not include imaging grids and therefore

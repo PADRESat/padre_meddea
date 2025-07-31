@@ -44,7 +44,7 @@ def get_decimation_ftable():
         filenames.append(fname)
         times.append(Time(f"{fname[0:4]}-{fname[4:6]}-{fname[6:8]}T00:00"))
     result = TimeSeries(time=times, data={"filename": filenames})
-    result.sort('time')
+    result.sort("time")
     return result
 
 

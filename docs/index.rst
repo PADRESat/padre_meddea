@@ -1,7 +1,7 @@
 padre_meddea
 ------------
 
-A Python package to process and analyze data from the Measuring Directivity to Determine Electron Anisotropy (MeDDEA) instrument on the 
+A Python package to process and analyze data from the Measuring Directivity to Determine Electron Anisotropy (MeDDEA) instrument on the
 NASA solar PolArization and Directivity X-Ray Experiment (PADRE) small satellite mission.
 
 PADRE launched on July 23rd, 2025.

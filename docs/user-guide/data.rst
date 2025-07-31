@@ -8,7 +8,7 @@ Data Description
 ----------------
 MeDDEA has two primary science data products which originate from the same measurements.
 
-#. an x-ray spectrum, provided regularly and 
+#. an x-ray spectrum, provided regularly and
 #. a x-ray photon list provided on-demand.
 
 Generally, the photon list data product will only be available during large flares and calibration periods.
@@ -63,7 +63,7 @@ Coming soon! The following is not yet implemented.
 Both of the above products can be used to generate a calibrated spectrum product.
 
 +----------+---------------------------------------+---------------------------------------+
-| Level    | Product                               | Description                           |      
+| Level    | Product                               | Description                           |
 +==========+=======================================+=======================================+
 | 2        | Flux Spectrum in energy space,        | FITS, data flag to state if it was    |
 |          | integrated over all detectors and     | generated from the photon list or not |
@@ -73,7 +73,7 @@ Both of the above products can be used to generate a calibrated spectrum product
 The above data product will be used to generate the following derived data products.
 
 +----------+---------------------------------------+---------------------------------------+
-| Level    | Product                               | Description                           |      
+| Level    | Product                               | Description                           |
 +==========+=======================================+=======================================+
 | 3        | Flare X-ray Directivity as a function | FITS file, requires Solar Orbiter STIX|
 |          | of energy and time for the angular    | data, ratio of STIX to PADRE flux     |
@@ -92,16 +92,16 @@ Raw data
 
 * Event data PADREMDA0_250504055133.DAT
 * Spectrum data PADREMDA2_250504070426.DAT
-* Housekeeping data PADREMDU8_250504153121.DAT	
+* Housekeeping data PADREMDU8_250504153121.DAT
 
 Level 0 data
 
 * Event data padre_meddea_l0_photon_20250504T153114_v0.1.0.fits
-* Spectrum data padre_meddea_l0test_spectrum_20250504T070411_v0.1.0.fits	
-* Housekeeping data padre_meddea_l0_housekeeping_20250504T055138_v0.1.0.fits	 
+* Spectrum data padre_meddea_l0test_spectrum_20250504T070411_v0.1.0.fits
+* Housekeeping data padre_meddea_l0_housekeeping_20250504T055138_v0.1.0.fits
 
 Level 1 data
 
-* padre_meddea_l1_photon_20250504T000000_v0.1.0.fits	
-* padre_meddea_l1_spectrum_20250504T000000_v0.1.0.fits	
+* padre_meddea_l1_photon_20250504T000000_v0.1.0.fits
+* padre_meddea_l1_spectrum_20250504T000000_v0.1.0.fits
 * padre_meddea_l1_housekeeping_20250504T000000_v0.1.0.fits	2025

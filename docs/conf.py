@@ -115,7 +115,7 @@ intersphinx_mapping = {
     "sunpy": (
         "https://docs.sunpy.org/en/stable/", None),
     "specutils": (
-        "https://specutils.readthedocs.io/en/stable/", 
+        "https://specutils.readthedocs.io/en/stable/",
         (None, "https://specutils.readthedocs.io/en/stable/objects.inv")),
 }
 
@@ -132,7 +132,7 @@ html_theme_options = {
    "announcement": "This package is under active development.  If you'd like to contribute, check out our <a href='https://github.com/PADRESat/padre_meddea/'>GitHub repository</a>.",
    "use_edit_page_button": True,
    "back_to_top_button": True,
-    
+
 }
 
 html_context = {

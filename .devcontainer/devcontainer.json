@@ -16,12 +16,12 @@
 				"python.testing.unittestEnabled": false,
 				"python.testing.pytestEnabled": true,
 				"python.languageServer": "Pylance",
-				
+
 				//PyLint Settings
 				"pylint.enabled": true,
 				"pylint.path": ["/usr/bin/pylint"],
 				"pylint.lintOnChange": true,
-				
+
 				// Black Settings
 				"python.editor.defaultFormatter": "ms-python.black-formatter",
     			"python.editor.formatOnSave": true,
@@ -34,7 +34,7 @@
 				// Flake8 Settings
 				"flake8.path": ["/usr/local/bin/flake8"],
 				"flake8.lintOnChange": true,
-				
+
 				// Terminal Settings
 				"terminal.integrated.defaultProfile.linux": "bash (login)",
 				"terminal.integrated.profiles.linux": {
@@ -56,7 +56,7 @@
 				"ms-toolsai.jupyter-keymap",
 				"jithurjacob.nbpreviewer"
 			],
-		}	
+		}
 	},
 
 	// Mount to a volume if you'd like to persist data to your disk
@@ -66,7 +66,7 @@
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	// "forwardPorts": [],
-	
+
 	// Use 'postCreateCommand' to run commands after the container is created.
 	"postCreateCommand": "sudo pip3 uninstall padre_meddea -y",
 	// Comment out connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
