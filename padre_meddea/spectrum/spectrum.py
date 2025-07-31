@@ -65,9 +65,8 @@ class PhotonList:
     --------
     >>> from padre_meddea.io import read_file
     >>> from padre_meddea.util.pixels import PixelList
-    >>> from astropy.time import Time
     >>> ph_list = read_file("padre_meddea_l0test_photons_20250504T070411_v0.1.0.fits")  # doctest: +SKIP
-    >>> this_spectrum = this_spec_list.spectrum(pixel_list=PixelList().all())  # doctest: +SKIP
+    >>> this_spectrum = ph_list.spectrum(pixel_list=ph_list.pixel_list)  # doctest: +SKIP
     """
 
     def __init__(self, pkt_list: TimeSeries, event_list: TimeSeries):
@@ -296,7 +295,7 @@ class SpectrumList:
     >>> from padre_meddea.io import read_file
     >>> from astropy.time import Time
     >>> spec_list = read_file("padre_meddea_l0test_spectrum_20250504T070411_v0.1.0.fits")  # doctest: +SKIP
-    >>> this_spectrum = this_spec_list.spectrum(pixel_list=spec_list.pixel_list)  # doctest: +SKIP
+    >>> this_spectrum = spec_list.spectrum(pixel_list=spec_list.pixel_list)  # doctest: +SKIP
     """
 
     def __init__(self, pkt_list: TimeSeries, specs, pixel_ids):
