@@ -395,19 +395,23 @@ class SpectrumList:
                     pixel_index = np.where(this_pixel == self.pixel_list)[0][0]
                     flux += self.specs.data[:, pixel_index, :]
         for i, this_sr in enumerate(sr):
+            if str(self.specs.spectral_axis.unit) != str(this_sr.lower.unit):
+                raise ValueError(
+                    f"Units of spectral axis ({self.specs.spectral_axis.unit}) does not match units of sr ({this_sr.lower.unit})"
+                )
             this_flux = flux.copy()
-            ind = (self.specs[0, 0].spectral_axis > this_sr.lower) * (
-                self.specs[0, 0].spectral_axis < this_sr.upper
+            ind = (self.specs.spectral_axis > this_sr.lower) * (
+                self.specs.spectral_axis < this_sr.upper
             )
             this_flux[:, ~ind] = 0
-            col_label = f"{this_sr.lower}-{this_sr.upper}_cts"
+            col_label = f"{this_sr.lower.value:0.0f}to{this_sr.upper.value:0.0f}_{this_sr.upper.unit}"
             total_cts = np.sum(this_flux, axis=1)
             lc[col_label] = total_cts
         return lc
 
     def spectrogram(self):
         specgram = np.sum(self.specs.data, axis=1) * u.ct
-        ts = TimeSeries(time=self.time, data={"specgram": specgram * u.ct})
+        ts = TimeSeries(time=self.time, data={"specgram": specgram})
         ts.meta["spectral_axis"] = u.Quantity(self.specs.spectral_axis)
         return ts
 
@@ -423,6 +427,7 @@ class SpectrumList:
             self.specs[0, 0].spectral_axis[-1].value,
         ]
         fig, ax = plt.subplots()
+        # TODO use spectrogram function above
         specgram = np.sum(self.specs.data, axis=1)
         ax.imshow(
             specgram.transpose(),

@@ -6,8 +6,6 @@ import os
 import tempfile
 from pathlib import Path
 
-import astropy.units as u
-import numpy as np
 from astropy.io import fits
 from astropy.table import Table
 
@@ -17,10 +15,6 @@ import padre_meddea.util.pixels as pixels
 from padre_meddea import log
 from padre_meddea.io import file_tools
 from padre_meddea.io.fits_tools import get_comment, get_obs_header, get_primary_header
-from padre_meddea.spectrum.calibration import (
-    calibrate_linear_speclist,
-    get_ql_calibration_file,
-)
 from padre_meddea.util import validation
 from padre_meddea.util.util import (
     calc_time,
@@ -73,7 +67,6 @@ def process_file(filename: Path, overwrite=False) -> list:
             log.info(
                 f"Found photon data, {len(event_list)} photons and {len(pkt_list)} packets."
             )
-            aws_db.record_photons(pkt_list, event_list)
 
             event_list = Table(event_list)
             event_list.remove_column("time")
@@ -248,6 +241,8 @@ def process_file(filename: Path, overwrite=False) -> list:
             hdul.writeto(path, overwrite=overwrite, checksum=True)
             output_files.append(path)
         if parsed_data["spectra"] is not None:
+            from padre_meddea.spectrum.spectrum import SpectrumList
+
             # Set Data Type for L0 Data
             data_type = "spectrum"
 
@@ -327,12 +322,9 @@ def process_file(filename: Path, overwrite=False) -> list:
             hdul.writeto(path, overwrite=overwrite, checksum=True)
             hdul.close()
             # calibrate to ql data and send to AWS
-            spec_list = file_tools.read_file(path)
-            lin_cal_params = np.load(get_ql_calibration_file(ts.time[0]))
-            cal_spec_list = calibrate_linear_speclist(
-                spec_list, lin_cal_params, spectral_axis=np.arange(5, 100, 2) * u.keV
-            )
-            aws_db.record_spectra(cal_spec_list)
+            # spec_list = file_tools.read_file(path)
+            spec_list = SpectrumList(ts, spectra, ids)
+            aws_db.record_spectra(spec_list)
 
             output_files.append(path)
 

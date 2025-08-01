@@ -7,17 +7,27 @@ from specutils import SpectralRegion
 from swxsoc.util.util import create_annotation, record_timeseries
 
 from padre_meddea.housekeeping.calibration import get_calibration_func
+from padre_meddea.spectrum.calibration import (
+    calibrate_linear_speclist,
+    get_ql_calibration_file,
+)
 from padre_meddea.spectrum.spectrum import SpectrumList
 
 
 def record_spectra(spec_list: SpectrumList):
     """Send spectrum time series data to AWS."""
-    if spec_list.calibrated:
+    lin_cal_params = np.load(get_ql_calibration_file(spec_list.time[0]))
+    cal_spec_list = calibrate_linear_speclist(
+        spec_list,
+        lin_cal_params,
+        spectral_axis=np.arange(5, 100, 2) * u.keV,  # keep this to about 50 bins
+    )
+    if cal_spec_list.calibrated:
         sr = SpectralRegion([[5, 10], [10, 15], [15, 25], [25, 50], [50, 100]] * u.keV)
-        ts = spec_list.lightcurve(pixel_list=spec_list.pixel_list, sr=sr)
-        record_timeseries(ts, "spectra_sum", "meddea")
-        ts_specgram = spec_list.spectrogram()
-        record_timeseries(ts_specgram, "spectragram", "meddea")
+        ts = cal_spec_list.lightcurve(pixel_list=spec_list.pixel_list, sr=sr)
+        record_timeseries(ts, "spectra", "meddea")
+        ts_specgram = cal_spec_list.spectrogram(pixel_list=cal_spec_list.pixel_list)
+        record_timeseries(ts_specgram, "spectra", "meddea")
 
 
 def record_photons(pkt_list, event_list):
