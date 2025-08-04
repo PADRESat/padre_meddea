@@ -18,5 +18,6 @@ Note that this package is still in active development.
    pixels
    photons/index.rst
    spectrum/index.rst
+   retrieving_data
    customization
    logger
