@@ -1,6 +1,7 @@
 """Tools to analyze and calibrate spectral data"""
 
 from pathlib import Path
+from typing import Optional
 
 import astropy.units as u
 import matplotlib.pyplot as plt
@@ -269,7 +270,9 @@ def calibrate_linear_phlist(
 
 
 def calibrate_linear_speclist(
-    spec_list: SpectrumList, lin_cal_params: np.ndarray, spectral_axis: None
+    spec_list: SpectrumList,
+    lin_cal_params: np.ndarray,
+    spectral_axis: Optional[np.ndarray] = None,
 ) -> SpectrumList:
     """Given an uncalibrated SpectrumList and a complete set of linear calibration parameters
     produced by calibrate_phlist_barium_linear, apply the calibration to the

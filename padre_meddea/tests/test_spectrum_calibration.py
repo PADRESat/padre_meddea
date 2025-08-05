@@ -51,7 +51,7 @@ def test_get_ql_calibration_file():
         cal.get_ql_calibration_file(Time("2023-03-01T00:00"))
 
     result = cal.get_ql_calibration_file(Time("2025-03-01T00:00"))
-    assert result.name == "20250130_ql_spec_cal.npy"
+    assert result.name == "20250101_ql_spec_cal.npy"
     assert result.exists()
 
 
