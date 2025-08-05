@@ -1,5 +1,5 @@
 """
-This module provides a generic file reader.
+Provides generic file readers.
 """
 
 from pathlib import Path
@@ -9,21 +9,20 @@ import astropy.units as u
 import numpy as np
 from astropy.table import Table
 from astropy.timeseries import TimeSeries
-from astropy.time import Time
 from ccsdspy.utils import count_packets, split_by_apid
 from specutils import Spectrum1D
 
 import padre_meddea.util.util as util
 from padre_meddea import APID, log
 from padre_meddea.housekeeping.housekeeping import (
-    parse_housekeeping_packets,
-    parse_cmd_response_packets,
     clean_hk_data,
+    parse_cmd_response_packets,
+    parse_housekeeping_packets,
 )
 from padre_meddea.spectrum.raw import (
+    clean_spectra_data,
     parse_ph_packets,
     parse_spectrum_packets,
-    clean_spectra_data,
 )
 from padre_meddea.spectrum.spectrum import PhotonList, SpectrumList
 

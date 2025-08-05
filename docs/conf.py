@@ -54,15 +54,14 @@ plot_include_source = True
 # Set automodapi to generate files inside the generated directory
 # automodapi_toctreedirnm = "_build/api"
 autosummary_generate = True  # Turn on sphinx.ext.autosummary
-numpydoc_show_class_members = False
-# generate autosummary even if no references
-autosummary_generate = True
-
 autosummary_ignore_module_all = False
 autosummary_imported_members = False
 
-# Add any paths that contain templates here, relative to this directory.
-templates_path = ["_templates"]
+autodoc_default_options = {
+    "members": True,
+    "undoc-members": False,
+    "private-members": True,
+}
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -108,28 +107,39 @@ intersphinx_mapping = {
     ),
     "astropy": (
         "http://docs.astropy.org/en/stable/",
-        "https://docs.astropy.org/en/stable/objects.inv",
+        (None, "https://docs.astropy.org/en/stable/objects.inv"),
     ),
     "sunpy": (
-        "https://docs.sunpy.org/en/stable/",
-        "https://docs.sunpy.org/en/stable/objects.inv",
-    ),
+        "https://docs.sunpy.org/en/stable/", None),
+    "specutils": (
+        "https://specutils.readthedocs.io/en/stable/",
+        (None, "https://specutils.readthedocs.io/en/stable/objects.inv")),
 }
 
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = "bizstyle"
+html_theme = "pydata_sphinx_theme"
 html_static_path = ["_static"]
 
 html_logo = "logo/padre_logo.png"
-# html_favicon = "logo/favicon.ico"
-html_css_files = ["css/custom.css"]
-# Add any paths that contain custom static files (such as style sheets) here,
-# relative to this directory. They are copied after the builtin static files,
-# so a file named "default.css" will overwrite the builtin "default.css".
-# html_static_path = ['_static']
+
+html_theme_options = {
+   "announcement": "This package is under active development.  If you'd like to contribute, check out our <a href='https://github.com/PADRESat/padre_meddea/'>GitHub repository</a>.",
+   "use_edit_page_button": True,
+   "back_to_top_button": True,
+
+}
+
+html_context = {
+	"display_github": True,
+	"github_user": "PadreSat",
+	"github_repo": "padre_meddea",
+	"github_version": "main",
+	"conf_py_path": "/docs/",
+}
+html_favicon = "logo/favicon.ico"
 
 # Render inheritance diagrams in SVG
 graphviz_output_format = "svg"

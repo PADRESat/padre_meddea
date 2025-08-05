@@ -4,20 +4,20 @@
 User's Guide
 ************
 
-Welcome to uor User guide.
+Welcome to the User guide.
 For more details checkout the :ref:`reference`.
+
+Note that this package is still in active development.
 
 .. toctree::
    :maxdepth: 2
 
-   Brief Tour <tour>
+   overview
    data
-   pixels
-   raw
    level0
-   simul_spectrum
-   amptek
-   photons/decimation
-   raw_spectrum_data
+   pixels
+   photons/index.rst
+   spectrum/index.rst
+   retrieving_data
    customization
    logger

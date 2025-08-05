@@ -32,7 +32,7 @@ It would be impossible to list everything staff can do to create a more welcomin
  * Practice empathy and humility.
  * Participate in an authentic and active way. In doing so, you contribute to the health and longevity of this community.
  * Exercise consideration and respect in your speech and actions.
- * Assume that everyone we work with is doing their best work for open science. 
+ * Assume that everyone we work with is doing their best work for open science.
  * Listen carefully and actively.
  * Ask questions, and seek to understand your partners' context.
  * Encourage other people to listen as much as they speak.
@@ -67,31 +67,31 @@ Community leaders have the right and responsibility to remove, edit, or reject
 comments, commits, code, wiki edits, issues, and other contributions that are
 not aligned to this Code of Conduct, and will communicate reasons for moderation
 decisions when appropriate.
- 
+
 
 ### Scope
 
 This Code of Conduct applies both within project spaces and in public spaces when an individual is representing the project or its community. In-person and virtual activities will also provide further guidance on appropriate conduct at those events.
 
-### Key Definitions 
-* A **participant** is someone who has posted a comment or question on the  GitHub,  Slack,  Google Drive documentation or chat features provided by  to the community during an open meeting or community forum. Anyone who interacts with  or OSSI is a participant. 
-* A **contributor** is an individual who has made a pull request or code commit to  or OSSI official GitHubs which are part of the NASA environment. 
-* A **moderator** is either (1) someone who is appointed to monitor the chat and respond to questions, comments and incidents during a virtual or hybrid OSSI meeting, or (2) someone who has been given moderation access on GitHub. 
+### Key Definitions
+* A **participant** is someone who has posted a comment or question on the  GitHub,  Slack,  Google Drive documentation or chat features provided by  to the community during an open meeting or community forum. Anyone who interacts with  or OSSI is a participant.
+* A **contributor** is an individual who has made a pull request or code commit to  or OSSI official GitHubs which are part of the NASA environment.
+* A **moderator** is either (1) someone who is appointed to monitor the chat and respond to questions, comments and incidents during a virtual or hybrid OSSI meeting, or (2) someone who has been given moderation access on GitHub.
     * [GitHub defines a moderator](https://docs.github.com/en/organizations/managing-peoples-access-to-your-organization-with-roles/roles-in-an-organization#organization-moderators) as “Moderators are organization members who, in addition to their permissions as members, are allowed to block and unblock non-member contributors, set interaction limits, and hide comments in public repositories owned by the organization.” GitHub moderators can hide comments, pull requests, and issues; block or unblock contributors; and limit interactions for certain users.
-    * GitHub resources for moderation can be[ found here](https://docs.github.com/en/organizations/managing-peoples-access-to-your-organization-with-roles/managing-moderators-in-your-organization#about-organization-moderators). 
+    * GitHub resources for moderation can be[ found here](https://docs.github.com/en/organizations/managing-peoples-access-to-your-organization-with-roles/managing-moderators-in-your-organization#about-organization-moderators).
 
 ### Enforcement Guidelines: Code of Conduct Violation Response Procedure
 
-#### Summary 
+#### Summary
 
-* First code of conduct violation 
+* First code of conduct violation
     * **Participant:** Comment removed + contacted by  moderator
     * **Contributor**:  PR not accepted and removed from GitHub + contacted by  moderator
 * Second code of conduct violation
     * **Participant:** Comment removed + contacted by  moderator + ban for 90 days from space where offense occurred
     * **Contributor:** PR not accepted and removed from GitHub + contacted by  moderator + banned from PRs for 90 days
 * Third code of conduct violation
-    * **Participant**: Comment removed + contacted by  moderator + permanent ban from all  spaces 
+    * **Participant**: Comment removed + contacted by  moderator + permanent ban from all  spaces
     * **Contributor**: PR not accepted and removed from GitHub + contacted by  moderator + permanent ban from GitHub and other  digital communication
 * Commit of Malicious Code
     * Immediate and permanent ban from all  spaces
@@ -101,33 +101,33 @@ This Code of Conduct applies both within project spaces and in public spaces whe
 #### Full Text
 **Participants**
 
-1. If a participant makes a comment which is contrary to the Code of Conduct during any  meeting, that comment will be removed promptly from the space. 
+1. If a participant makes a comment which is contrary to the Code of Conduct during any  meeting, that comment will be removed promptly from the space.
      * A community moderator will, as soon as possible, contact the individual who posted the content. If needed, they will provide clarity around the nature of the violation, and an explanation of why the behavior was inappropriate. A public apology may be requested.
      * The participant will be allowed to continue participating in other spaces, and during other meetings.
-     * If a participant makes additional comments during the same event and/or in the same digital space (e.g., discussion thread on GitHub or slack channel) prior to being contacted by a community moderator, the comment and the participant will be removed from the space, until a community moderator can contact them. 
-2. If a participant violates the Code of Conduct for a **second time**, they will be contacted by a community moderator and informed of a temporary ban from the digital and/or physical spaces in which the harm was perpetuated. 
-     * Temporary bans will extend only to the area in which the harm occurred (e.g., removed from Slack but not banned from community forums). 
-     * After 90 days, the participant may request to be included in that digital space again. Admission into the digital space will be determined by the  team on a case-by-case basis. 
-3. If a participant violated the Code of Conduct a **third time, they will be <span style="text-decoration:underline;">permanently banned</span> and removed from all  spaces**, including digital communication channels and community meetings.  
-     * A permanent ban includes avoiding interactions in community spaces as well as external channels like social media. 
-     * Depending on the severity of the infraction, a  civil servant may be called upon to issue a statement to the community. 
-4. If a participant **seriously violates community standards**, such as threatening violence, they will be immediately and permanently removed from all  spaces, and the harmful comment will be removed as quickly as possible. 
-     * A permanent ban includes avoiding interactions in community spaces as well as external channels like social media. 
-     * Depending on the severity of the infraction, a  civil servant may be called upon to issue a statement to the community. 
+     * If a participant makes additional comments during the same event and/or in the same digital space (e.g., discussion thread on GitHub or slack channel) prior to being contacted by a community moderator, the comment and the participant will be removed from the space, until a community moderator can contact them.
+2. If a participant violates the Code of Conduct for a **second time**, they will be contacted by a community moderator and informed of a temporary ban from the digital and/or physical spaces in which the harm was perpetuated.
+     * Temporary bans will extend only to the area in which the harm occurred (e.g., removed from Slack but not banned from community forums).
+     * After 90 days, the participant may request to be included in that digital space again. Admission into the digital space will be determined by the  team on a case-by-case basis.
+3. If a participant violated the Code of Conduct a **third time, they will be <span style="text-decoration:underline;">permanently banned</span> and removed from all  spaces**, including digital communication channels and community meetings.
+     * A permanent ban includes avoiding interactions in community spaces as well as external channels like social media.
+     * Depending on the severity of the infraction, a  civil servant may be called upon to issue a statement to the community.
+4. If a participant **seriously violates community standards**, such as threatening violence, they will be immediately and permanently removed from all  spaces, and the harmful comment will be removed as quickly as possible.
+     * A permanent ban includes avoiding interactions in community spaces as well as external channels like social media.
+     * Depending on the severity of the infraction, a  civil servant may be called upon to issue a statement to the community.
 
 **Contributors on GitHub**
 
 1. If a contributor submits a pull request (PR) containing information which is contrary to the Code of Conduct that PR will be denied.
      * A community moderator will, as soon as possible, contact the individual who posted the content. If needed, they will provide clarity around the nature of the violation, and an explanation of why the behavior was inappropriate.
-     * No other PRs by that participant will be accepted until the individual has been contacted by a  community moderator. 
-2. If a contributor submits a PR which violates the Code of Conduct for a **second time**, they will be contacted by a community moderator and informed of a 90-day temporary ban from submitting pull requests. 
-     * Temporary bans will extend only to the area in which the harm occurred, in this case, no pull requests will be accepted for 90 days but the individual may continue to comment in Discussions, Issues, in Slack and attend virtual meetings. 
-     * After 90 days, the contributor’s pull requests will be accepted once again, subject to review by the  GitHub team. 
-     * Depending on the severity of the infraction, a  civil servant may be called upon to issue a statement to the community. 
-3. If a contributor submits a PR which violates the Code of Conduct for a **third time, they will be <span style="text-decoration:underline;">permanently banned</span> and removed from all  spaces**, including digital communication channels and community meetings.  
-     * A permanent ban includes avoiding interactions in community spaces as well as external channels like social media. 
+     * No other PRs by that participant will be accepted until the individual has been contacted by a  community moderator.
+2. If a contributor submits a PR which violates the Code of Conduct for a **second time**, they will be contacted by a community moderator and informed of a 90-day temporary ban from submitting pull requests.
+     * Temporary bans will extend only to the area in which the harm occurred, in this case, no pull requests will be accepted for 90 days but the individual may continue to comment in Discussions, Issues, in Slack and attend virtual meetings.
+     * After 90 days, the contributor’s pull requests will be accepted once again, subject to review by the  GitHub team.
      * Depending on the severity of the infraction, a  civil servant may be called upon to issue a statement to the community.
-4. If a contributor **submits a pull request which is harmful to our digital spaces (e.g., malicious code), they will be immediately and permanently banned** from all  digital spaces including but not limited to GitHub, slack and Google Drive. They will also not be permitted to participate in TOSP community meetings or forums. 
+3. If a contributor submits a PR which violates the Code of Conduct for a **third time, they will be <span style="text-decoration:underline;">permanently banned</span> and removed from all  spaces**, including digital communication channels and community meetings.
+     * A permanent ban includes avoiding interactions in community spaces as well as external channels like social media.
+     * Depending on the severity of the infraction, a  civil servant may be called upon to issue a statement to the community.
+4. If a contributor **submits a pull request which is harmful to our digital spaces (e.g., malicious code), they will be immediately and permanently banned** from all  digital spaces including but not limited to GitHub, slack and Google Drive. They will also not be permitted to participate in TOSP community meetings or forums.
 
 
 ## Attributions
@@ -142,14 +142,14 @@ This Code of Conduct applies both within project spaces and in public spaces whe
 
 * [Mozilla's code of conduct enforcement ladder](https://github.com/mozilla/inclusion#code-of-conduct--enforcement)
 
-* [The Citizen Code of Conduct](https://github.com/stumpsyn/policies/blob/master/citizen_code_of_conduct.md) 
+* [The Citizen Code of Conduct](https://github.com/stumpsyn/policies/blob/master/citizen_code_of_conduct.md)
 
 * Portions of text derived from the [Django Code of Conduct](https://www.djangoproject.com/conduct/) and the [Geek Feminism Anti-Harassment Policy](http://geekfeminism.wikia.com/wiki/Conference_anti-harassment/Policy).
 
-* [Contributor Covenant](https://www.contributor-covenant.org/) from Contributor-Covenant.org 
+* [Contributor Covenant](https://www.contributor-covenant.org/) from Contributor-Covenant.org
 
 * [The TTS Handbook](https://handbook.tts.gsa.gov/about-us/code-of-conduct/) from the General Services Administration
 
-* The archives of the [Ada Initiative ](https://adainitiative.org/) 
+* The archives of the [Ada Initiative ](https://adainitiative.org/)
 
 **The license for this repository is available [here](./LICENSE.md).**

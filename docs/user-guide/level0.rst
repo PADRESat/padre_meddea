@@ -28,7 +28,7 @@ This sequence number can be used to lookup the packet data for that event.
 Primary HDU
 ***********
 No data is provided.
-Stay tuned for a list of metadata 
+Stay tuned for a list of metadata
 
 PKT HDU
 *******

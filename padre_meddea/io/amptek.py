@@ -1,17 +1,15 @@
 """
-This module provides io support for reading files created by the amptek detector.
+Provides io support for reading files created by the amptek detector.
 """
 
-from pathlib import Path
 from datetime import datetime
-
-import numpy as np
-from numpy.polynomial.polynomial import Polynomial
+from pathlib import Path
 
 import astropy.units as u
-from astropy.nddata import StdDevUncertainty
+import numpy as np
 from astropy.io.fits import Header
-
+from astropy.nddata import StdDevUncertainty
+from numpy.polynomial.polynomial import Polynomial
 from specutils import Spectrum1D
 from specutils.spectra import SpectralRegion
 

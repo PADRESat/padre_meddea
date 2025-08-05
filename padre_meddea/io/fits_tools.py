@@ -1,5 +1,5 @@
 """
-This module provides a utilities to manage fits files reading and writing.
+Provides utilities to read and write fits files
 """
 
 import gc

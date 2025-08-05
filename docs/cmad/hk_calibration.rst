@@ -44,7 +44,7 @@ The temperature of the High Voltage Power supply.
    plt.axhline(high_limit, label=f"limits {high_limit:0.2f} {adc_low:0.0f}", color="red")
    plt.title(hk_name)
    plt.legend()
-   
+
 
 
 dib_temp
@@ -88,7 +88,7 @@ The temperature of the Detector Interface Board (DIB).
    plt.axhline(high_limit, label=f"limits {high_limit:0.2f} {adc_low:0.0f}", color="red")
    plt.title(hk_name)
    plt.legend()
-   
+
 
 
 
@@ -133,7 +133,7 @@ The temperature of the focal or detector plane.
    plt.axhline(high_limit, label=f"limits {high_limit:0.2f} {adc_low:0.0f}", color="red")
    plt.title(hk_name)
    plt.legend()
-   
+
 
 
 hvps_vsense
@@ -176,7 +176,7 @@ hvps_vsense
    plt.axhline(high_limit, label=f"limits {high_limit:0.2f} {adc_low:0.0f}", color="red")
    plt.title(hk_name)
    plt.legend()
-   
+
 
 
 hvps_csense
@@ -263,7 +263,7 @@ csense_15v
    plt.axhline(high_limit, label=f"limits {high_limit:0.2f} {adc_low:0.0f}", color="red")
    plt.title(hk_name)
    plt.legend()
-   
+
 
 
 csense_33vd
@@ -306,7 +306,7 @@ csense_33vd
    plt.axhline(high_limit, label=f"limits {high_limit:0.2f} {adc_low:0.0f}", color="red")
    plt.title(hk_name)
    plt.legend()
-   
+
 
 
 csense_33va
@@ -349,7 +349,7 @@ csense_33va
    plt.axhline(high_limit, label=f"limits {high_limit:0.2f} {adc_low:0.0f}", color="red")
    plt.title(hk_name)
    plt.legend()
-   
+
 
 
 hvps_setpoint
@@ -377,4 +377,4 @@ hvps_setpoint
    plt.plot(fit_x, f(fit_x), label="fit")
    plt.title(hk_name)
    plt.legend()
-   
+

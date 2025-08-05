@@ -4,49 +4,66 @@
 Data
 ****
 
-Overview
-========
-
 Data Description
 ----------------
-MeDDEA has two primary data products which originate from the same measurements.
+MeDDEA has two primary science data products which originate from the same measurements.
 
-#. an x-ray spectrum, provided regularly and 
+#. an x-ray spectrum, provided regularly and
 #. a x-ray photon list provided on-demand.
 
-Generally, the photon list data product will only exist during large flares and calibration periods.
+Generally, the photon list data product will only be available during large flares and calibration periods.
 It is generated automatically on board the spacecraft but only downloaded when requested.
-This photon list will be used to generate an x-ray spectrum that supersedes the histogram data product.
+
+MeDDEA also generates housekeeping data products.
+
+All MeDDEA data will be made publicly available `here <https://umbra.nascom.nasa.gov/padre/padre-meddea/>`_.
+
+Raw data consists of photon data, spectrum data, and housekeeping data in its raw binary form.
+Level 0 data consists of the same data as the raw data but in fits files.
+Each raw data file generates a single level 0 data file.
+Level 1 data concatenate level 0 data files into daily files or flare files.
 
 The data levels for the spectrum product are described below.
 These products are processed on the ground using this Python package unless otherwise specified.
 
-+----------+---------------------------------------+---------------------------------------+
-| Level    | Product                               | Description                           |      
-+==========+=======================================+=======================================+
-| 1        | Count Spectrum in energy space        | FITS file, produced at least every 1 s|
-|          | integrated across all pixels and      | , generated on the spacecraft         |
-|          | detectors                             |                                       |
-+----------+---------------------------------------+---------------------------------------+
+Reading data
+------------
+There is one primary way to read in data files `~padre_meddea.io.read_file()`.
+This function can read both binary (.DAT) and fits files (.fits).
 
-The data levels for the photon list product are described below.
+For photons data it returns a `~padre_meddea.spectrum.spectrum.PhotonList`.
 
-+----------+---------------------------------------+---------------------------------------+
-| Level    | Product                               | Description                           |      
-+==========+=======================================+=======================================+
-| 0        | List of hits. Each photon has         | FITS file, file will consist of a     |
-|          | relative time, photon energy in ADC   | fixed number of hits                  |
-|          | counts and pixel and detector number  | , generated on the spacecraft         |
-+----------+---------------------------------------+---------------------------------------+
-| 1        | List of photons. Each photon has      | FITS file, produced with a fixed      |
-|          | time of arrival in UTC and calibrated | number photons and variable           |                       
-|          | energy for each pixel and detector    | integration times.                    |
-+----------+---------------------------------------+---------------------------------------+
+.. code-block:: python
+
+    >>> from padre_meddea.io import read_file
+    >>> ph_list = read_file("padre_meddea_l0test_photons_20250504T070411_v0.1.0.fits")  # doctest: +SKIP
+
+For spectrum data it returns a `~padre_meddea.spectrum.spectrum.SpectrumList`.
+
+.. code-block:: python
+
+    >>> from padre_meddea.io import read_file
+    >>> ph_list = read_file("padre_meddea_l0test_spectrum_20250504T070411_v0.1.0.fits")  # doctest: +SKIP
+
+For housekeeping data it returns two `~astropy.timeseries.TimeSeries` objects.
+
+.. code-block:: python
+
+    >>> from padre_meddea.io import read_file
+    >>> hk_ts, cmd_ts = read_file("padre_meddea_l0test_housekeeping_20250504T070411_v0.1.0.fits")  # doctest: +SKIP
+
+If there is no readback data then cmd_ts will be None.
+
+Calibrated data
+---------------
+
+Coming soon! The following is not yet implemented.
+
 
 Both of the above products can be used to generate a calibrated spectrum product.
 
 +----------+---------------------------------------+---------------------------------------+
-| Level    | Product                               | Description                           |      
+| Level    | Product                               | Description                           |
 +==========+=======================================+=======================================+
 | 2        | Flux Spectrum in energy space,        | FITS, data flag to state if it was    |
 |          | integrated over all detectors and     | generated from the photon list or not |
@@ -56,7 +73,7 @@ Both of the above products can be used to generate a calibrated spectrum product
 The above data product will be used to generate the following derived data products.
 
 +----------+---------------------------------------+---------------------------------------+
-| Level    | Product                               | Description                           |      
+| Level    | Product                               | Description                           |
 +==========+=======================================+=======================================+
 | 3        | Flare X-ray Directivity as a function | FITS file, requires Solar Orbiter STIX|
 |          | of energy and time for the angular    | data, ratio of STIX to PADRE flux     |
@@ -71,28 +88,20 @@ File Naming Conventions
 
 The file naming conventions for the products listed above are
 
-#. padre_meddea_l0_photonlist_%Y%m%d_v{version}
-#. padre_meddea_l1_spec_%Y%m%d_v{version}
-#. padre_meddea_l2_spec_%Y%m%d_v{version}
-#. padre_meddea_l3_xraydirect_%Y%m%d_{angle}_v{version}
-#. padre_meddea_l4_eanisotropy_%Y%m%d_v{version}
+Raw data
 
-Files will be generated daily and include a full day of data.
-The `{version}` begins at one and is incremented everytime the data file is updated.
-The `{angle}` is the average angular separation between STIX and PADRE at the time of the observation.
-If too large, a file may be split up into multiple files in which case the date string will add the hour and minute and the integration time.
-Specified using Python datetime strftime definitions and version is a 3 digit zero-padded number which begins at 000 and increments every time the file is reprocessed.
-See `Python strftime cheatsheet <https://strftime.org/>`_ for a quick reference.
+* Event data PADREMDA0_250504055133.DAT
+* Spectrum data PADREMDA2_250504070426.DAT
+* Housekeeping data PADREMDU8_250504153121.DAT
 
-Getting Data
-============
+Level 0 data
 
-To be written.
+* Event data padre_meddea_l0_photon_20250504T153114_v0.1.0.fits
+* Spectrum data padre_meddea_l0test_spectrum_20250504T070411_v0.1.0.fits
+* Housekeeping data padre_meddea_l0_housekeeping_20250504T055138_v0.1.0.fits
 
-Reading Data
-============
+Level 1 data
 
-Calibrating Data
-================
-Data products below level 2 generally require calibration to be transformed into scientificically useable units.
-This section describes how to calibrate data files from lower to higher levels.
+* padre_meddea_l1_photon_20250504T000000_v0.1.0.fits
+* padre_meddea_l1_spectrum_20250504T000000_v0.1.0.fits
+* padre_meddea_l1_housekeeping_20250504T000000_v0.1.0.fits	2025
