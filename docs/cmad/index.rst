@@ -1,6 +1,8 @@
-*****************************************************
-Calibration and Measurement Algorithm Document (CMAD)
-*****************************************************
+****
+CMAD
+****
+
+This is the Calibration and Measurement Algorithm Document.
 
 .. toctree::
    :numbered:
@@ -12,3 +14,5 @@ Calibration and Measurement Algorithm Document (CMAD)
    overview_and_bkg
    calibration_plan
    measurement_algos
+   amptek
+

@@ -9,7 +9,7 @@ attribute_key:
     default: padre_meddea
   DATATAGS:
     default: ""
-  DETECTOR: 
+  DETECTOR:
     default: meddea
   INFO_URL:
     default: https://padre-meddea.readthedocs.io/en/latest/user-guide/data.html

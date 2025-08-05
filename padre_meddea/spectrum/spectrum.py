@@ -1,19 +1,16 @@
 """
-This module provides tools to analyze and manipulate meddea spectral data both summary spectra and event lists.
+Provides data containers for both summary spectra and event list or photon data.
 """
 
-import numpy as np
-
 import astropy.units as u
-from astropy.time import Time
+import numpy as np
 from astropy.nddata import StdDevUncertainty
-from astropy.table import Table
-from astropy.timeseries import TimeSeries, BinnedTimeSeries, aggregate_downsample
+from astropy.table import Table, vstack
+from astropy.time import Time
+from astropy.timeseries import BinnedTimeSeries, TimeSeries, aggregate_downsample
+from specutils import SpectralRegion, Spectrum1D
 
-from specutils import Spectrum1D, SpectralRegion
-
-import padre_meddea.util.util as util
-from padre_meddea.util.pixels import PixelList
+from padre_meddea.util.pixels import PixelList, get_pixelid
 
 DEFAULT_SPEC_PIXEL_IDS = np.array(
     [
@@ -63,6 +60,13 @@ class PhotonList:
         The time series of photon packet header data.
     event_list : TimeSeries
         The time series of event data
+
+    Examples
+    --------
+    >>> from padre_meddea.io import read_file
+    >>> from padre_meddea.util.pixels import PixelList
+    >>> ph_list = read_file("padre_meddea_l0test_photons_20250504T070411_v0.1.0.fits")  # doctest: +SKIP
+    >>> this_spectrum = ph_list.spectrum(pixel_list=ph_list.pixel_list)  # doctest: +SKIP
     """
 
     def __init__(self, pkt_list: TimeSeries, event_list: TimeSeries):
@@ -91,14 +95,21 @@ class PhotonList:
         return f"{object.__repr__(self)}\n{self}"
 
     def _text_summary(self):
-        dt = self.data["event_list"].time[-1] - self.data["event_list"].time[0]
-        dt.format = "quantity_str"
-        result = f"PhotonList ({len(self.data['event_list']):,} events)\n"
-        if dt < (1 * u.day):
-            result += f"{self.data['event_list'].time[0]} - {str(self.data['event_list'].time[-1])[11:]} ({dt})\n"
-        else:
-            result += f"{self.data['event_list'].time[0]} - {self.data['event_list'].time[-1]} ({dt})\n"
+        num_events = len(self.data["event_list"])
+        result = f"PhotonList ({num_events:,} events)\n"
+        if num_events > 0:
+            dt = self.data["event_list"].time[-1] - self.data["event_list"].time[0]
+            dt.format = "quantity_str"
+            if dt < (1 * u.day):
+                result += f"{self.data['event_list'].time[0]} - {str(self.data['event_list'].time[-1])[11:]} ({dt})\n"
+            else:
+                result += f"{self.data['event_list'].time[0]} - {self.data['event_list'].time[-1]} ({dt})\n"
         return result
+
+    def __add__(self, other: PixelList):
+        event_list = vstack([self.event_list, other.event_list])
+        pkt_list = vstack([self.pkt_list, other.pkt_list])
+        return type(self)(pkt_list, event_list)
 
     @property
     def calibrated(self):
@@ -112,7 +123,7 @@ class PhotonList:
         """Return the set of pixels that have events"""
         # note this is calculated on the fly instead of at init because it can take a few seconds to compute for large event lists
         pixel_ids = np.unique(
-            util.get_pixelid(self.event_list["asic"], self.event_list["pixel"])
+            get_pixelid(self.event_list["asic"], self.event_list["pixel"])
         )
         return PixelList(pixelids=pixel_ids)
 
@@ -229,7 +240,7 @@ class PhotonList:
 
     def _slice_event_list_pixels(self, pixel_list: PixelList) -> TimeSeries:
         """Slice the event list to only contain events from asic_num and pixel_num"""
-        ind = np.zeros(len(self.event_list), dtype=np.bool)
+        ind = np.zeros(len(self.event_list))
         if isinstance(pixel_list, Table.Row):
             ind = np.logical_or(
                 ind,
@@ -245,14 +256,14 @@ class PhotonList:
                 )
         return self.event_list[ind]
 
-    def _slide_event_list_sr(self, sr: SpectralRegion):
+    def _slice_event_list_sr(self, sr: SpectralRegion):
         """Slice the envt list to only contain events inside the spectral region."""
         if len(sr) > 1:
             raise ValueError("Only supports Spectral Regions of length 1.")
         if sr[0].lower.unit == u.Unit("keV"):
-            data = self.event_list["energy"]
+            data = self.event_list["energy"] * u.pix
         elif sr[0].lower.unit == u.Unit("pix"):
-            data = self.event_list["atod"]
+            data = self.event_list["atod"] * u.pix
         else:
             raise ValueError(
                 f"Unit of Spectral Region, {sr[0].lower.unit}, not recognized."
@@ -281,10 +292,10 @@ class SpectrumList:
 
     Examples
     --------
-    >>> from padre_meddea.io.file_tools import read_file
+    >>> from padre_meddea.io import read_file
     >>> from astropy.time import Time
     >>> spec_list = read_file("padre_meddea_l0test_spectrum_20250504T070411_v0.1.0.fits")  # doctest: +SKIP
-    >>> this_spectrum = this_spec_list.spectrum(asic_num=0, pixel_num=0)  # doctest: +SKIP
+    >>> this_spectrum = spec_list.spectrum(pixel_list=spec_list.pixel_list)  # doctest: +SKIP
     """
 
     def __init__(self, pkt_list: TimeSeries, specs, pixel_ids):
@@ -409,8 +420,8 @@ class SpectrumList:
 
     def plot_spectrogram(self, **imshow_kwargs):
         """Plot a spectrogram"""
-        import matplotlib.pyplot as plt
         import matplotlib.dates as mdates
+        import matplotlib.pyplot as plt
 
         ts = [mdates.date2num(this_time) for this_time in self.time.to_datetime()]
         x_lims = [ts[0], ts[-1]]

@@ -51,7 +51,7 @@ dev = [
   'ruff',
 ]
 
-docs = ['sphinx', 'sphinx-automodapi', 'matplotlib', 'sphinx-copybutton']
+docs = ['sphinx', 'sphinx-automodapi', 'matplotlib', 'sphinx-copybutton', 'pydata-sphinx-theme']
 
 test = ['pytest', 'pytest-astropy', 'pytest-cov', 'coverage[toml]']
 

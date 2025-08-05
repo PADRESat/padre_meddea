@@ -1,3 +1,7 @@
+"""
+SunPy compatible Fido client for searching and retrieving PADRE MeDDEA data.
+"""
+
 from pathlib import Path
 import urllib
 from collections import OrderedDict

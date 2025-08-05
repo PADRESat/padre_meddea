@@ -5,7 +5,7 @@ pulser_width,0x0004,calibration pulse width in time
 pulser_trig_window,0x000C,size of the calibration pulse tag cal window
 pulser_setpoint,0x0C22,calibration pulse set point
 pulser_status,0x0C24,calibration pulse status
-caliste_seu_flags,0x000E,indicates that a single event upset has been detected. 
+caliste_seu_flags,0x000E,indicates that a single event upset has been detected.
 aout_settle_time,0x0010,controls the settling time for Aout before it is sampled by the ADC
 multihit_max,0x0012,controls the maximum number of allowed hits in a single trigger
 trig_delay,0x0006,FPGA delay for readout after a trigger event
@@ -38,7 +38,7 @@ time_subsec_least,0x0400,FPGA time in sub-seconds least significant word
 time_subsec_most,0x0402,FPGA time in sub-seconds most significant word
 time_sec_least,0x0404,FPGA time in seconds least significant word
 time_sec_most,0x0406,FPGA time in seconds most significant word
-time_core_status,0x0408,Enables or disables time_jam_sec_least or _most 
+time_core_status,0x0408,Enables or disables time_jam_sec_least or _most
 time_intvector,0x040A,This register is not used for PADRE
 time_intmask,0x040C,Enables or disables interrupt sources
 time_last_offset0_least,0x0410,Value of the 1.x counter when the last 1PPS has arrives least significant word

@@ -8,7 +8,7 @@ The :file:`configrc` file
 =========================
 
 This package uses a :file:`configrc` configuration file to customize certain properties.
-You can control a number of key features such as where your data will download to. 
+You can control a number of key features such as where your data will download to.
 This configuration file in a platform specific directory, which you can see the path for by running::
 
     >>> import padre_meddea

@@ -1,4 +1,4 @@
-"""Module to provide functions to calibrate housekeeping data"""
+"""Provides functions to calibrate housekeeping data"""
 
 import astropy.units as u
 import numpy as np
