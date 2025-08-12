@@ -14,7 +14,6 @@ import padre_meddea.io.aws_db as aws_db
 import padre_meddea.util.pixels as pixels
 from padre_meddea import log
 from padre_meddea.io import file_tools
-from padre_meddea.io.file_tools import read_raw_file
 from padre_meddea.io.fits_tools import get_comment, get_obs_header, get_primary_header
 from padre_meddea.util import validation
 from padre_meddea.util.util import (
@@ -59,7 +58,7 @@ def process_file(filename: Path, overwrite=False) -> list:
         for finding in validation_findings:
             log.warning(f"Validation Finding for File : {filename} : {finding}")
 
-        parsed_data = read_raw_file(file_path)
+        parsed_data = file_tools.read_raw_file(file_path)
         if parsed_data["photons"] is not None:  # we have event list data
             # Set Data Type for L0 Data
             data_type = "photon"
@@ -68,7 +67,6 @@ def process_file(filename: Path, overwrite=False) -> list:
             log.info(
                 f"Found photon data, {len(event_list)} photons and {len(pkt_list)} packets."
             )
-            aws_db.record_photons(pkt_list, event_list)
 
             event_list = Table(event_list)
             event_list.remove_column("time")
@@ -243,6 +241,8 @@ def process_file(filename: Path, overwrite=False) -> list:
             hdul.writeto(path, overwrite=overwrite, checksum=True)
             output_files.append(path)
         if parsed_data["spectra"] is not None:
+            from padre_meddea.spectrum.spectrum import SpectrumList
+
             # Set Data Type for L0 Data
             data_type = "spectrum"
 
@@ -250,10 +250,6 @@ def process_file(filename: Path, overwrite=False) -> list:
             # the function below will remove any change in pixel ids
             pkt_ts, specs, pixel_ids = parsed_data["spectra"]
             ts, spectra, ids = file_tools.clean_spectra_data(pkt_ts, specs, pixel_ids)
-            # try:
-            #    aws_db.record_spectra(ts, spectra, ids)
-            # except ValueError:
-            #    pass
 
             asic_nums, channel_nums = pixels.parse_pixelids(ids)
             # asic_nums = (ids & 0b11100000) >> 5
@@ -324,6 +320,12 @@ def process_file(filename: Path, overwrite=False) -> list:
                 path = temp_dir / path
 
             hdul.writeto(path, overwrite=overwrite, checksum=True)
+            hdul.close()
+            # calibrate to ql data and send to AWS
+            # spec_list = file_tools.read_file(path)
+            spec_list = SpectrumList(ts, spectra, ids)
+            aws_db.record_spectra(spec_list)
+
             output_files.append(path)
 
     # add other tasks below

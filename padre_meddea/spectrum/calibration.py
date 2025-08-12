@@ -1,14 +1,21 @@
 """Tools to analyze and calibrate spectral data"""
 
+from pathlib import Path
+from typing import Optional
+
 import astropy.units as u
 import matplotlib.pyplot as plt
 import numpy as np
 import specutils
+from astropy.time import Time
+from astropy.timeseries import TimeSeries
 from specutils import SpectralRegion, Spectrum1D
 from specutils.manipulation import extract_region
 
-from padre_meddea.spectrum.spectrum import PhotonList, SpectrumList
+import padre_meddea.util.util as util
 from padre_meddea.util.pixels import PixelList
+from padre_meddea import _data_directory
+from padre_meddea.spectrum.spectrum import PhotonList, SpectrumList
 
 specutils.conf.do_continuum_function_check = False
 
@@ -263,17 +270,24 @@ def calibrate_linear_phlist(
 
 
 def calibrate_linear_speclist(
-    spec_list: SpectrumList, lin_cal_params: np.array
+    spec_list: SpectrumList,
+    lin_cal_params: np.ndarray,
+    spectral_axis: Optional[np.ndarray] = None,
 ) -> SpectrumList:
     """Given an uncalibrated SpectrumList and a complete set of linear calibration parameters
     produced by calibrate_phlist_barium_linear, apply the calibration to the
     PhotonList. Adds a new energy column.
 
-    Paramters
+    Parameters
     ---------
-    Uncalibrated PhotonList
+    spec_list: SpectrumList
+        Uncalibrated SpectrumList
 
-    Linear calibration parameter array
+    lin_cal_params: np.ndarray
+        Linear calibration parameter array
+
+    spectral_axis: np.ndarray
+        The new energy axis to interpolate the spectra onto.
 
     Returns
     -------
@@ -281,19 +295,35 @@ def calibrate_linear_speclist(
     """
     from scipy.interpolate import RectBivariateSpline
 
-    new_spectral_axis = np.arange(0, 100, 0.1) * u.keV
+    if spectral_axis is None:
+        spectral_axis = np.arange(0, 100, 0.1) * u.keV
     num_ts = spec_list.specs.shape[0]
-    new_spec_data = np.zeros((num_ts, 24, len(new_spectral_axis)))
+    new_spec_data = np.zeros((num_ts, 24, len(spectral_axis)))
     this_y = (spec_list.time - spec_list.time[0]).to("s").value
     for i in range(24):
         f = np.poly1d(lin_cal_params[i, :])
         this_x = f(spec_list.specs[0, i].spectral_axis.value)
         z = spec_list.specs[:, i].data
         f2d = RectBivariateSpline(this_x, this_y, z.T)
-        new_spec_data[:, i, :] = f2d(new_spectral_axis.value, this_y).T
-    specs = Spectrum1D(spectral_axis=new_spectral_axis, flux=new_spec_data * u.ct)
+        new_spec_data[:, i, :] = f2d(spectral_axis.value, this_y).T
+    specs = Spectrum1D(spectral_axis=spectral_axis, flux=new_spec_data * u.ct)
     new_spec_list = SpectrumList(
         spec_list.pkt_list, specs, pixel_ids=spec_list._pixel_ids
     )
 
     return new_spec_list
+
+
+def get_ql_calibration_file(this_time: Time) -> Path:
+    """Given a time return a quicklook calibration file."""
+    file_directory = _data_directory / "science" / "calibration" / "quicklook"
+    file_list = list(file_directory.glob("*.npy"))
+    file_table = TimeSeries(
+        time=Time([util.get_file_time(this_file.name) for this_file in file_list]),
+        data={"filename": [this_file.name for this_file in file_list]},
+    )
+    ind = file_table.time <= this_time
+    if np.any(ind):
+        return file_directory / file_table[ind][-1]["filename"]
+    else:
+        raise FileNotFoundError(f"No calibration file valid for time {this_time}")
