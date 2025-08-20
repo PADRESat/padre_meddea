@@ -60,11 +60,15 @@ def process_file(filename: Path, overwrite=False) -> list:
             log.warning(f"Validation Finding for file : {filename} : {finding}")
 
         parsed_data = file_tools.read_raw_file(file_path)
+
+        # Prepare Metadata for Output Files Naming and Headers
         software_version_tuple = padre_meddea.__version__.split(".")
         software_version_tuple.reverse()
         version_string = f"{software_version_tuple[2]}.{software_version_tuple[1]}.0"
         test_flag = False
         level_str = "l0"
+
+        # Look for each kind of data in the parsed packets
         if parsed_data["photons"] is not None:  # we have event list data
             # Set Data Type for L0 Data
             data_type = "photon"

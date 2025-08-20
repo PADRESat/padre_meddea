@@ -3,6 +3,7 @@ Provides general utility functions.
 """
 
 from pathlib import Path
+import csv
 
 import astropy.units as u
 import numpy as np
@@ -11,6 +12,7 @@ from astropy.timeseries import TimeSeries
 from ccsdspy.utils import split_by_apid, split_packet_bytes
 from swxsoc.util import create_science_filename, parse_science_filename
 
+import padre_meddea
 from padre_meddea import APID, EPOCH, log
 
 # used to identify bad times
@@ -24,6 +26,65 @@ __all__ = [
     "has_baseline",
     "is_consecutive",
 ]
+
+
+def get_filename_version_base() -> str:
+    """
+    Get the two most significant bits of the version number based on the current version of the software.
+
+    Returns
+    -------
+    str
+        The base version string for the filename. For example, "1.0".
+    """
+    version_mapping_path = (
+        padre_meddea._data_directory / "software_to_data_version_mapping.csv"
+    )
+
+    # Read the version mapping CSV
+    version_mapping = {}
+    try:
+        with open(version_mapping_path, "r") as f:
+            csv_reader = csv.reader(f)
+
+            for row in csv_reader:
+                if not row:  # Skip empty rows
+                    continue
+
+                software_version = row[0]  # First column value is the key
+                data_version = row[1]  # Rest of the row as values
+
+                if software_version in version_mapping:
+                    version_mapping[software_version].append(data_version)
+                else:
+                    version_mapping[software_version] = [data_version]
+    except Exception as e:
+        log.error(f"Error reading version mapping file: {e}")
+        version_mapping = {}  # Empty dictionary in case of error
+
+    # Sort the Data Versions for each Software Version - Then we can get the latest version from Index 0
+    for key in version_mapping.keys():
+        version_mapping[key].sort(
+            reverse=True
+        )  # Sort in descending order to get the latest version first
+
+    # Get the Latest Version (based on keys in the mapping)
+    latest_version = max(version_mapping.keys())
+
+    # Get the two most significant bits of the current version number
+    meddea_version = padre_meddea.__version__
+    current_version_key = ".".join(
+        meddea_version.split(".")[:2]
+    )  # Get the first two parts of the version
+
+    if current_version_key in version_mapping:
+        # Return the latest data version for the current software version
+        return version_mapping[current_version_key][0]
+    else:
+        log.warning(
+            f"No data version found for software version {current_version_key}. Defaulting to Latest Version."
+        )
+        return version_mapping[latest_version][0]
 
 
 def increment_filename_version(file_path: Path, version_index=0):

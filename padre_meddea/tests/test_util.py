@@ -1,3 +1,6 @@
+import csv
+from pathlib import Path
+
 import astropy.units as u
 import numpy as np
 import pytest
@@ -11,6 +14,56 @@ from padre_meddea import EPOCH
 
 TIME = "2024-04-06T12:06:21"
 TIME_FORMATTED = "20240406T120621"
+
+
+@pytest.fixture
+def mock_version_mapping(tmpdir):
+    """Create a temporary version mapping CSV file for testing."""
+    # Create a test version mapping file
+    mapping_file = tmpdir / "software_to_data_version_mapping.csv"
+
+    # Write test data to the file
+    with open(mapping_file, "w", newline="") as f:
+        writer = csv.writer(f)
+        # Format: software_version, data_version
+        writer.writerow(["0.1", "0.1"])
+        writer.writerow(["1.0", "1.0"])
+        writer.writerow(["1.0", "1.1"])  # Intentionally out of order to test sorting
+        writer.writerow(["1.1", "1.2"])
+        writer.writerow(["2.0", "2.0"])
+        writer.writerow([])  # Empty row to test empty row handling
+
+    return mapping_file
+
+
+@pytest.mark.parametrize(
+    "current_version,expected_data_version",
+    [
+        ("0.1.5", "0.1"),  # Exact match for major.minor
+        (
+            "1.0.3",
+            "1.1",
+        ),  # Match with multiple data versions (should get lowest after sorting)
+        ("1.1.2", "1.2"),  # Another exact match
+        ("2.0.0", "2.0"),  # Exact match for latest version
+        ("1.5.0", "2.0"),  # No match, should default to latest version
+        ("3.0.0", "2.0"),  # No match, should default to latest version
+    ],
+)
+def test_get_filename_version_base(
+    mock_version_mapping, current_version, expected_data_version, monkeypatch
+):
+    """Test the get_filename_version_base function with various software versions."""
+    # Patch the _data_directory to point to our temporary directory
+    monkeypatch.setattr(
+        padre_meddea, "_data_directory", Path(mock_version_mapping).parent
+    )
+
+    # Patch the software version
+    monkeypatch.setattr(padre_meddea, "__version__", current_version)
+
+    # Call the function and check the result
+    assert util.get_filename_version_base() == expected_data_version
 
 
 # fmt: off
