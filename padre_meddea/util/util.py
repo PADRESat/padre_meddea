@@ -19,10 +19,32 @@ MIN_TIME_BAD = Time("2024-02-01T00:00")
 __all__ = [
     "parse_science_filename",
     "create_science_filename",
+    "increment_filename_version",
     "calc_time",
     "has_baseline",
     "is_consecutive",
 ]
+
+
+def increment_filename_version(file_path: Path, version_index=0):
+    """Given a filename, increment the version number by one.
+
+    Parameter
+    ---------
+    version_index: int
+        The version index to increment. Index 0 is least significant version.
+
+    Returns
+    -------
+    filename : str
+    """
+    file_path = Path(file_path)
+    tokens = parse_science_filename(file_path.name)
+    version_tuple = [int(i) for i in tokens["version"].split(".")]
+    version_tuple.reverse()
+    version_tuple[version_index] += 1
+    version_str = f"{version_tuple[2]}.{version_tuple[1]}.{version_tuple[0]}"
+    return file_path.with_name(file_path.name.replace(tokens["version"], version_str))
 
 
 def calc_time(pkt_time_s, pkt_time_clk=0, ph_clk=0) -> Time:
