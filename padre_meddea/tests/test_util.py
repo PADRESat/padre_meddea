@@ -1,18 +1,37 @@
-import pytest
-
+import astropy.units as u
 import numpy as np
+import pytest
+from astropy.tests.helper import assert_quantity_allclose
+from astropy.time import Time, TimeDelta
+from astropy.timeseries import TimeSeries
 
 import padre_meddea
-from padre_meddea import EPOCH
 import padre_meddea.util.util as util
-
-from astropy.time import TimeDelta
-from astropy.timeseries import TimeSeries
-import astropy.units as u
-from astropy.tests.helper import assert_quantity_allclose
+from padre_meddea import EPOCH
 
 TIME = "2024-04-06T12:06:21"
 TIME_FORMATTED = "20240406T120621"
+
+
+# fmt: off
+@pytest.mark.parametrize(
+    "level,data_type,input,output,version_index",
+    [
+        ("l0", "housekeeping", "1.2.3", "1.2.4", 0),
+        ("l0", "spectrum", "1.0.6", "1.0.7", 0),
+        ("l0", "spectrum", "1.0.6", "1.1.6", 1),
+        ("l0", "photon", "1.0.6", "2.0.6", 2)
+    ],
+)
+def test_increment_filename_version(level, data_type, input, output, version_index):
+    fname = util.create_science_filename('meddea', time=Time(TIME),
+                level=level,
+                descriptor=data_type,
+                test=False,
+                version=input)
+    new_fname = util.increment_filename_version(fname, version_index=version_index)
+    tokens = util.parse_science_filename(new_fname)
+    assert tokens['version'] == output
 
 
 # fmt: off
