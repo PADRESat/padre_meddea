@@ -19,6 +19,7 @@ from padre_meddea.util import validation
 from padre_meddea.util.util import (
     calc_time,
     create_science_filename,
+    parse_science_filename,
 )
 
 __all__ = [
@@ -202,7 +203,23 @@ def process_file(filename: Path, overwrite=False) -> list:
                 # Andrew insert code here
                 pass
             else:
-                pass
+                if Path(path).exists():
+                    search_pattern = path.replace(
+                        version_string, f"{version_string[0:-1]}*"
+                    )
+                    existing_files = Path.cwd().glob(search_pattern)
+                    existing_versions = [
+                        int(parse_science_filename(this_f)["version"][-1])
+                        for this_f in existing_files
+                    ]
+                    path = create_science_filename(
+                        "meddea",
+                        time=date_beg,
+                        level=level_str,
+                        descriptor=data_type,
+                        test=test_flag,
+                        version=f"{version_string[0:-1]}{max(existing_versions) + 1}",
+                    )
 
             primary_hdr["FILENAME"] = (path, get_comment("FILENAME"))
 
