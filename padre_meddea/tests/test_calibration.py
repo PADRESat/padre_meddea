@@ -19,15 +19,15 @@ import padre_meddea.io.file_tools as file_tools
 )
 def test_process_file_test_files(bin_file, expected_data_type):
     files = calib.process_file(
-        padre_meddea._test_files_directory / bin_file, overwrite=True
+        padre_meddea._test_files_directory / bin_file, overwrite=False
     )
     assert Path(files[0]).exists()
     with fits.open(files[0]) as f:
         assert f[0].header["INSTRUME"] == "MeDDEA"
 
     # Check that the filename includes the correct data type
-    assert f"padre_meddea_l0test_{expected_data_type}_" in files[0]
-    assert files[0].endswith(".fits")
+    assert f"padre_meddea_l0_{expected_data_type}_" in files[0].name
+    assert files[0].name.endswith(".fits")
 
     match expected_data_type:
         case "photon":

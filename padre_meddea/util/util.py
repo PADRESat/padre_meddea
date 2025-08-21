@@ -2,8 +2,10 @@
 Provides general utility functions.
 """
 
-from pathlib import Path
 import csv
+import os
+import tempfile
+from pathlib import Path
 
 import astropy.units as u
 import numpy as np
@@ -21,11 +23,88 @@ MIN_TIME_BAD = Time("2024-02-01T00:00")
 __all__ = [
     "parse_science_filename",
     "create_science_filename",
+    "get_file_output_path",
+    "get_filename_version_base",
     "increment_filename_version",
     "calc_time",
     "has_baseline",
     "is_consecutive",
 ]
+
+
+def get_file_output_path(
+    time: Time,
+    level: str,
+    descriptor: str,
+    test: str,
+) -> str:
+    """
+    Generate the MEDDEA filename based on the provided parameters.
+
+    Parameters
+    ----------
+    time : Time
+        The time associated with the data.
+    level : str
+        The data level (e.g., "L1", "L2").
+    descriptor : str
+        The data descriptor (e.g., "SCI", "CAL").
+    test : str
+        The test identifier (e.g., "TEST1", "TEST2").
+
+    Returns
+    -------
+    str
+        The generated MEDDEA filename.
+    """
+    # Filename Version X.Y.Z comes from two parts:
+    #   1. Files Version Base: X.Y comes from the Software Version -> Data Version Mapping
+    #   2. File Version Incrementor: Z starts at 0 and iterates for each new version based on what already exists in the filesystem.
+    version_base = get_filename_version_base()
+    version_increment = 0
+    version_str = f"{version_base}.{version_increment}"
+
+    # The Base Filename is used for searching to see if we need to increase our version increment.
+    base_filename = create_science_filename(
+        instrument="meddea",
+        time=time,
+        level=level,
+        descriptor=descriptor,
+        test=test,
+        version=version_str,
+    )
+
+    # check if file already exists, if it exists set version to x.y.(max(z)+1)
+    # update path variable
+    # Check if the LAMBDA_ENVIRONMENT environment variable is set
+    lambda_environment = os.getenv("LAMBDA_ENVIRONMENT")
+    if lambda_environment:
+        # TODO search for existing file in AWS for all files with x.y.z choose largest z and set to x.y.z+1
+        # Andrew insert code here
+        temp_dir = Path(tempfile.gettempdir())  # Set to temp directory
+        output_path = temp_dir / base_filename
+    else:
+        if Path(base_filename).exists():
+            search_pattern = base_filename.replace(version_str, f"{version_str[0:-1]}*")
+            existing_files = Path.cwd().glob(search_pattern)
+            existing_versions = [
+                int(parse_science_filename(this_f)["version"].split(".")[-1])
+                for this_f in existing_files
+            ]
+            incremented_filename = create_science_filename(
+                "meddea",
+                time=time,
+                level=level,
+                descriptor=descriptor,
+                test=test,
+                version=f"{version_base}.{max(existing_versions) + 1}",
+            )
+        else:
+            incremented_filename = base_filename
+        # Return a Path with the local incremented Filename
+        output_path = Path(incremented_filename)
+
+    return output_path
 
 
 def get_filename_version_base() -> str:

@@ -17,6 +17,102 @@ TIME_FORMATTED = "20240406T120621"
 
 
 @pytest.fixture
+def mock_version_base(monkeypatch):
+    """Fixture to mock the get_filename_version_base function to return a fixed version."""
+
+    def mock_get_version():
+        return "1.0"
+
+    monkeypatch.setattr(util, "get_filename_version_base", mock_get_version)
+    return "1.0"
+
+
+@pytest.fixture
+def setup_test_files(tmpdir, mock_version_base, monkeypatch):
+    """
+    Create test files in the temporary directory and patch relevant functions.
+    """
+    # Ensure we're working in the temporary directory
+    monkeypatch.chdir(tmpdir)
+
+    # Create test time
+    test_time = Time("2024-04-06T12:06:21")
+    formatted_time = "20240406T120621"
+
+    # Create test files with different version numbers
+    base_name = f"padre_meddea_l1_spectrum_{formatted_time}_v1.0."
+    test_files = [
+        f"{base_name}0.fits",
+        f"{base_name}1.fits",
+        f"{base_name}3.fits",  # Note: intentionally skipping v1.0.2
+    ]
+
+    for file_name in test_files:
+        path = tmpdir / file_name
+        with open(path, "w") as f:
+            f.write("test content")
+
+    # Mock Path.exists to use our temporary directory
+    def patched_exists(self):
+        """Check if the file exists in our temporary directory."""
+        return (tmpdir / self.name).exists()
+
+    monkeypatch.setattr(Path, "exists", patched_exists)
+
+    # Mock Path.cwd to return our temporary directory
+    def mock_cwd():
+        return Path(tmpdir)
+
+    monkeypatch.setattr(Path, "cwd", mock_cwd)
+
+    return {
+        "tmpdir": tmpdir,
+        "test_time": test_time,
+        "test_files": test_files,
+    }
+
+
+def test_file_output_path_new_file(mock_version_base, monkeypatch, tmpdir):
+    """Test getting output path when the file doesn't exist."""
+    # Setup
+    monkeypatch.chdir(tmpdir)
+    test_time = Time("2024-04-06T12:06:21")
+
+    # Execute
+    result = util.get_file_output_path(
+        time=test_time,
+        level="l1",
+        descriptor="spectrum",
+        test=False,
+    )
+
+    # Verify
+    expected_filename = (
+        f"padre_meddea_l1_spectrum_20240406T120621_v{mock_version_base}.0.fits"
+    )
+    assert result.name == expected_filename
+
+
+def test_file_output_path_existing_file(setup_test_files):
+    """Test version increment when a file already exists."""
+    # Setup
+    test_data = setup_test_files
+    test_time = test_data["test_time"]
+
+    # Execute
+    result = util.get_file_output_path(
+        time=test_time,
+        level="l1",
+        descriptor="spectrum",
+        test=False,
+    )
+
+    # Verify - should increment to version 4 (after versions 0, 1, and 3)
+    expected_filename = "padre_meddea_l1_spectrum_20240406T120621_v1.0.4.fits"
+    assert result.name == expected_filename
+
+
+@pytest.fixture
 def mock_version_mapping(tmpdir):
     """Create a temporary version mapping CSV file for testing."""
     # Create a test version mapping file
