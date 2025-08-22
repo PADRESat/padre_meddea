@@ -1,12 +1,9 @@
-from pathlib import Path
-
 import astropy.units as u
 import numpy as np
 import pytest
 from astropy.tests.helper import assert_quantity_allclose
 from astropy.time import Time, TimeDelta
 from astropy.timeseries import TimeSeries
-from swxsoc.util import create_science_filename as swxsoc_create_science_filename
 
 import padre_meddea
 import padre_meddea.util.util as util
@@ -18,38 +15,23 @@ TIME_FORMATTED = "20240406T120621"
 
 # fmt: off
 @pytest.mark.parametrize(
-    "level,data_type",
+    "level,data_type,input,output,version_index",
     [
-        ("l0", "housekeeping"),
-        ("l0", "spectrum"),
-        ("l0", "spectrum"),
-        ("l0", "photon")
+        ("l0", "housekeeping", "1.2.3", "1.2.4", 0),
+        ("l0", "spectrum", "1.0.6", "1.0.7", 0),
+        ("l0", "spectrum", "1.0.6", "1.1.6", 1),
+        ("l0", "photon", "1.0.6", "2.0.6", 2)
     ],
 )
-def test_create_science_filename(level, data_type):
-    files_to_delete = []
-
-    version_tuple = util.get_data_file_version()
-    version_str = f"{version_tuple[0]}.{version_tuple[1]}.0"
-    filename_str = swxsoc_create_science_filename("meddea", time=TIME, level=level, descriptor=data_type,test=False,version=version_str)
-    file_path = Path(filename_str)
-    file_path.touch()
-    files_to_delete.append(file_path)
-
-    for i in range(10):
-        new_fname = util.create_science_filename(time=Time(TIME),
-                    level=level,
-                    descriptor=data_type,
-                    test=False)
-        nfile_path = Path(new_fname)
-        nfile_path.touch()
-        tokens = util.parse_science_filename(new_fname)
-        this_version = int(tokens['version'].split('.')[-1])
-        assert this_version == (i + 1)
-        files_to_delete.append(nfile_path)
-
-    for this_file in files_to_delete:
-        this_file.unlink()
+def test_increment_filename_version(level, data_type, input, output, version_index):
+    fname = util.create_science_filename('meddea', time=Time(TIME),
+                level=level,
+                descriptor=data_type,
+                test=False,
+                version=input)
+    new_fname = util.increment_filename_version(fname, version_index=version_index)
+    tokens = util.parse_science_filename(new_fname)
+    assert tokens['version'] == output
 
 
 # fmt: off

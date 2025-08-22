@@ -2,8 +2,6 @@
 Provides general utility functions.
 """
 
-import os
-import tempfile
 from pathlib import Path
 
 import astropy.units as u
@@ -11,10 +9,8 @@ import numpy as np
 from astropy.time import Time, TimeDelta
 from astropy.timeseries import TimeSeries
 from ccsdspy.utils import split_by_apid, split_packet_bytes
-from swxsoc.util import create_science_filename as swxsoc_create_science_filename
-from swxsoc.util import parse_science_filename
+from swxsoc.util import create_science_filename, parse_science_filename
 
-import padre_meddea
 from padre_meddea import APID, EPOCH, log
 
 # used to identify bad times
@@ -23,95 +19,32 @@ MIN_TIME_BAD = Time("2024-02-01T00:00")
 __all__ = [
     "parse_science_filename",
     "create_science_filename",
+    "increment_filename_version",
     "calc_time",
     "has_baseline",
     "is_consecutive",
 ]
 
 
-def get_data_file_version() -> list:
-    """Returns the correct version tuple to be used for data files."""
-    # TODO: Andrew, uses padre_meddea version and uses csv file to figure out the data file version
-    software_version_tuple = padre_meddea.__version__.split(".")
-    software_version_tuple.reverse()
-    return [1, 0, 0]
+def increment_filename_version(file_path: Path, version_index=0):
+    """Given a filename, increment the version number by one.
 
-
-def create_science_filename(
-    time: str,
-    level: str,
-    mode: str = "",
-    descriptor: str = "",
-    test: bool = False,
-    overwrite=False,
-) -> Path:
-    """
-    Return a compliant filename. It is a wrapper around `~swxsoc.util.create_science_filename`.
-    The format is defined as
-
-    padre_meddea_{mode}_{level}{test}_{descriptor}_{time}_v{version}.cdf
-
-    This format is only appropriate for data level >= 0.
-    The version number is automatically derived.
-
-    Parameters
-    ----------
-    time : `str` (in isot format) or ~astropy.time
-        The time
-    level : `str`
-        The data level. Must be one of the following "l0", "l1", "l2", "l3", "l4", "ql"
-    descriptor : `str`
-        An optional file descriptor.
-    mode : `str`
-        An optional instrument mode.
-    test : bool
-        Selects whether the file is a test file.
-    overwrite : bool
-        If False, then increments the z in x.y.z to the next available value
+    Parameter
+    ---------
+    version_index: int
+        The version index to increment. Index 0 is least significant version.
 
     Returns
     -------
-    filename : `str`
-        A file name
+    filename : str
     """
-    lambda_environment = os.getenv("LAMBDA_ENVIRONMENT")
-    version_tuple = get_data_file_version()
-    version_str = f"{version_tuple[0]}.{version_tuple[1]}.0"
-    path = swxsoc_create_science_filename(
-        "meddea",
-        time=time,
-        level=level,
-        mode=mode,
-        test=test,
-        descriptor=descriptor,
-        version=version_str,
-    )
-    if not overwrite:
-        # now check if file exists, if so increment the z in the file version to max(z) + 1
-        if lambda_environment:
-            # TODO search for existing file in AWS for all files with x.y.z choose largest z and set to x.y.z+1
-            # Andrew insert code here
-            pass
-        else:
-            if Path(path).exists():
-                search_pattern = path.replace(version_str, f"{version_str[0:-1]}*")
-                existing_files = Path.cwd().glob(search_pattern)
-                existing_versions = [
-                    int(parse_science_filename(this_f)["version"][-1])
-                    for this_f in existing_files
-                ]
-                path = swxsoc_create_science_filename(
-                    "meddea",
-                    time=time,
-                    level=level,
-                    descriptor=descriptor,
-                    test=test,
-                    version=f"{version_str[0:-1]}{max(existing_versions) + 1}",
-                )
-    if lambda_environment:
-        temp_dir = Path(tempfile.gettempdir())  # Set to temp directory
-        path = temp_dir / path
-    return Path(path)
+    file_path = Path(file_path)
+    tokens = parse_science_filename(file_path.name)
+    version_tuple = [int(i) for i in tokens["version"].split(".")]
+    version_tuple.reverse()
+    version_tuple[version_index] += 1
+    version_str = f"{version_tuple[2]}.{version_tuple[1]}.{version_tuple[0]}"
+    return file_path.with_name(file_path.name.replace(tokens["version"], version_str))
 
 
 def calc_time(pkt_time_s, pkt_time_clk=0, ph_clk=0) -> Time:
