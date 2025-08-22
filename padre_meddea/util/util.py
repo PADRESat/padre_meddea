@@ -4,6 +4,7 @@ Provides general utility functions.
 
 import csv
 import os
+import re
 import tempfile
 from pathlib import Path
 
@@ -12,7 +13,15 @@ import numpy as np
 from astropy.time import Time, TimeDelta
 from astropy.timeseries import TimeSeries
 from ccsdspy.utils import split_by_apid, split_packet_bytes
-from swxsoc.util import create_science_filename, parse_science_filename
+from sunpy.net.attr import AttrAnd
+from swxsoc.util import (
+    Instrument,
+    Level,
+    SearchTime,
+    SWXSOCClient,
+    create_science_filename,
+    parse_science_filename,
+)
 
 import padre_meddea
 from padre_meddea import APID, EPOCH, log
@@ -86,36 +95,72 @@ def create_meddea_filename(
             output_path = temp_dir / base_filename
         else:
             output_path = Path(base_filename)
-    else:
-        # check if file already exists, if it exists set version to x.y.(max(z)+1)
-        # update path variable
-        if lambda_environment:
-            # TODO search for existing file in AWS for all files with x.y.z choose largest z and set to x.y.z+1
-            # Andrew insert code here
-            temp_dir = Path(tempfile.gettempdir())  # Set to temp directory
-            output_path = temp_dir / base_filename
-        else:
-            if Path(base_filename).exists():
-                search_pattern = base_filename.replace(
-                    version_str, f"{version_str[0:-1]}*"
-                )
-                existing_files = Path.cwd().glob(search_pattern)
-                existing_versions = [
-                    int(parse_science_filename(this_f)["version"].split(".")[-1])
-                    for this_f in existing_files
+        # Return early
+        return output_path
+
+    # check if file already exists, if it exists set version to x.y.(max(z)+1)
+    search_pattern = base_filename.replace(version_str, f"{version_str[0:-1]}*")
+    if lambda_environment:
+        # search for existing file in AWS for all files with x.y.z choose largest z and set to x.y.z+1
+        # Convert the glob pattern to regex pattern
+        regex_pattern = search_pattern.replace(".", "\\.").replace("*", ".*")
+        regex = re.compile(regex_pattern)
+        # Search Lambda Environment for Files
+        client = SWXSOCClient()
+        results = client.search(
+            AttrAnd(
+                [
+                    SearchTime(start=time, end=time),
+                    Instrument("meddea"),
+                    Level(level),
                 ]
-                incremented_filename = create_science_filename(
-                    "meddea",
-                    time=time,
-                    level=level,
-                    descriptor=descriptor,
-                    test=test,
-                    version=f"{version_base}.{max(existing_versions) + 1}",
-                )
-            else:
-                incremented_filename = base_filename
-            # Return a Path with the local incremented Filename
-            output_path = Path(incremented_filename)
+            )
+        )
+        # Find matches
+        matching_files = [
+            str(result["File Name"])
+            for result in results[0]
+            if regex.match(result["File Name"])
+        ]
+        # Check if there are any matching files, if so we need to increment.
+        if len(matching_files) > 0:
+            existing_versions = [
+                int(parse_science_filename(this_f)["version"].split(".")[-1])
+                for this_f in matching_files
+            ]
+            incremented_filename = create_science_filename(
+                "meddea",
+                time=time,
+                level=level,
+                descriptor=descriptor,
+                test=test,
+                version=f"{version_base}.{max(existing_versions) + 1}",
+            )
+        else:
+            incremented_filename = base_filename
+        # Andrew insert code here
+        temp_dir = Path(tempfile.gettempdir())  # Set to temp directory
+        output_path = temp_dir / incremented_filename
+    else:
+        # Search if File Exists Locally
+        if Path(base_filename).exists():
+            existing_files = Path.cwd().glob(search_pattern)
+            existing_versions = [
+                int(parse_science_filename(this_f)["version"].split(".")[-1])
+                for this_f in existing_files
+            ]
+            incremented_filename = create_science_filename(
+                "meddea",
+                time=time,
+                level=level,
+                descriptor=descriptor,
+                test=test,
+                version=f"{version_base}.{max(existing_versions) + 1}",
+            )
+        else:
+            incremented_filename = base_filename
+        # Return a Path with the local incremented Filename
+        output_path = Path(incremented_filename)
 
     return output_path
 
@@ -174,7 +219,7 @@ def get_filename_version_base() -> str:
         return version_mapping[current_version_key][0]
     else:
         log.warning(
-            f"No data version found for software version {current_version_key}. Defaulting to Latest Version."
+            f"No data version found for software version {current_version_key}. Defaulting to Latest Version. ({latest_version})"
         )
         return version_mapping[latest_version][0]
 
