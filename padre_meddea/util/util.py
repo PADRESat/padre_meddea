@@ -108,22 +108,26 @@ def create_meddea_filename(
         regex = re.compile(regex_pattern)
         # Search Lambda Environment for Files
         client = SWXSOCClient()
-        results = client.search(
-            AttrAnd(
-                [
-                    SearchTime(start=time, end=time),
-                    Instrument("meddea"),
-                    Level(level),
-                    Descriptor(descriptor),
-                ]
+        try:
+            results = client.search(
+                AttrAnd(
+                    [
+                        SearchTime(start=time, end=time),
+                        Instrument("meddea"),
+                        Level(level),
+                        Descriptor(descriptor),
+                    ]
+                )
             )
-        )
-        # Find matches
-        matching_files = [
-            Path(result["key"]).name
-            for result in results
-            if regex.match(Path(result["key"]).name)
-        ]
+            # Find matches
+            matching_files = [
+                Path(result["key"]).name
+                for result in results
+                if regex.match(Path(result["key"]).name)
+            ]
+        except Exception as e:
+            log.error(f"Error Searching for Files in Lambda Environment: {e}")
+            matching_files = []
         # Check if there are any matching files, if so we need to increment.
         if len(matching_files) > 0:
             existing_versions = [
