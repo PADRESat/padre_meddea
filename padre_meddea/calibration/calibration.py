@@ -2,8 +2,6 @@
 A module for all things calibration.
 """
 
-import os
-import tempfile
 from pathlib import Path
 
 from astropy.io import fits
@@ -18,8 +16,7 @@ from padre_meddea.io.fits_tools import get_comment, get_obs_header, get_primary_
 from padre_meddea.util import validation
 from padre_meddea.util.util import (
     calc_time,
-    create_science_filename,
-    parse_science_filename,
+    get_file_output_path,
 )
 
 __all__ = [
@@ -43,8 +40,7 @@ def process_file(filename: Path, overwrite=False) -> list:
         Fully specificied filenames for the output files.
     """
     log.info(f"Processing file {filename}.")
-    # Check if the LAMBDA_ENVIRONMENT environment variable is set
-    lambda_environment = os.getenv("LAMBDA_ENVIRONMENT")
+
     output_files = []
     file_path = Path(filename)
 
@@ -60,11 +56,12 @@ def process_file(filename: Path, overwrite=False) -> list:
             log.warning(f"Validation Finding for file : {filename} : {finding}")
 
         parsed_data = file_tools.read_raw_file(file_path)
-        software_version_tuple = padre_meddea.__version__.split(".")
-        software_version_tuple.reverse()
-        version_string = f"{software_version_tuple[2]}.{software_version_tuple[1]}.0"
+
+        # Prepare Metadata for Output Files Naming and Headers
         test_flag = False
         level_str = "l0"
+
+        # Look for each kind of data in the parsed packets
         if parsed_data["photons"] is not None:  # we have event list data
             # Set Data Type for L0 Data
             data_type = "photon"
@@ -89,23 +86,13 @@ def process_file(filename: Path, overwrite=False) -> list:
                 )
             primary_hdr["DATEREF"] = (primary_hdr["DATE-BEG"], get_comment("DATEREF"))
 
-            path = create_science_filename(
-                "meddea",
+            path = get_file_output_path(
                 time=primary_hdr["DATE-BEG"],
                 level=level_str,
                 descriptor=data_type,
                 test=test_flag,
-                version=version_string,
             )
-            # check if file already exists, if it exists set version to x.y.(max(z)+1)
-            # update path variable
-            if lambda_environment:
-                # TODO search for existing file in AWS for all files with x.y.z choose largest z and set to x.y.z+1
-                # Andrew insert code here
-                pass
-            else:
-                pass
-            primary_hdr["FILENAME"] = (path, get_comment("FILENAME"))
+            primary_hdr["FILENAME"] = (path.name, get_comment("FILENAME"))
 
             empty_primary_hdu = fits.PrimaryHDU(header=primary_hdr)
 
@@ -123,7 +110,7 @@ def process_file(filename: Path, overwrite=False) -> list:
                 event_list.meta.get("DATE-BEG", ""),
                 get_comment("DATEREF"),
             )
-            pkt_header["FILENAME"] = (path, get_comment("FILENAME"))
+            pkt_header["FILENAME"] = (path.name, get_comment("FILENAME"))
 
             pkt_hdu = fits.BinTableHDU(pkt_list, header=pkt_header, name="PKT")
             pkt_hdu.add_checksum()
@@ -138,20 +125,15 @@ def process_file(filename: Path, overwrite=False) -> list:
                 event_list.meta.get("DATE-BEG", ""),
                 get_comment("DATEREF"),
             )
-            hit_header["FILENAME"] = (path, get_comment("FILENAME"))
+            hit_header["FILENAME"] = (path.name, get_comment("FILENAME"))
 
             hit_hdu = fits.BinTableHDU(event_list, header=hit_header, name="SCI")
             hit_hdu.add_checksum()
             hdul = fits.HDUList([empty_primary_hdu, hit_hdu, pkt_hdu])
 
-            # Set the temp_dir and overwrite flag based on the environment variable
-            if lambda_environment:
-                temp_dir = Path(tempfile.gettempdir())  # Set to temp directory
-                overwrite = True  # Set overwrite to True
-                path = temp_dir / path
-
             # Write the file, with the overwrite option controlled by the environment variable
             hdul.writeto(path, overwrite=overwrite, checksum=True)
+            hdul.close()
             # Store the output file path in a list
             output_files.append(path)
         if parsed_data["housekeeping"] is not None:
@@ -188,40 +170,13 @@ def process_file(filename: Path, overwrite=False) -> list:
                 if this_col in hk_table.colnames:
                     hk_table.remove_column(this_col)
 
-            path = create_science_filename(
-                "meddea",
+            path = get_file_output_path(
                 time=date_beg,
                 level=level_str,
                 descriptor=data_type,
                 test=test_flag,
-                version=version_string,
             )
-            # check if file already exists, if it exists set version to x.y.(max(z)+1)
-            # update path variable
-            if lambda_environment:
-                # TODO search for existing file in AWS for all files with x.y.z choose largest z and set to x.y.z+1
-                # Andrew insert code here
-                pass
-            else:
-                if Path(path).exists():
-                    search_pattern = path.replace(
-                        version_string, f"{version_string[0:-1]}*"
-                    )
-                    existing_files = Path.cwd().glob(search_pattern)
-                    existing_versions = [
-                        int(parse_science_filename(this_f)["version"][-1])
-                        for this_f in existing_files
-                    ]
-                    path = create_science_filename(
-                        "meddea",
-                        time=date_beg,
-                        level=level_str,
-                        descriptor=data_type,
-                        test=test_flag,
-                        version=f"{version_string[0:-1]}{max(existing_versions) + 1}",
-                    )
-
-            primary_hdr["FILENAME"] = (path, get_comment("FILENAME"))
+            primary_hdr["FILENAME"] = (path.name, get_comment("FILENAME"))
 
             empty_primary_hdu = fits.PrimaryHDU(header=primary_hdr)
 
@@ -229,14 +184,14 @@ def process_file(filename: Path, overwrite=False) -> list:
             hk_header = get_obs_header(data_level=level_str, data_type=data_type)
             hk_header["DATE-BEG"] = (date_beg.fits, get_comment("DATE-BEG"))
             hk_header["DATEREF"] = (date_beg.fits, get_comment("DATEREF"))
-            hk_header["FILENAME"] = (path, get_comment("FILENAME"))
+            hk_header["FILENAME"] = (path.name, get_comment("FILENAME"))
 
             hk_hdu = fits.BinTableHDU(data=hk_table, header=hk_header, name="HK")
             hk_hdu.add_checksum()
 
             # add command response data if it exists  in the same fits file
             cmd_header = get_obs_header(data_level=level_str, data_type=data_type)
-            cmd_header["FILENAME"] = (path, get_comment("FILENAME"))
+            cmd_header["FILENAME"] = (path.name, get_comment("FILENAME"))
             if parsed_data["cmd_resp"] is not None:
                 data_ts = parsed_data["cmd_resp"]
                 cmd_header["DATE-BEG"] = (
@@ -271,11 +226,6 @@ def process_file(filename: Path, overwrite=False) -> list:
                 cmd_hdu = fits.BinTableHDU(data=None, header=cmd_header, name="READ")
             hdul = fits.HDUList([empty_primary_hdu, hk_hdu, cmd_hdu])
 
-            # Set the temp_dir and overwrite flag based on the environment variable
-            if lambda_environment:
-                temp_dir = Path(tempfile.gettempdir())  # Set to temp directory
-                path = temp_dir / path
-
             hdul.writeto(path, overwrite=False, checksum=True)
             hdul.close()
             output_files.append(path)
@@ -309,29 +259,19 @@ def process_file(filename: Path, overwrite=False) -> list:
                     get_comment(this_keyword),
                 )
 
-            path = create_science_filename(
-                "meddea",
+            path = get_file_output_path(
                 time=dates["DATE-BEG"],
                 level=level_str,
                 descriptor=data_type,
                 test=test_flag,
-                version=version_string,
             )
-            # check if file already exists, if it exists set version to x.y.(max(z)+1)
-            # update path variable
-            if lambda_environment:
-                # TODO search for existing file in AWS for all files with x.y.z choose largest z and set to x.y.z+1
-                # Andrew insert code here
-                pass
-            else:
-                pass
-            primary_hdr["FILENAME"] = (path, get_comment("FILENAME"))
+            primary_hdr["FILENAME"] = (path.name, get_comment("FILENAME"))
 
             # Spectrum HDU
             spec_header = get_obs_header(data_level=level_str, data_type=data_type)
             spec_header["DATE-BEG"] = (primary_hdr["DATE-BEG"], get_comment("DATE-BEG"))
             spec_header["DATEREF"] = (primary_hdr["DATE-BEG"], get_comment("DATEREF"))
-            spec_header["FILENAME"] = (path, get_comment("FILENAME"))
+            spec_header["FILENAME"] = (path.name, get_comment("FILENAME"))
 
             spec_hdu = fits.CompImageHDU(
                 data=spectra.data,
@@ -351,18 +291,12 @@ def process_file(filename: Path, overwrite=False) -> list:
             pkt_header = get_obs_header(data_level=level_str, data_type=data_type)
             pkt_header["DATE-BEG"] = (primary_hdr["DATE-BEG"], get_comment("DATE-BEG"))
             pkt_header["DATEREF"] = (primary_hdr["DATE-BEG"], get_comment("DATEREF"))
-            pkt_header["FILENAME"] = (path, get_comment("FILENAME"))
+            pkt_header["FILENAME"] = (path.name, get_comment("FILENAME"))
             pkt_hdu = fits.BinTableHDU(data=data_table, header=pkt_header, name="PKT")
             pkt_hdu.add_checksum()
 
             empty_primary_hdu = fits.PrimaryHDU(header=primary_hdr)
             hdul = fits.HDUList([empty_primary_hdu, spec_hdu, pkt_hdu])
-
-            # Set the temp_dir and overwrite flag based on the environment variable
-            if lambda_environment:
-                temp_dir = Path(tempfile.gettempdir())  # Set to temp directory
-                overwrite = True  # Set overwrite to True
-                path = temp_dir / path
 
             hdul.writeto(path, overwrite=overwrite, checksum=True)
             hdul.close()

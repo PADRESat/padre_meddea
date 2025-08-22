@@ -17,17 +17,22 @@ import padre_meddea.io.file_tools as file_tools
         ("apid163_4packets.bin", "housekeeping"),
     ],
 )
-def test_process_file_test_files(bin_file, expected_data_type):
+def test_process_file_test_files(bin_file, expected_data_type, tmpdir, monkeypatch):
+    """Test processing different file types with output saved to a temporary directory"""
+    # Set up the temporary directory as the current working directory
+    monkeypatch.chdir(tmpdir)
+
+    # Process the File
     files = calib.process_file(
-        padre_meddea._test_files_directory / bin_file, overwrite=True
+        padre_meddea._test_files_directory / bin_file, overwrite=False
     )
     assert Path(files[0]).exists()
     with fits.open(files[0]) as f:
         assert f[0].header["INSTRUME"] == "MeDDEA"
 
     # Check that the filename includes the correct data type
-    assert f"padre_meddea_l0test_{expected_data_type}_" in files[0]
-    assert files[0].endswith(".fits")
+    assert f"padre_meddea_l0_{expected_data_type}_" in files[0].name
+    assert files[0].name.endswith(".fits")
 
     match expected_data_type:
         case "photon":
@@ -44,6 +49,3 @@ def test_process_file_test_files(bin_file, expected_data_type):
             if "time" in cmd_ts.colnames:  # Check if command response times are present
                 # If command response times are present, check them
                 assert all(cmd_ts.time > Time("2024-01-01T00:00"))
-
-    # Clean up
-    Path(files[0]).unlink()
