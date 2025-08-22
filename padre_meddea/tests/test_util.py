@@ -79,7 +79,7 @@ def test_file_output_path_new_file(mock_version_base, monkeypatch, tmpdir):
     test_time = Time("2024-04-06T12:06:21")
 
     # Execute
-    result = util.get_file_output_path(
+    result = util.create_meddea_filename(
         time=test_time,
         level="l1",
         descriptor="spectrum",
@@ -100,7 +100,7 @@ def test_file_output_path_existing_file(setup_test_files):
     test_time = test_data["test_time"]
 
     # Execute
-    result = util.get_file_output_path(
+    result = util.create_meddea_filename(
         time=test_time,
         level="l1",
         descriptor="spectrum",
@@ -109,6 +109,26 @@ def test_file_output_path_existing_file(setup_test_files):
 
     # Verify - should increment to version 4 (after versions 0, 1, and 3)
     expected_filename = "padre_meddea_l1_spectrum_20240406T120621_v1.0.4.fits"
+    assert result.name == expected_filename
+
+
+def test_file_output_path_overwrite(setup_test_files):
+    """Test version increment when overwriting existing files."""
+    # Setup
+    test_data = setup_test_files
+    test_time = test_data["test_time"]
+
+    # Execute
+    result = util.create_meddea_filename(
+        time=test_time,
+        level="l1",
+        descriptor="spectrum",
+        test=False,
+        overwrite=True,
+    )
+
+    # Verify - should increment to version 4 (after versions 0, 1, and 3)
+    expected_filename = "padre_meddea_l1_spectrum_20240406T120621_v1.0.0.fits"
     assert result.name == expected_filename
 
 

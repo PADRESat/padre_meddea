@@ -16,7 +16,7 @@ from padre_meddea.io.fits_tools import get_comment, get_obs_header, get_primary_
 from padre_meddea.util import validation
 from padre_meddea.util.util import (
     calc_time,
-    get_file_output_path,
+    create_meddea_filename,
 )
 
 __all__ = [
@@ -86,11 +86,12 @@ def process_file(filename: Path, overwrite=False) -> list:
                 )
             primary_hdr["DATEREF"] = (primary_hdr["DATE-BEG"], get_comment("DATEREF"))
 
-            path = get_file_output_path(
+            path = create_meddea_filename(
                 time=primary_hdr["DATE-BEG"],
                 level=level_str,
                 descriptor=data_type,
                 test=test_flag,
+                overwrite=overwrite,
             )
             primary_hdr["FILENAME"] = (path.name, get_comment("FILENAME"))
 
@@ -170,11 +171,12 @@ def process_file(filename: Path, overwrite=False) -> list:
                 if this_col in hk_table.colnames:
                     hk_table.remove_column(this_col)
 
-            path = get_file_output_path(
+            path = create_meddea_filename(
                 time=date_beg,
                 level=level_str,
                 descriptor=data_type,
                 test=test_flag,
+                overwrite=overwrite,
             )
             primary_hdr["FILENAME"] = (path.name, get_comment("FILENAME"))
 
@@ -226,7 +228,7 @@ def process_file(filename: Path, overwrite=False) -> list:
                 cmd_hdu = fits.BinTableHDU(data=None, header=cmd_header, name="READ")
             hdul = fits.HDUList([empty_primary_hdu, hk_hdu, cmd_hdu])
 
-            hdul.writeto(path, overwrite=False, checksum=True)
+            hdul.writeto(path, overwrite=overwrite, checksum=True)
             hdul.close()
             output_files.append(path)
         if parsed_data["spectra"] is not None:
@@ -259,11 +261,12 @@ def process_file(filename: Path, overwrite=False) -> list:
                     get_comment(this_keyword),
                 )
 
-            path = get_file_output_path(
+            path = create_meddea_filename(
                 time=dates["DATE-BEG"],
                 level=level_str,
                 descriptor=data_type,
                 test=test_flag,
+                overwrite=overwrite,
             )
             primary_hdr["FILENAME"] = (path.name, get_comment("FILENAME"))
 

@@ -3,9 +3,7 @@ Provides utilities to read and write fits files
 """
 
 import gc
-import os
 import re
-import tempfile
 import warnings
 from collections import OrderedDict, defaultdict
 from datetime import datetime, time, timedelta
@@ -28,7 +26,7 @@ import padre_meddea
 from padre_meddea import log
 from padre_meddea.util.util import (
     calc_time,
-    create_science_filename,
+    create_meddea_filename,
     parse_science_filename,
 )
 
@@ -493,19 +491,13 @@ def _get_output_path(first_file: Path, date_beg: Time) -> Path:
     header = hdul[0].header.copy()
     hdul.close()
 
-    instrument = header["INSTRUME"].lower()
     data_type = header["BTYPE"]
     if "_" in data_type:
         data_type = data_type.replace("_", "")
 
-    outfile = create_science_filename(
-        instrument, time=date_beg, level="l1", descriptor=data_type, version="0.1.0"
+    outfile = create_meddea_filename(
+        time=date_beg, level="l1", descriptor=data_type, test=False
     )
-
-    # Handle temp directory if in Lambda environment
-    if os.getenv("LAMBDA_ENVIRONMENT"):
-        temp_dir = Path(tempfile.gettempdir())
-        outfile = temp_dir / outfile
 
     return outfile
 
