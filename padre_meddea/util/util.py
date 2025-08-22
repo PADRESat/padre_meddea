@@ -15,6 +15,7 @@ from astropy.timeseries import TimeSeries
 from ccsdspy.utils import split_by_apid, split_packet_bytes
 from sunpy.net.attr import AttrAnd
 from swxsoc.util import (
+    Descriptor,
     Instrument,
     Level,
     SearchTime,
@@ -113,14 +114,15 @@ def create_meddea_filename(
                     SearchTime(start=time, end=time),
                     Instrument("meddea"),
                     Level(level),
+                    Descriptor(descriptor),
                 ]
             )
         )
         # Find matches
         matching_files = [
-            str(result["File Name"])
-            for result in results[0]
-            if regex.match(result["File Name"])
+            Path(result["key"]).name
+            for result in results
+            if regex.match(Path(result["key"]).name)
         ]
         # Check if there are any matching files, if so we need to increment.
         if len(matching_files) > 0:
