@@ -2,8 +2,6 @@
 A module for all things calibration.
 """
 
-import os
-import tempfile
 from pathlib import Path
 
 from astropy.io import fits
@@ -18,7 +16,7 @@ from padre_meddea.io.fits_tools import get_comment, get_obs_header, get_primary_
 from padre_meddea.util import validation
 from padre_meddea.util.util import (
     calc_time,
-    create_science_filename,
+    create_meddea_filename,
 )
 
 __all__ = [
@@ -42,12 +40,11 @@ def process_file(filename: Path, overwrite=False) -> list:
         Fully specificied filenames for the output files.
     """
     log.info(f"Processing file {filename}.")
-    # Check if the LAMBDA_ENVIRONMENT environment variable is set
-    lambda_environment = os.getenv("LAMBDA_ENVIRONMENT")
+
     output_files = []
     file_path = Path(filename)
 
-    if file_path.suffix.lower() in [".bin", ".dat"]:
+    if file_path.suffix.lower() in [".bin", ".dat"]:  # raw file
         # Before we process, validate the file with CCSDS
         custom_validators = [validation.validate_packet_checksums]
         validation_findings = validation.validate(
@@ -56,9 +53,15 @@ def process_file(filename: Path, overwrite=False) -> list:
             custom_validators=custom_validators,
         )
         for finding in validation_findings:
-            log.warning(f"Validation Finding for File : {filename} : {finding}")
+            log.warning(f"Validation Finding for file : {filename} : {finding}")
 
         parsed_data = file_tools.read_raw_file(file_path)
+
+        # Prepare Metadata for Output Files Naming and Headers
+        test_flag = False
+        level_str = "l0"
+
+        # Look for each kind of data in the parsed packets
         if parsed_data["photons"] is not None:  # we have event list data
             # Set Data Type for L0 Data
             data_type = "photon"
@@ -73,7 +76,7 @@ def process_file(filename: Path, overwrite=False) -> list:
 
             # Get FITS Primary Header Template
             primary_hdr = get_primary_header(
-                file_path, data_level="l0", data_type=data_type
+                file_path, data_level=level_str, data_type=data_type
             )
 
             for this_keyword in ["DATE-BEG", "DATE-END", "DATE-AVG"]:
@@ -83,15 +86,14 @@ def process_file(filename: Path, overwrite=False) -> list:
                 )
             primary_hdr["DATEREF"] = (primary_hdr["DATE-BEG"], get_comment("DATEREF"))
 
-            path = create_science_filename(
-                "meddea",
+            path = create_meddea_filename(
                 time=primary_hdr["DATE-BEG"],
-                level="l0",
+                level=level_str,
                 descriptor=data_type,
-                test=True,
-                version="0.1.0",
+                test=test_flag,
+                overwrite=overwrite,
             )
-            primary_hdr["FILENAME"] = (path, get_comment("FILENAME"))
+            primary_hdr["FILENAME"] = (path.name, get_comment("FILENAME"))
 
             empty_primary_hdu = fits.PrimaryHDU(header=primary_hdr)
 
@@ -100,7 +102,7 @@ def process_file(filename: Path, overwrite=False) -> list:
             pkt_list.remove_column("time")
 
             # PKT Header
-            pkt_header = get_obs_header(data_level="l0", data_type=data_type)
+            pkt_header = get_obs_header(data_level=level_str, data_type=data_type)
             pkt_header["DATE-BEG"] = (
                 event_list.meta.get("DATE-BEG", ""),
                 get_comment("DATE-BEG"),
@@ -109,13 +111,13 @@ def process_file(filename: Path, overwrite=False) -> list:
                 event_list.meta.get("DATE-BEG", ""),
                 get_comment("DATEREF"),
             )
-            pkt_header["FILENAME"] = (path, get_comment("FILENAME"))
+            pkt_header["FILENAME"] = (path.name, get_comment("FILENAME"))
 
             pkt_hdu = fits.BinTableHDU(pkt_list, header=pkt_header, name="PKT")
             pkt_hdu.add_checksum()
 
             # SCI HDU
-            hit_header = get_obs_header(data_level="l0", data_type=data_type)
+            hit_header = get_obs_header(data_level=level_str, data_type=data_type)
             hit_header["DATE-BEG"] = (
                 event_list.meta.get("DATE-BEG", ""),
                 get_comment("DATE-BEG"),
@@ -124,20 +126,15 @@ def process_file(filename: Path, overwrite=False) -> list:
                 event_list.meta.get("DATE-BEG", ""),
                 get_comment("DATEREF"),
             )
-            hit_header["FILENAME"] = (path, get_comment("FILENAME"))
+            hit_header["FILENAME"] = (path.name, get_comment("FILENAME"))
 
             hit_hdu = fits.BinTableHDU(event_list, header=hit_header, name="SCI")
             hit_hdu.add_checksum()
             hdul = fits.HDUList([empty_primary_hdu, hit_hdu, pkt_hdu])
 
-            # Set the temp_dir and overwrite flag based on the environment variable
-            if lambda_environment:
-                temp_dir = Path(tempfile.gettempdir())  # Set to temp directory
-                overwrite = True  # Set overwrite to True
-                path = temp_dir / path
-
             # Write the file, with the overwrite option controlled by the environment variable
             hdul.writeto(path, overwrite=overwrite, checksum=True)
+            hdul.close()
             # Store the output file path in a list
             output_files.append(path)
         if parsed_data["housekeeping"] is not None:
@@ -151,7 +148,7 @@ def process_file(filename: Path, overwrite=False) -> list:
 
             # Get FITS Primary Header Template
             primary_hdr = get_primary_header(
-                file_path, data_level="l0", data_type=data_type
+                file_path, data_level=level_str, data_type=data_type
             )
 
             date_beg = calc_time(hk_data["pkttimes"][0])
@@ -174,30 +171,29 @@ def process_file(filename: Path, overwrite=False) -> list:
                 if this_col in hk_table.colnames:
                     hk_table.remove_column(this_col)
 
-            path = create_science_filename(
-                "meddea",
+            path = create_meddea_filename(
                 time=date_beg,
-                level="l0",
+                level=level_str,
                 descriptor=data_type,
-                test=True,
-                version="0.1.0",
+                test=test_flag,
+                overwrite=overwrite,
             )
-            primary_hdr["FILENAME"] = (path, get_comment("FILENAME"))
+            primary_hdr["FILENAME"] = (path.name, get_comment("FILENAME"))
 
             empty_primary_hdu = fits.PrimaryHDU(header=primary_hdr)
 
             # Create HK HDU
-            hk_header = get_obs_header(data_level="l0", data_type=data_type)
+            hk_header = get_obs_header(data_level=level_str, data_type=data_type)
             hk_header["DATE-BEG"] = (date_beg.fits, get_comment("DATE-BEG"))
             hk_header["DATEREF"] = (date_beg.fits, get_comment("DATEREF"))
-            hk_header["FILENAME"] = (path, get_comment("FILENAME"))
+            hk_header["FILENAME"] = (path.name, get_comment("FILENAME"))
 
             hk_hdu = fits.BinTableHDU(data=hk_table, header=hk_header, name="HK")
             hk_hdu.add_checksum()
 
             # add command response data if it exists  in the same fits file
-            cmd_header = get_obs_header(data_level="l0", data_type=data_type)
-            cmd_header["FILENAME"] = (path, get_comment("FILENAME"))
+            cmd_header = get_obs_header(data_level=level_str, data_type=data_type)
+            cmd_header["FILENAME"] = (path.name, get_comment("FILENAME"))
             if parsed_data["cmd_resp"] is not None:
                 data_ts = parsed_data["cmd_resp"]
                 cmd_header["DATE-BEG"] = (
@@ -232,13 +228,8 @@ def process_file(filename: Path, overwrite=False) -> list:
                 cmd_hdu = fits.BinTableHDU(data=None, header=cmd_header, name="READ")
             hdul = fits.HDUList([empty_primary_hdu, hk_hdu, cmd_hdu])
 
-            # Set the temp_dir and overwrite flag based on the environment variable
-            if lambda_environment:
-                temp_dir = Path(tempfile.gettempdir())  # Set to temp directory
-                overwrite = True  # Set overwrite to True
-                path = temp_dir / path
-
             hdul.writeto(path, overwrite=overwrite, checksum=True)
+            hdul.close()
             output_files.append(path)
         if parsed_data["spectra"] is not None:
             from padre_meddea.spectrum.spectrum import SpectrumList
@@ -252,12 +243,10 @@ def process_file(filename: Path, overwrite=False) -> list:
             ts, spectra, ids = file_tools.clean_spectra_data(pkt_ts, specs, pixel_ids)
 
             asic_nums, channel_nums = pixels.parse_pixelids(ids)
-            # asic_nums = (ids & 0b11100000) >> 5
-            # channel_nums = ids & 0b00011111
 
             # Get FITS Primary Header Template
             primary_hdr = get_primary_header(
-                file_path, data_level="l0", data_type=data_type
+                file_path, data_level=level_str, data_type=data_type
             )
 
             dates = {
@@ -272,21 +261,20 @@ def process_file(filename: Path, overwrite=False) -> list:
                     get_comment(this_keyword),
                 )
 
-            path = create_science_filename(
-                "meddea",
+            path = create_meddea_filename(
                 time=dates["DATE-BEG"],
-                level="l0",
+                level=level_str,
                 descriptor=data_type,
-                test=True,
-                version="0.1.0",
+                test=test_flag,
+                overwrite=overwrite,
             )
-            primary_hdr["FILENAME"] = (path, get_comment("FILENAME"))
+            primary_hdr["FILENAME"] = (path.name, get_comment("FILENAME"))
 
             # Spectrum HDU
-            spec_header = get_obs_header(data_level="l0", data_type=data_type)
+            spec_header = get_obs_header(data_level=level_str, data_type=data_type)
             spec_header["DATE-BEG"] = (primary_hdr["DATE-BEG"], get_comment("DATE-BEG"))
             spec_header["DATEREF"] = (primary_hdr["DATE-BEG"], get_comment("DATEREF"))
-            spec_header["FILENAME"] = (path, get_comment("FILENAME"))
+            spec_header["FILENAME"] = (path.name, get_comment("FILENAME"))
 
             spec_hdu = fits.CompImageHDU(
                 data=spectra.data,
@@ -303,21 +291,15 @@ def process_file(filename: Path, overwrite=False) -> list:
             data_table["channel"] = channel_nums
             data_table["seqcount"] = ts["seqcount"]
 
-            pkt_header = get_obs_header(data_level="l0", data_type=data_type)
+            pkt_header = get_obs_header(data_level=level_str, data_type=data_type)
             pkt_header["DATE-BEG"] = (primary_hdr["DATE-BEG"], get_comment("DATE-BEG"))
             pkt_header["DATEREF"] = (primary_hdr["DATE-BEG"], get_comment("DATEREF"))
-            pkt_header["FILENAME"] = (path, get_comment("FILENAME"))
+            pkt_header["FILENAME"] = (path.name, get_comment("FILENAME"))
             pkt_hdu = fits.BinTableHDU(data=data_table, header=pkt_header, name="PKT")
             pkt_hdu.add_checksum()
 
             empty_primary_hdu = fits.PrimaryHDU(header=primary_hdr)
             hdul = fits.HDUList([empty_primary_hdu, spec_hdu, pkt_hdu])
-
-            # Set the temp_dir and overwrite flag based on the environment variable
-            if lambda_environment:
-                temp_dir = Path(tempfile.gettempdir())  # Set to temp directory
-                overwrite = True  # Set overwrite to True
-                path = temp_dir / path
 
             hdul.writeto(path, overwrite=overwrite, checksum=True)
             hdul.close()
@@ -325,7 +307,6 @@ def process_file(filename: Path, overwrite=False) -> list:
             # spec_list = file_tools.read_file(path)
             spec_list = SpectrumList(ts, spectra, ids)
             aws_db.record_spectra(spec_list)
-
             output_files.append(path)
 
     # add other tasks below

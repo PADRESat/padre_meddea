@@ -49,13 +49,13 @@ def temp_dir():
                 data_dir
                 / "eventlist/padre_meddea_l0test_photon_20250504T073749_v0.1.0.fits",
             ],
-            ["padre_meddea_l1_photon_20250504T000000_v0.1.0.fits"],
+            ["padre_meddea_l1_photon_20250504T000000_v1.0.0.fits"],
             "padre_meddea_l0test_photon_20250504T055311_v0.1.0.fits, padre_meddea_l0test_photon_20250504T073749_v0.1.0.fits",
             [
                 data_dir
                 / "eventlist/padre_meddea_l0test_photon_20250504T080330_v0.1.0.fits",
             ],
-            ["padre_meddea_l1_photon_20250504T000000_v0.1.0.fits"],
+            ["padre_meddea_l1_photon_20250504T000000_v1.0.1.fits"],
             "padre_meddea_l0test_photon_20250504T055311_v0.1.0.fits, padre_meddea_l0test_photon_20250504T073749_v0.1.0.fits, padre_meddea_l0test_photon_20250504T080330_v0.1.0.fits",
             [
                 {
@@ -85,15 +85,15 @@ def temp_dir():
                 data_dir
                 / "eventlist/padre_meddea_l0test_photon_20250504T080330_v0.1.0.fits",
             ],
-            ["padre_meddea_l1_photon_20250504T000000_v0.1.0.fits"],
+            ["padre_meddea_l1_photon_20250504T000000_v1.0.0.fits"],
             "padre_meddea_l0test_photon_20250504T055311_v0.1.0.fits, padre_meddea_l0test_photon_20250504T073749_v0.1.0.fits, padre_meddea_l0test_photon_20250504T080330_v0.1.0.fits",
             [
                 data_dir
                 / "eventlist/padre_meddea_l0test_photon_20250504T083234_v0.1.0.fits",
             ],
             [
-                "padre_meddea_l1_photon_20250504T000000_v0.1.0.fits",
-                "padre_meddea_l1_photon_20250505T000000_v0.1.0.fits",
+                "padre_meddea_l1_photon_20250504T000000_v1.0.1.fits",
+                "padre_meddea_l1_photon_20250505T000000_v1.0.0.fits",
             ],
             "padre_meddea_l0test_photon_20250504T055311_v0.1.0.fits, padre_meddea_l0test_photon_20250504T073749_v0.1.0.fits, padre_meddea_l0test_photon_20250504T080330_v0.1.0.fits, padre_meddea_l0test_photon_20250504T083234_v0.1.0.fits",
             [
@@ -130,7 +130,7 @@ def temp_dir():
                 / "hk/padre_meddea_l0test_housekeeping_20250504T055508_v0.1.0.fits",
             ],
             [
-                "padre_meddea_l1_housekeeping_20250504T000000_v0.1.0.fits",
+                "padre_meddea_l1_housekeeping_20250504T000000_v1.0.0.fits",
             ],
             "padre_meddea_l0test_housekeeping_20250504T055138_v0.1.0.fits, padre_meddea_l0test_housekeeping_20250504T055308_v0.1.0.fits, padre_meddea_l0test_housekeeping_20250504T055508_v0.1.0.fits",
             [
@@ -138,8 +138,8 @@ def temp_dir():
                 / "hk/padre_meddea_l0test_housekeeping_20250504T055708_v0.1.0.fits",
             ],
             [
-                "padre_meddea_l1_housekeeping_20250504T000000_v0.1.0.fits",
-                "padre_meddea_l1_housekeeping_20250505T000000_v0.1.0.fits",
+                "padre_meddea_l1_housekeeping_20250504T000000_v1.0.1.fits",
+                "padre_meddea_l1_housekeeping_20250505T000000_v1.0.0.fits",
             ],
             "padre_meddea_l0test_housekeeping_20250504T055138_v0.1.0.fits, padre_meddea_l0test_housekeeping_20250504T055308_v0.1.0.fits, padre_meddea_l0test_housekeeping_20250504T055508_v0.1.0.fits, padre_meddea_l0test_housekeeping_20250504T055708_v0.1.0.fits",
             [
@@ -176,7 +176,7 @@ def temp_dir():
                 / "spec/padre_meddea_l0test_spectrum_20250504T103811_v0.1.0.fits",
             ],
             [
-                "padre_meddea_l1_spectrum_20250504T000000_v0.1.0.fits",
+                "padre_meddea_l1_spectrum_20250504T000000_v1.0.0.fits",
             ],
             "padre_meddea_l0test_spectrum_20250504T070411_v0.1.0.fits, padre_meddea_l0test_spectrum_20250504T081521_v0.1.0.fits, padre_meddea_l0test_spectrum_20250504T103811_v0.1.0.fits",
             [
@@ -184,8 +184,8 @@ def temp_dir():
                 / "spec/padre_meddea_l0test_spectrum_20250504T114921_v0.1.0.fits",
             ],
             [
-                "padre_meddea_l1_spectrum_20250504T000000_v0.1.0.fits",
-                "padre_meddea_l1_spectrum_20250505T000000_v0.1.0.fits",
+                "padre_meddea_l1_spectrum_20250504T000000_v1.0.1.fits",
+                "padre_meddea_l1_spectrum_20250505T000000_v1.0.0.fits",
             ],
             "padre_meddea_l0test_spectrum_20250504T070411_v0.1.0.fits, padre_meddea_l0test_spectrum_20250504T081521_v0.1.0.fits, padre_meddea_l0test_spectrum_20250504T103811_v0.1.0.fits, padre_meddea_l0test_spectrum_20250504T114921_v0.1.0.fits",
             [

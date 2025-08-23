@@ -40,4 +40,7 @@ hk_channel_defs.csv
 -------------------
 Stores the definitions for the values provided in housekeeping packets.
 
-fits_
+software_to_data_version_mapping.csv
+--------------------------------------
+Maps software versions to data versions with columns `software_version,data_version`.
+This is used to determine the data version of a file based on the software version that created it.
