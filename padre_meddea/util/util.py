@@ -16,6 +16,7 @@ from ccsdspy.utils import split_by_apid, split_packet_bytes
 from sunpy.net.attr import AttrAnd
 from swxsoc.util import (
     Descriptor,
+    DevelopmentBucket,
     Instrument,
     Level,
     SearchTime,
@@ -116,6 +117,7 @@ def create_meddea_filename(
                         Instrument("meddea"),
                         Level(level),
                         Descriptor(descriptor),
+                        DevelopmentBucket(lambda_environment != "PRODUCTION"),
                     ]
                 )
             )
