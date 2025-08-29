@@ -704,6 +704,10 @@ def get_hdu_data_times(hdul_dict: dict[int, dict], hdu_name: str) -> Time:
     data_type = target_hdu["header"].get("BTYPE", "").lower()
     data = target_hdu["data"]
 
+    # Handle empty data case
+    if data is None or len(data) == 0:
+        return Time([], format="iso")
+
     # Photon HDUs
     if data_type == "photon" and hdu_name == "SCI":
         return calc_time(
@@ -804,13 +808,13 @@ def _filter_hdul_time_ranges(
             times = get_hdu_data_times(hdul_dict, hdu_info["name"])
             # Apply Time Range Filtering
             time_mask = (times >= start_time) & (times <= end_time)
-            if np.any(time_mask):
-                filtered_hdul[idx] = {
-                    "header": hdu_info["header"].copy(),
-                    "data": hdu_info["data"][time_mask].copy(),
-                    "type": hdu_info["type"],
-                    "name": hdu_info.get("name", None),
-                }
+            # If no data is found, we still want to keep the HDU in the output
+            filtered_hdul[idx] = {
+                "header": hdu_info["header"].copy(),
+                "data": hdu_info["data"][time_mask].copy(),
+                "type": hdu_info["type"],
+                "name": hdu_info.get("name", None),
+            }
 
     return filtered_hdul
 
@@ -874,6 +878,10 @@ def split_hdul_by_day(hdul_dict: dict) -> dict:
                     "type": hdu_info["type"],
                     "name": hdu_info.get("name", None),
                 }
+        day_hdul_keys = ",".join(
+            [f"{k}: {hdu['name']}" for k, hdu in day_hduls[day].items()]
+        )
+        log.info(f"Created HDU structure for day {day} with keys: {day_hdul_keys}")
 
     return day_hduls
 
@@ -1242,6 +1250,10 @@ def concatenate_files(
 
     # Initialize Data Structures
     hdul_dict = _init_hdul_structure(all_files[0])
+    hdul_keys = ",".join([f"{k}: {hdu['name']}" for k, hdu in hdul_dict.items()])
+    log.info(
+        f"Initialized HDU structure for file: {all_files[0]} with keys: {hdul_keys}"
+    )
 
     # Concatenate Input Files
     if len(all_files) > 1:
@@ -1249,6 +1261,8 @@ def concatenate_files(
 
     # Sort Data Structures by Time
     hdul_dict = _sort_hdul_template(hdul_dict)
+    hdul_keys = ",".join([f"{k}: {hdu['name']}" for k, hdu in hdul_dict.items()])
+    log.info(f"Sorted HDU data by time with keys: {hdul_keys}")
 
     # Filter HDUL baed on Time Range Checking
     hdul_dict = _filter_hdul_time_ranges(
