@@ -4,7 +4,7 @@ from astropy.io import ascii
 from astropy.table import Table
 from astropy.timeseries import TimeSeries
 
-from padre_meddea import _data_directory
+from padre_meddea import _data_directory, log
 
 
 def shift_asic_reg_addr(asic_num: int, addr: int) -> int:
@@ -78,9 +78,11 @@ def add_register_address_name(ts: TimeSeries) -> TimeSeries:
     for i, this_row in enumerate(ts):
         try:
             row = register_table.loc["address", this_row["address"]]
-        except KeyError:
-            pass
-        if row:
             name_list[i] = row["name"]
+        except KeyError:
+            log.warning(
+                f"Found unknown address in READ timeseries, {this_row['address']}"
+            )
+            name_list[i] = "unknown"
     ts["name"] = [str(this_name) for this_name in name_list]
     return ts

@@ -48,6 +48,19 @@ def test_add_register_address_name():
             assert this_name == correct_name
 
 
+def test_add_register_address_name_bad():
+    """Check that if a bad address exists in the time series it adds unknown to the address"""
+    ts = TimeSeries(
+        time_start="2016-03-22T12:30:31",
+        time_delta=3 * u.s,
+        n_samples=10,
+    )
+    ts["address"] = [0, 2, 4, 6, 8, 10, 12, 14, 5560, 6670]
+    new_ts = register.add_register_address_name(ts)
+    assert new_ts["name"][-1] == "unknown"
+    assert new_ts["name"][-2] == "unknown"
+
+
 def test_register_table():
     """Ensure that there are no issue with the register table data."""
 
