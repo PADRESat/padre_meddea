@@ -41,7 +41,7 @@ def test_add_register_address_name():
     assert "name" in new_ts.colnames
     for this_row in new_ts:
         this_name = this_row["name"]
-        correct_name = register_table.loc[this_row["address"]]["name"]
+        correct_name = register_table.loc["address", this_row["address"]]["name"]
         if isinstance(
             correct_name, str
         ):  # not sure why this would ever return anything else? are there cases of multiple matches?!
