@@ -1,7 +1,8 @@
+import astropy.units as u
+import numpy as np
 import pytest
 from astropy.table import Table
 from astropy.timeseries import TimeSeries
-import astropy.units as u
 
 import padre_meddea.housekeeping.register as register
 
@@ -40,8 +41,34 @@ def test_add_register_address_name():
     assert "name" in new_ts.colnames
     for this_row in new_ts:
         this_name = this_row["name"]
-        correct_name = register_table.loc[this_row["address"]]["name"]
+        correct_name = register_table.loc["address", this_row["address"]]["name"]
         if isinstance(
             correct_name, str
         ):  # not sure why this would ever return anything else? are there cases of multiple matches?!
             assert this_name == correct_name
+
+
+def test_add_register_address_name_bad():
+    """Check that if a bad address exists in the time series it adds unknown to the address"""
+    ts = TimeSeries(
+        time_start="2016-03-22T12:30:31",
+        time_delta=3 * u.s,
+        n_samples=10,
+    )
+    ts["address"] = [0, 2, 4, 6, 8, 10, 12, 14, 5560, 6670]
+    new_ts = register.add_register_address_name(ts)
+    assert new_ts["name"][-1] == "unknown"
+    assert new_ts["name"][-2] == "unknown"
+
+
+def test_register_table():
+    """Ensure that there are no issue with the register table data."""
+
+    # make sure there are no duplicates
+    assert len(np.unique(register_table["address"])) == len(register_table)
+    assert len(np.unique(register_table["name"])) == len(register_table)
+
+    for this_row in register_table:
+        assert (this_row["address"] % 2) == 0  # all register addresses are even
+        assert 0 <= this_row["address"] < 0xFFFF  # all address are less than 2 bytes
+        assert int(this_row["address_hex"], 16) == this_row["address"]

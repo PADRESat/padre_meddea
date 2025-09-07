@@ -1,10 +1,10 @@
 """Provides tools to parse register read housekeeping data"""
 
 from astropy.io import ascii
-from astropy.table import Table, vstack
+from astropy.table import Table
 from astropy.timeseries import TimeSeries
 
-from padre_meddea import _data_directory
+from padre_meddea import _data_directory, log
 
 
 def shift_asic_reg_addr(asic_num: int, addr: int) -> int:
@@ -61,32 +61,12 @@ def load_register_table() -> Table:
         format="csv",
     )
     register_table.add_index("name")
-    register_table["address"] = [
-        int(addr, 16) for addr in list(register_table["address_hex"])
-    ]
-
-    # find the indices for the asic registers
-    asic_ind = (register_table["address"] >= 0x0020) * (
-        register_table["address"] <= 0x0044
-    )
-
-    for this_asic in range(4):
-        this_register_asic_table = register_table[asic_ind].copy()
-        for this_row in this_register_asic_table:
-            this_row["name"] = this_row["name"].replace("asic", f"asic{this_asic}")
-            this_row["address"] = shift_asic_reg_addr(this_asic, this_row["address"])
-            this_row["address_hex"] = f"{this_row['address']:04x}"
-        if this_asic == 0:
-            register_asic_table = this_register_asic_table
-        else:
-            register_asic_table = vstack(
-                [register_asic_table, this_register_asic_table]
-            )
-
-    register_table = register_table[~asic_ind]
-    register_table = vstack([register_table, register_asic_table])
     register_table.add_index("address")
-    return register_table
+    register_table.sort("address")
+    register_table_reordered = register_table[
+        ["name", "address", "address_hex", "description"]
+    ]
+    return register_table_reordered
 
 
 register_table = load_register_table()
@@ -98,9 +78,11 @@ def add_register_address_name(ts: TimeSeries) -> TimeSeries:
     for i, this_row in enumerate(ts):
         try:
             row = register_table.loc["address", this_row["address"]]
-        except KeyError:
-            pass
-        if row:
             name_list[i] = row["name"]
+        except KeyError:
+            log.warning(
+                f"Found unknown address in READ timeseries, {this_row['address']}"
+            )
+            name_list[i] = "unknown"
     ts["name"] = [str(this_name) for this_name in name_list]
     return ts

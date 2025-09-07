@@ -1,186 +1,306 @@
-name,address_hex,description
-mode,0x0000,mode register
-pulser_interval,0x0002,calibration pulse trigger interval
-pulser_width,0x0004,calibration pulse width in time
-pulser_trig_window,0x000C,size of the calibration pulse tag cal window
-pulser_setpoint,0x0C22,calibration pulse set point
-pulser_status,0x0C24,calibration pulse status
-caliste_seu_flags,0x000E,indicates that a single event upset has been detected.
-aout_settle_time,0x0010,controls the settling time for Aout before it is sampled by the ADC
-multihit_max,0x0012,controls the maximum number of allowed hits in a single trigger
-trig_delay,0x0006,FPGA delay for readout after a trigger event
-det_temp_read_delay,0x0008,FPGA settling time after enabling the asic to readout temperature
-rate_status_mon,0x000A,event rate status monitor
-commit_hash_least,0x0500,commit hash version least significant word
-commit_hash_most,0x0502,commit hash version least significant word
-user_hash_least,0x0504,user hash least significant word
-user_hash_most,0x0506,user hash least significant word
-build_time_least,0x0508,DateTime at FPGA build least significant word
-build_time_most,0x050A,DateTime at FPGA build most significant word
-power_good,0x050C,LDO power good 1.5V 2.5 V 3.3 CD 3.3 VA
-error_summary,0x050E,Error summaries
-heater_pwm_duty_cycle,0x0900,Pulse width modulation duty cycle
-heater_safe_mode_duty_cycle,0x0902,Safe mode PWM duty cycle
-heater_setpoint,0x0904,Heater temperature set point
-heater_p_coeff,0x0906,Heater P coefficient
-heater_i_coeff,0x0908,Heater I coefficient
-heater_mode,0x090A,Heater control mode
-heater_offset,0x090C,Heater temperature offset
-heater_accuml,0x090E,Heater accumulator
-heater_reason_safe,0x0910,Reason for entering Safe Mode.
-hvps_mode,0x0C00,HVPS enable
-hvps_setpoint,0x0C02,HVPS set point
-hvps_status,0x0C04,HVPS status
-hvps_ramp,0x0C06,HVPS Ramp interval
-time_jam_sec_least,0x042C,FPGA time in seconds least significant word
-time_jam_sec_most,0x042E,FPGA time in seconds most significant word
-time_subsec_least,0x0400,FPGA time in sub-seconds least significant word
-time_subsec_most,0x0402,FPGA time in sub-seconds most significant word
-time_sec_least,0x0404,FPGA time in seconds least significant word
-time_sec_most,0x0406,FPGA time in seconds most significant word
-time_core_status,0x0408,Enables or disables time_jam_sec_least or _most
-time_intvector,0x040A,This register is not used for PADRE
-time_intmask,0x040C,Enables or disables interrupt sources
-time_last_offset0_least,0x0410,Value of the 1.x counter when the last 1PPS has arrives least significant word
-time_last_offset0_most,0x0412,Value of the 1.x counter when the last 1PPS has arrives most significant word
-time_pps_count0_least,0x0414,Last count between the last two 1PPS pulses least significant word
-time_pps_count0_most,0x0416,Last count between the last two 1PPS pulses most significant word
-time_last_offset1_least,0x0418,Value of the 1.x counter when the last 1PPS has arrives least significant word
-time_last_offset1_most,0x041A,Value of the 1.x counter when the last 1PPS has arrives most significant word
-time_pps_count1_least,0x041C,Last count between the last two 1PPS pulses least significant word
-time_pps_count1_most,0x041E,Last count between the last two 1PPS pulses most significant word
-time_freelimit_least,0x0420,Time that the MET core will wait for a 1PPS pulse before it freewheels least significant word
-time_freelimit_most,0x0422,Time that the MET core will wait for a 1PPS pulse before it freewheels most significant word
-time_blacklimit_least,0x0424,Minimum value for when the 1PPS pulse will be considered valid least significant word
-time_blacklimit_most,0x0426,Mnimum value for when the 1PPS pulse will be considered valid most significant word
-time_pps_width_least,0x0428,Width of the 1.x pulse least significant word
-time_pps_width_most,0x042A,Width of the 1.x pulse most significant word
-asic_testreg,0x0020,Test register
-asic_icomp,0x0022,Internal leakage current
-asic_ireq,0x0024,bias current
-asic_tpeak,0x004a,peaking time
-asic_io,0x004c,bias current of the CSA
-asic_rdelay,0x004e,delay of internal reset
-asic_gain,0x0050,channel gain
-asic_spy,0x0052,test nodes
-asic_vref2p,0x0054,baseline tuning
-asic_tune,0x0056,internal tuning
-asic_temp,0x005c,temperature sensor readout
-asic_alimon0,0x0058,Detector Pixel Alimon ON flag
-asic_alimon1,0x005A,Detector Pixel Alimon ON flag
-asic_seltest0,0x0046,Detector Pixel pulser enable
-asic_seltest1,0x0048,Detector Pixel pulser enable
-asic_threshold1,0x0026,Detector Pixel thresholds
-asic_threshold2,0x0028,Detector Pixel thresholds
-asic_threshold3,0x002A,Detector Pixel thresholds
-asic_threshold4,0x002C,Detector Pixel thresholds
-asic_threshold5,0x002E,Detector Pixel thresholds
-asic_threshold6,0x0030,Detector Pixel thresholds
-asic_threshold7,0x0032,Detector Pixel thresholds
-asic_threshold8,0x0034,Detector Pixel thresholds
-asic_threshold9,0x0036,Detector Pixel thresholds
-asic_threshold10,0x0038,Detector Pixel thresholds
-asic_threshold11,0x003A,Detector Pixel thresholds
-asic_threshold12,0x003C,Detector Pixel thresholds
-asic_threshold13,0x003E,Detector Pixel thresholds
-asic_threshold14,0x0040,Detector Pixel thresholds
-asic_threshold15,0x0042,Detector Pixel thresholds
-asic_threshold16,0x0044,Detector Pixel thresholds
-histogrammer_0,0x1010,Detector pixel histogram
-histogrammer_1,0x1012,Detector pixel histogram
-histogrammer_2,0x1014,Detector pixel histogram
-histogrammer_3,0x1016,Detector pixel histogram
-histogrammer_4,0x1018,Detector pixel histogram
-histogrammer_5,0x101A,Detector pixel histogram
-histogrammer_6,0x101C,Detector pixel histogram
-histogrammer_7,0x101E,Detector pixel histogram
-histogrammer_8,0x1020,Detector pixel histogram
-histogrammer_9,0x1022,Detector pixel histogram
-histogrammer_10,0x1024,Detector pixel histogram
-histogrammer_11,0x1026,Detector pixel histogram
-histogrammer_12,0x1028,Detector pixel histogram
-histogrammer_13,0x102A,Detector pixel histogram
-histogrammer_14,0x102C,Detector pixel histogram
-histogrammer_15,0x102E,Detector pixel histogram
-histogrammer_16,0x1030,Detector pixel histogram
-histogrammer_17,0x1032,Detector pixel histogram
-histogrammer_18,0x1034,Detector pixel histogram
-histogrammer_19,0x1036,Detector pixel histogram
-histogrammer_20,0x1038,Detector pixel histogram
-histogrammer_21,0x103A,Detector pixel histogram
-histogrammer_22,0x103C,Detector pixel histogram
-histogrammer_23,0x103E,Detector pixel histogram
-decim_lvl_up,0x1404,The minimum time to fill a packet which would trigger increasing the decimation level (min int. time 12.8us/ct)
-decim_lvl_down,0x1406,The maximum time to fill a packet which if exceeded would trigger the decimation level to decrease (min int. time 12.8us/ct)
-decim_bin0_upper_lim,0x1410,Decimation bin 0 upper limit
-decim_bin1_upper_lim,0x1412,Decimation bin 1 upper limit
-decim_bin2_upper_lim,0x1414,Decimation bin 2 upper limit
-decim_bin3_upper_lim,0x1416,Decimation bin 3 upper limit
-decim_bin4_upper_lim,0x1418,Decimation bin 4 upper limit
-decim_bin5_upper_lim,0x141A,Decimation bin 5 upper limit
-decim_bin6_upper_lim,0x141C,Decimation bin 6 upper limit
-decim_lvl0_bin0_keep,0x1440,Decimation level and bin and photons to keep
-decim_lvl0_bin1_keep,0x1442,Decimation level and bin and photons to keep
-decim_lvl0_bin2_keep,0x1444,Decimation level and bin and photons to keep
-decim_lvl0_bin3_keep,0x1446,Decimation level and bin and photons to keep
-decim_lvl0_bin4_keep,0x1448,Decimation level and bin and photons to keep
-decim_lvl0_bin5_keep,0x144A,Decimation level and bin and photons to keep
-decim_lvl0_bin6_keep,0x144C,Decimation level and bin and photons to keep
-decim_lvl0_bin7_keep,0x144E,Decimation level and bin and photons to keep
-decim_lvl1_bin0_keep,0x1450,Decimation level and bin and photons to keep
-decim_lvl1_bin1_keep,0x1452,Decimation level and bin and photons to keep
-decim_lvl1_bin2_keep,0x1454,Decimation level and bin and photons to keep
-decim_lvl1_bin3_keep,0x1456,Decimation level and bin and photons to keep
-decim_lvl1_bin4_keep,0x1458,Decimation level and bin and photons to keep
-decim_lvl1_bin5_keep,0x145A,Decimation level and bin and photons to keep
-decim_lvl1_bin6_keep,0x145C,Decimation level and bin and photons to keep
-decim_lvl1_bin7_keep,0x145E,Decimation level and bin and photons to keep
-decim_lvl2_bin0_keep,0x1460,Decimation level and bin and photons to keep
-decim_lvl2_bin1_keep,0x1462,Decimation level and bin and photons to keep
-decim_lvl2_bin2_keep,0x1464,Decimation level and bin and photons to keep
-decim_lvl2_bin3_keep,0x1466,Decimation level and bin and photons to keep
-decim_lvl2_bin4_keep,0x1468,Decimation level and bin and photons to keep
-decim_lvl2_bin5_keep,0x146A,Decimation level and bin and photons to keep
-decim_lvl2_bin6_keep,0x146C,Decimation level and bin and photons to keep
-decim_lvl2_bin7_keep,0x146E,Decimation level and bin and photons to keep
-decim_lvl3_bin0_keep,0x1470,Decimation level and bin and photons to keep
-decim_lvl3_bin1_keep,0x1472,Decimation level and bin and photons to keep
-decim_lvl3_bin2_keep,0x1474,Decimation level and bin and photons to keep
-decim_lvl3_bin3_keep,0x1476,Decimation level and bin and photons to keep
-decim_lvl3_bin4_keep,0x1478,Decimation level and bin and photons to keep
-decim_lvl3_bin5_keep,0x147A,Decimation level and bin and photons to keep
-decim_lvl3_bin6_keep,0x147C,Decimation level and bin and photons to keep
-decim_lvl3_bin7_keep,0x147E,Decimation level and bin and photons to keep
-decim_lvl4_bin0_keep,0x1480,Decimation level and bin and photons to keep
-decim_lvl4_bin1_keep,0x1482,Decimation level and bin and photons to keep
-decim_lvl4_bin2_keep,0x1484,Decimation level and bin and photons to keep
-decim_lvl4_bin3_keep,0x1486,Decimation level and bin and photons to keep
-decim_lvl4_bin4_keep,0x1488,Decimation level and bin and photons to keep
-decim_lvl4_bin5_keep,0x148A,Decimation level and bin and photons to keep
-decim_lvl4_bin6_keep,0x148C,Decimation level and bin and photons to keep
-decim_lvl4_bin7_keep,0x148E,Decimation level and bin and photons to keep
-decim_lvl4_bin7_keep,0x148E,Decimation level and bin and photons to keep
-decim_lvl5_bin0_keep,0x1490,Decimation level and bin and photons to keep
-decim_lvl5_bin1_keep,0x1492,Decimation level and bin and photons to keep
-decim_lvl5_bin2_keep,0x1494,Decimation level and bin and photons to keep
-decim_lvl5_bin3_keep,0x1496,Decimation level and bin and photons to keep
-decim_lvl5_bin4_keep,0x1498,Decimation level and bin and photons to keep
-decim_lvl5_bin5_keep,0x149A,Decimation level and bin and photons to keep
-decim_lvl5_bin6_keep,0x149C,Decimation level and bin and photons to keep
-decim_lvl5_bin7_keep,0x149E,Decimation level and bin and photons to keep
-decim_lvl6_bin0_keep,0x14A0,Decimation level and bin and photons to keep
-decim_lvl6_bin1_keep,0x14A2,Decimation level and bin and photons to keep
-decim_lvl6_bin2_keep,0x14A4,Decimation level and bin and photons to keep
-decim_lvl6_bin3_keep,0x14A6,Decimation level and bin and photons to keep
-decim_lvl6_bin4_keep,0x14A8,Decimation level and bin and photons to keep
-decim_lvl6_bin5_keep,0x14AA,Decimation level and bin and photons to keep
-decim_lvl6_bin6_keep,0x14AC,Decimation level and bin and photons to keep
-decim_lvl6_bin7_keep,0x14AE,Decimation level and bin and photons to keep
-decim_lvl7_bin0_keep,0x14B0,Decimation level and bin and photons to keep
-decim_lvl7_bin1_keep,0x14B2,Decimation level and bin and photons to keep
-decim_lvl7_bin2_keep,0x14B4,Decimation level and bin and photons to keep
-decim_lvl7_bin3_keep,0x14B6,Decimation level and bin and photons to keep
-decim_lvl7_bin4_keep,0x14B8,Decimation level and bin and photons to keep
-decim_lvl7_bin5_keep,0x14BA,Decimation level and bin and photons to keep
-decim_lvl7_bin6_keep,0x14BC,Decimation level and bin and photons to keep
-decim_lvl7_bin7_keep,0x14BE,Decimation level and bin and photons to keep
+name,address,address_hex,description
+mode,0,0x0000,mode register
+pulser_interval,2,0x0002,calibration pulse trigger interval
+pulser_width,4,0x0004,calibration pulse width
+trig_delay,6,0x0006,FPGA delay for readout after a trigger event
+det_temp_read_delay,8,0x0008,FPGA settling time after enabling the asic to readout temperature
+rate_status_mon,10,0x000A,event rate status monitor
+pulser_trig_window,12,0x000C,size of the calibration pulse tag cal window
+caliste_seu_flags,14,0x000E,indicates that a single event upset has been detected.
+aout_settle_time,16,0x0010,controls the settling time for Aout before it is sampled by the ADC
+multihit_max,18,0x0012,controls the maximum number of allowed hits in a single trigger
+fake_event_counter,20,0x0014,Fake Event Counter
+caliste_register_error,22,0x0016,Caliste which register read/write error
+caliste_register_error_count,24,0x0018,Caliste number of register read/write error
+caliste_update_registers,26,0x001A,Update Caliste Registers
+asic0_testreg,32,0x0020,Test register
+asic0_icomp,34,0x0022,Internal leakage current
+asic0_ireq,36,0x0024,bias current
+asic0_threshold1,38,0x0026,Detector Pixel thresholds
+asic0_threshold2,40,0x0028,Detector Pixel thresholds
+asic0_threshold3,42,0x002a,Detector Pixel thresholds
+asic0_threshold4,44,0x002c,Detector Pixel thresholds
+asic0_threshold5,46,0x002e,Detector Pixel thresholds
+asic0_threshold6,48,0x0030,Detector Pixel thresholds
+asic0_threshold7,50,0x0032,Detector Pixel thresholds
+asic0_threshold8,52,0x0034,Detector Pixel thresholds
+asic0_threshold9,54,0x0036,Detector Pixel thresholds
+asic0_threshold10,56,0x0038,Detector Pixel thresholds
+asic0_threshold11,58,0x003a,Detector Pixel thresholds
+asic0_threshold12,60,0x003c,Detector Pixel thresholds
+asic0_threshold13,62,0x003e,Detector Pixel thresholds
+asic0_threshold14,64,0x0040,Detector Pixel thresholds
+asic0_threshold15,66,0x0042,Detector Pixel thresholds
+asic0_threshold16,68,0x0044,Detector Pixel thresholds
+asic0_seltest0,70,0x0046,Detector Pixel pulser enable
+asic0_seltest1,72,0x0048,Detector Pixel pulser enable
+asic0_tpeak,74,0x004a,peaking time
+asic0_io,76,0x004c,bias current of the CSA
+asic0_rdelay,78,0x004e,delay of internal reset
+asic0_gain,80,0x0050,channel gain
+asic0_spy,82,0x0052,test nodes
+asic0_vref2p,84,0x0054,baseline tuning
+asic0_tune,86,0x0056,internal tuning
+asic0_alimon0,88,0x0058,Detector Pixel Alimon ON flag
+asic0_alimon1,90,0x005a,Detector Pixel Alimon ON flag
+asic0_temp,92,0x005c,temperature sensor readout
+asic1_testreg,96,0x0060,Test register
+asic1_icomp,98,0x0062,Internal leakage current
+asic1_ireq,100,0x0064,bias current
+asic1_threshold1,102,0x0066,Detector Pixel thresholds 1
+asic1_threshold2,104,0x0068,Detector Pixel thresholds 2
+asic1_threshold3,106,0x006a,Detector Pixel thresholds 3
+asic1_threshold4,108,0x006c,Detector Pixel thresholds 4
+asic1_threshold5,110,0x006e,Detector Pixel thresholds 5
+asic1_threshold6,112,0x0070,Detector Pixel thresholds 6
+asic1_threshold7,114,0x0072,Detector Pixel thresholds 7
+asic1_threshold8,116,0x0074,Detector Pixel thresholds 8
+asic1_threshold9,118,0x0076,Detector Pixel thresholds 9
+asic1_threshold10,120,0x0078,Detector Pixel thresholds 10
+asic1_threshold11,122,0x007a,Detector Pixel thresholds 11
+asic1_threshold12,124,0x007c,Detector Pixel thresholds 12
+asic1_threshold13,126,0x007e,Detector Pixel thresholds 13
+asic1_threshold14,128,0x0080,Detector Pixel thresholds 14
+asic1_threshold15,130,0x0082,Detector Pixel thresholds 15
+asic1_threshold16,132,0x0084,Detector Pixel thresholds 16
+asic1_seltest0,134,0x0086,Detector Pixel pulser enable 0
+asic1_seltest1,136,0x0088,Detector Pixel pulser enable 1
+asic1_tpeak,138,0x008a,peaking time
+asic1_io,140,0x008c,bias current of the CSA
+asic1_rdelay,142,0x008e,delay of internal reset
+asic1_gain,144,0x0090,channel gain
+asic1_spy,146,0x0092,test nodes
+asic1_vref2p,148,0x0094,baseline tuning
+asic1_tune,150,0x0096,internal tuning
+asic1_alimon0,152,0x0098,Detector Pixel Alimon ON flag
+asic1_alimon1,154,0x009a,Detector Pixel Alimon ON flag
+asic1_temp,156,0x009c,temperature sensor readout
+asic2_testreg,160,0x00a0,Test register
+asic2_icomp,162,0x00a2,Internal leakage current
+asic2_ireq,164,0x00a4,bias current
+asic2_threshold1,166,0x00a6,Detector Pixel thresholds 1
+asic2_threshold2,168,0x00a8,Detector Pixel thresholds 2
+asic2_threshold3,170,0x00aa,Detector Pixel thresholds 3
+asic2_threshold4,172,0x00ac,Detector Pixel thresholds 4
+asic2_threshold5,174,0x00ae,Detector Pixel thresholds 5
+asic2_threshold6,176,0x00b0,Detector Pixel thresholds 6
+asic2_threshold7,178,0x00b2,Detector Pixel thresholds 7
+asic2_threshold8,180,0x00b4,Detector Pixel thresholds 8
+asic2_threshold9,182,0x00b6,Detector Pixel thresholds 9
+asic2_threshold10,184,0x00b8,Detector Pixel thresholds 10
+asic2_threshold11,186,0x00ba,Detector Pixel thresholds 11
+asic2_threshold12,188,0x00bc,Detector Pixel thresholds 12
+asic2_threshold13,190,0x00be,Detector Pixel thresholds 13
+asic2_threshold14,192,0x00c0,Detector Pixel thresholds 14
+asic2_threshold15,194,0x00c2,Detector Pixel thresholds 15
+asic2_threshold16,196,0x00c4,Detector Pixel thresholds 16
+asic2_seltest0,198,0x00c6,Detector Pixel pulser enable 0
+asic2_seltest1,200,0x00c8,Detector Pixel pulser enable 1
+asic2_tpeak,202,0x00ca,peaking time
+asic2_io,204,0x00cc,bias current of the CSA
+asic2_rdelay,206,0x00ce,delay of internal reset
+asic2_gain,208,0x00d0,channel gain
+asic2_spy,210,0x00d2,test nodes
+asic2_vref2p,212,0x00d4,baseline tuning
+asic2_tune,214,0x00d6,internal tuning
+asic2_alimon0,216,0x00d8,Detector Pixel Alimon ON flag
+asic2_alimon1,218,0x00da,Detector Pixel Alimon ON flag
+asic2_temp,220,0x00dc,temperature sensor readout
+asic3_testreg,224,0x00e0,Test register
+asic3_icomp,226,0x00e2,Internal leakage current
+asic3_ireq,228,0x00e4,bias current
+asic3_threshold1,230,0x00e6,Detector Pixel thresholds 1
+asic3_threshold2,232,0x00e8,Detector Pixel thresholds 2
+asic3_threshold3,234,0x00ea,Detector Pixel thresholds 3
+asic3_threshold4,236,0x00ec,Detector Pixel thresholds 4
+asic3_threshold5,238,0x00ee,Detector Pixel thresholds 5
+asic3_threshold6,240,0x00f0,Detector Pixel thresholds 6
+asic3_threshold7,242,0x00f2,Detector Pixel thresholds 7
+asic3_threshold8,244,0x00f4,Detector Pixel thresholds 8
+asic3_threshold9,246,0x00f6,Detector Pixel thresholds 9
+asic3_threshold10,248,0x00f8,Detector Pixel thresholds 10
+asic3_threshold11,250,0x00fa,Detector Pixel thresholds 11
+asic3_threshold12,252,0x00fc,Detector Pixel thresholds 12
+asic3_threshold13,254,0x00fe,Detector Pixel thresholds 13
+asic3_threshold14,256,0x0100,Detector Pixel thresholds 14
+asic3_threshold15,258,0x0102,Detector Pixel thresholds 15
+asic3_threshold16,260,0x0104,Detector Pixel thresholds 16
+asic3_seltest0,262,0x0106,Detector Pixel pulser enable 0
+asic3_seltest1,264,0x0108,Detector Pixel pulser enable 1
+asic3_tpeak,266,0x010a,peaking time
+asic3_io,268,0x010c,bias current of the CSA
+asic3_rdelay,270,0x010e,delay of internal reset
+asic3_gain,272,0x0110,channel gain
+asic3_spy,274,0x0112,test nodes
+asic3_vref2p,276,0x0114,baseline tuning
+asic3_tune,278,0x0116,internal tuning
+asic3_alimon0,280,0x0118,Detector Pixel Alimon ON flag
+asic3_alimon1,282,0x011a,Detector Pixel Alimon ON flag
+asic3_temp,284,0x011c,temperature sensor readout
+time_subsec_least,1024,0x0400,FPGA time in sub-seconds least significant word
+time_subsec_most,1026,0x0402,FPGA time in sub-seconds most significant word
+time_sec_least,1028,0x0404,FPGA time in seconds least significant word
+time_sec_most,1030,0x0406,FPGA time in seconds most significant word
+time_core_status,1032,0x0408,MET Status
+time_intvector,1034,0x040A,Met int vector
+time_intmask,1036,0x040C,met int mask
+time_last_offset0_least,1040,0x0410,Value of the 1.x counter when the last 1PPS has arrives least significant word
+time_last_offset0_most,1042,0x0412,Value of the 1.x counter when the last 1PPS has arrives most significant word
+time_pps_count0_least,1044,0x0414,Last count between the last two 1PPS pulses least significant word
+time_pps_count0_most,1046,0x0416,Last count between the last two 1PPS pulses most significant word
+time_last_offset1_least,1048,0x0418,Value of the 1.x counter when the last 1PPS has arrives least significant word
+time_last_offset1_most,1050,0x041A,Value of the 1.x counter when the last 1PPS has arrives most significant word
+time_pps_count1_least,1052,0x041C,Last count between the last two 1PPS pulses least significant word
+time_pps_count1_most,1054,0x041E,Last count between the last two 1PPS pulses most significant word
+time_freelimit_least,1056,0x0420,Time that the MET core will wait for a 1PPS pulse before it freewheels least significant word
+time_freelimit_most,1058,0x0422,Time that the MET core will wait for a 1PPS pulse before it freewheels most significant word
+time_blacklimit_least,1060,0x0424,Minimum value for when the 1PPS pulse will be considered valid least significant word
+time_blacklimit_most,1062,0x0426,Mnimum value for when the 1PPS pulse will be considered valid most significant word
+time_pps_width_least,1064,0x0428,Width of the 1.x pulse least significant word
+time_pps_width_most,1066,0x042A,Width of the 1.x pulse most significant word
+time_jam_sec_least,1068,0x042C,Jam time in seconds least significant word
+time_jam_sec_most,1070,0x042E,Jam time in seconds most significant word
+time_last1sec_count_least,1072,0x0430,MET Last1secCount_LS
+time_last1sec_count_most,1074,0x0432,MET Last1secCount_MS
+commit_hash_least,1280,0x0500,commit hash version least significant word
+commit_hash_most,1282,0x0502,commit hash version least significant word
+user_hash_least,1284,0x0504,user hash least significant word
+user_hash_most,1286,0x0506,user hash least significant word
+build_time_least,1288,0x0508,DateTime at FPGA build least significant word
+build_time_most,1290,0x050A,DateTime at FPGA build most significant word
+power_good,1292,0x050C,LDO power good 1.5V 2.5 V 3.3 CD 3.3 VA
+error_summary,1294,0x050E,Error summary Register
+good_cmd_count,1536,0x0600,Good Command Count
+total_error_count,1538,0x0602,Total Error Count
+uart_framing_error_count,1540,0x0604,UART Framing Error Count
+cmd_timeout_error_count,1542,0x0606,Command Timeout Error Count
+cmd_checksum_error_count,1544,0x0608,Command Checksum Error Count
+ccsds_validation_error_count,1546,0x060A,CCSDS Header Validation Error Count
+sequence_warning_count,1548,0x060C,Out of Sequence Warning Count
+fp_temp,2048,0x0800,DP Temperature (ADU)
+dib_temp,2050,0x0802,DIB Temperature (ADU)
+hvps_temp,2052,0x0804,HVPS Temperature (ADU)
+hvps_volts,2054,0x0806,HVPS Voltage Sense (ADU)
+hvps_csence,2056,0x0808,HVPS Current Sense (ADU)
+current_sense15vd,2058,0x080A,1.5VD Current Sense (ADU)
+current_sense33vd,2060,0x080C,3.3VD Current Sense (ADU)
+current_sense33va,2062,0x080E,3.3VA Current Sense (ADU)
+hk_packet_rate,2064,0x0810,Housekeeping Packet Rate (seconds)
+heater_pwm_duty_cycle,2304,0x0900,Pulse width modulation duty cycle
+heater_safe_mode_duty_cycle,2306,0x0902,Safe mode PWM duty cycle
+heater_setpoint,2308,0x0904,Heater temperature set point
+heater_p_coeff,2310,0x0906,Heater P coefficient
+heater_i_coeff,2312,0x0908,Heater I coefficient
+heater_mode,2314,0x090A,Heater control mode
+heater_offset,2316,0x090C,Heater temperature offset
+heater_accuml,2318,0x090E,Heater accumulator
+heater_reason_safe,2320,0x0910,Reason for entering Safe Mode.
+heater_fp_temp_min,2322,0x0912,Heater Controller FP Temp Min
+heater_fp_temp_max,2324,0x0914,Heater Controller FP Temp Max
+heater_ramp_setpoint,2326,0x0916,Heater Controller Ramp Setpoint
+heater_ramp_stepsize,2328,0x0918,Heater Controller Ramp Step Size
+hvps_mode,3072,0x0C00,HVPS enable
+hvps_setpoint,3074,0x0C02,HVPS set point
+hvps_status,3076,0x0C04,HVPS status
+hvps_ramp,3078,0x0C06,HVPS Ramp interval
+pulser_setpoint,3106,0x0C22,Test pulse set point
+pulser_status,3108,0x0C24,Test pulse status
+histrogram_mode,4096,0x1000,Histogram mode
+histogrammer_0,4112,0x1010,Hist 0 Channel Assignment
+histogrammer_1,4114,0x1012,Hist 1 Channel Assignment
+histogrammer_2,4116,0x1014,Hist 2 Channel Assignment
+histogrammer_3,4118,0x1016,Hist 3 Channel Assignment
+histogrammer_4,4120,0x1018,Hist 4 Channel Assignment
+histogrammer_5,4122,0x101A,Hist 5 Channel Assignment
+histogrammer_6,4124,0x101C,Hist 6 Channel Assignment
+histogrammer_7,4126,0x101E,Hist 7 Channel Assignment
+histogrammer_8,4128,0x1020,Hist 8 Channel Assignment
+histogrammer_9,4130,0x1022,Hist 9 Channel Assignment
+histogrammer_10,4132,0x1024,Hist 10 Channel Assignment
+histogrammer_11,4134,0x1026,Hist 11 Channel Assignment
+histogrammer_12,4136,0x1028,Hist 12 Channel Assignment
+histogrammer_13,4138,0x102A,Hist 13 Channel Assignment
+histogrammer_14,4140,0x102C,Hist 14 Channel Assignment
+histogrammer_15,4142,0x102E,Hist 15 Channel Assignment
+histogrammer_16,4144,0x1030,Hist 16 Channel Assignment
+histogrammer_17,4146,0x1032,Hist 17 Channel Assignment
+histogrammer_18,4148,0x1034,Hist 18 Channel Assignment
+histogrammer_19,4150,0x1036,Hist 19 Channel Assignment
+histogrammer_20,4152,0x1038,Hist 10 Channel Assignment
+histogrammer_21,4154,0x103A,Hist 21 Channel Assignment
+histogrammer_22,4156,0x103C,Hist 22 Channel Assignment
+histogrammer_23,4158,0x103E,Hist 23 Channel Assignment
+decim_rate_monitor,5122,0x1402,Decimation Rate Monitor
+decim_lvl_up,5124,0x1404,The minimum time to fill a packet which would trigger increasing the decimation level (min int. time 12.8us/ct)
+decim_lvl_down,5126,0x1406,The maximum time to fill a packet which if exceeded would trigger the decimation level to decrease (min int. time 12.8us/ct)
+decim_bin0_upper_lim,5136,0x1410,Decimation bin 0 upper limit
+decim_bin1_upper_lim,5138,0x1412,Decimation bin 1 upper limit
+decim_bin2_upper_lim,5140,0x1414,Decimation bin 2 upper limit
+decim_bin3_upper_lim,5142,0x1416,Decimation bin 3 upper limit
+decim_bin4_upper_lim,5144,0x1418,Decimation bin 4 upper limit
+decim_bin5_upper_lim,5146,0x141A,Decimation bin 5 upper limit
+decim_bin6_upper_lim,5148,0x141C,Decimation bin 6 upper limit
+decim_lvl0_bin0_keep,5184,0x1440,Decimation Level 0 Bin 0 keep [15:8] and discard [7:0]
+decim_lvl0_bin1_keep,5186,0x1442,Decimation Level 0 Bin 1 keep [15:8] and discard [7:0]
+decim_lvl0_bin2_keep,5188,0x1444,Decimation Level 0 Bin 2 keep [15:8] and discard [7:0]
+decim_lvl0_bin3_keep,5190,0x1446,Decimation Level 0 Bin 3 keep [15:8] and discard [7:0]
+decim_lvl0_bin4_keep,5192,0x1448,Decimation Level 0 Bin 4 keep [15:8] and discard [7:0]
+decim_lvl0_bin5_keep,5194,0x144A,Decimation Level 0 Bin 5 keep [15:8] and discard [7:0]
+decim_lvl0_bin6_keep,5196,0x144C,Decimation Level 0 Bin 6 keep [15:8] and discard [7:0]
+decim_lvl0_bin7_keep,5198,0x144E,Decimation Level 0 Bin 7 keep [15:8] and discard [7:0]
+decim_lvl1_bin0_keep,5200,0x1450,Decimation Level 1 Bin 0 keep [15:8] and discard [7:0]
+decim_lvl1_bin1_keep,5202,0x1452,Decimation Level 1 Bin 1 keep [15:8] and discard [7:0]
+decim_lvl1_bin2_keep,5204,0x1454,Decimation Level 1 Bin 2 keep [15:8] and discard [7:0]
+decim_lvl1_bin3_keep,5206,0x1456,Decimation Level 1 Bin 3 keep [15:8] and discard [7:0]
+decim_lvl1_bin4_keep,5208,0x1458,Decimation Level 1 Bin 4 keep [15:8] and discard [7:0]
+decim_lvl1_bin5_keep,5210,0x145A,Decimation Level 1 Bin 5 keep [15:8] and discard [7:0]
+decim_lvl1_bin6_keep,5212,0x145C,Decimation Level 1 Bin 6 keep [15:8] and discard [7:0]
+decim_lvl1_bin7_keep,5214,0x145E,Decimation Level 1 Bin 7 keep [15:8] and discard [7:0]
+decim_lvl2_bin0_keep,5216,0x1460,Decimation Level 2 Bin 0 keep [15:8] and discard [7:0]
+decim_lvl2_bin1_keep,5218,0x1462,Decimation Level 2 Bin 1 keep [15:8] and discard [7:0]
+decim_lvl2_bin2_keep,5220,0x1464,Decimation Level 2 Bin 2 keep [15:8] and discard [7:0]
+decim_lvl2_bin3_keep,5222,0x1466,Decimation Level 2 Bin 3 keep [15:8] and discard [7:0]
+decim_lvl2_bin4_keep,5224,0x1468,Decimation Level 2 Bin 4 keep [15:8] and discard [7:0]
+decim_lvl2_bin5_keep,5226,0x146A,Decimation Level 2 Bin 5 keep [15:8] and discard [7:0]
+decim_lvl2_bin6_keep,5228,0x146C,Decimation Level 2 Bin 6 keep [15:8] and discard [7:0]
+decim_lvl2_bin7_keep,5230,0x146E,Decimation Level 2 Bin 7 keep [15:8] and discard [7:0]
+decim_lvl3_bin0_keep,5232,0x1470,Decimation Level 3 Bin 0 keep [15:8] and discard [7:0]
+decim_lvl3_bin1_keep,5234,0x1472,Decimation Level 3 Bin 1 keep [15:8] and discard [7:0]
+decim_lvl3_bin2_keep,5236,0x1474,Decimation Level 3 Bin 2 keep [15:8] and discard [7:0]
+decim_lvl3_bin3_keep,5238,0x1476,Decimation Level 3 Bin 3 keep [15:8] and discard [7:0]
+decim_lvl3_bin4_keep,5240,0x1478,Decimation Level 3 Bin 4 keep [15:8] and discard [7:0]
+decim_lvl3_bin5_keep,5242,0x147A,Decimation Level 3 Bin 5 keep [15:8] and discard [7:0]
+decim_lvl3_bin6_keep,5244,0x147C,Decimation Level 3 Bin 6 keep [15:8] and discard [7:0]
+decim_lvl3_bin7_keep,5246,0x147E,Decimation Level 3 Bin 7 keep [15:8] and discard [7:0]
+decim_lvl4_bin0_keep,5248,0x1480,Decimation Level 4 Bin 0 keep [15:8] and discard [7:0]
+decim_lvl4_bin1_keep,5250,0x1482,Decimation Level 4 Bin 1 keep [15:8] and discard [7:0]
+decim_lvl4_bin2_keep,5252,0x1484,Decimation Level 4 Bin 2 keep [15:8] and discard [7:0]
+decim_lvl4_bin3_keep,5254,0x1486,Decimation Level 4 Bin 3 keep [15:8] and discard [7:0]
+decim_lvl4_bin4_keep,5256,0x1488,Decimation Level 4 Bin 4 keep [15:8] and discard [7:0]
+decim_lvl4_bin5_keep,5258,0x148A,Decimation Level 4 Bin 5 keep [15:8] and discard [7:0]
+decim_lvl4_bin6_keep,5260,0x148C,Decimation Level 4 Bin 6 keep [15:8] and discard [7:0]
+decim_lvl4_bin7_keep,5262,0x148E,Decimation Level 4 Bin 7 keep [15:8] and discard [7:0]
+decim_lvl5_bin0_keep,5264,0x1490,Decimation Level 5 Bin 0 keep [15:8] and discard [7:0]
+decim_lvl5_bin1_keep,5266,0x1492,Decimation Level 5 Bin 1 keep [15:8] and discard [7:0]
+decim_lvl5_bin2_keep,5268,0x1494,Decimation Level 5 Bin 2 keep [15:8] and discard [7:0]
+decim_lvl5_bin3_keep,5270,0x1496,Decimation Level 5 Bin 3 keep [15:8] and discard [7:0]
+decim_lvl5_bin4_keep,5272,0x1498,Decimation Level 5 Bin 4 keep [15:8] and discard [7:0]
+decim_lvl5_bin5_keep,5274,0x149A,Decimation Level 5 Bin 5 keep [15:8] and discard [7:0]
+decim_lvl5_bin6_keep,5276,0x149C,Decimation Level 5 Bin 6 keep [15:8] and discard [7:0]
+decim_lvl5_bin7_keep,5278,0x149E,Decimation Level 5 Bin 7 keep [15:8] and discard [7:0]
+decim_lvl6_bin0_keep,5280,0x14A0,Decimation Level 6 Bin 0 keep [15:8] and discard [7:0]
+decim_lvl6_bin1_keep,5282,0x14A2,Decimation Level 6 Bin 1 keep [15:8] and discard [7:0]
+decim_lvl6_bin2_keep,5284,0x14A4,Decimation Level 6 Bin 2 keep [15:8] and discard [7:0]
+decim_lvl6_bin3_keep,5286,0x14A6,Decimation Level 6 Bin 3 keep [15:8] and discard [7:0]
+decim_lvl6_bin4_keep,5288,0x14A8,Decimation Level 6 Bin 4 keep [15:8] and discard [7:0]
+decim_lvl6_bin5_keep,5290,0x14AA,Decimation Level 6 Bin 5 keep [15:8] and discard [7:0]
+decim_lvl6_bin6_keep,5292,0x14AC,Decimation Level 6 Bin 6 keep [15:8] and discard [7:0]
+decim_lvl6_bin7_keep,5294,0x14AE,Decimation Level 6 Bin 7 keep [15:8] and discard [7:0]
+decim_lvl7_bin0_keep,5296,0x14B0,Decimation Level 7 Bin 0 keep [15:8] and discard [7:0]
+decim_lvl7_bin1_keep,5298,0x14B2,Decimation Level 7 Bin 1 keep [15:8] and discard [7:0]
+decim_lvl7_bin2_keep,5300,0x14B4,Decimation Level 7 Bin 2 keep [15:8] and discard [7:0]
+decim_lvl7_bin3_keep,5302,0x14B6,Decimation Level 7 Bin 3 keep [15:8] and discard [7:0]
+decim_lvl7_bin4_keep,5304,0x14B8,Decimation Level 7 Bin 4 keep [15:8] and discard [7:0]
+decim_lvl7_bin5_keep,5306,0x14BA,Decimation Level 7 Bin 5 keep [15:8] and discard [7:0]
+decim_lvl7_bin6_keep,5308,0x14BC,Decimation Level 7 Bin 6 keep [15:8] and discard [7:0]
+decim_lvl7_bin7_keep,5310,0x14BE,Decimation Level 7 Bin 7 keep [15:8] and discard [7:0]
