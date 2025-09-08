@@ -98,11 +98,11 @@ def process_file(filename: Path, overwrite=False) -> list:
             empty_primary_hdu = fits.PrimaryHDU(header=primary_hdr)
 
             # PKT HDU
-            pkt_list = Table(pkt_list)
             # record originating filename
             aws_db.record_filename(file_path.name, pkt_list.time[0], pkt_list.time[-1])
             # record output filename
             aws_db.record_filename(path.name, pkt_list.time[0], pkt_list.time[-1])
+            pkt_list = Table(pkt_list)
             pkt_list.remove_column("time")
 
             # PKT Header
