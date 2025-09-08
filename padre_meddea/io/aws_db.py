@@ -2,6 +2,7 @@
 
 import astropy.units as u
 import numpy as np
+from astropy.time import Time
 from astropy.timeseries import TimeSeries
 from specutils import SpectralRegion
 from swxsoc.util.util import create_annotation, record_timeseries
@@ -69,3 +70,12 @@ def record_cmd(cmd_ts):
     """Send command time series to AWS."""
     record_timeseries(cmd_ts, "cmd_resp", "meddea")
     create_annotation(cmd_ts.time[0], f"{cmd_ts.meta['ORIGFILE']}", ["meta"])
+
+
+def record_filename(filename: str, start_time: Time, end_time: Time):
+    """Record filename and time range of the file"""
+    ts = TimeSeries(time=[start_time])
+    #  convert end time to timestream compatible timestamp, same format as start time
+    ts["end_time"] = str(int(end_time.to_datetime().timestamp() * 1000))
+    ts["filename"] = filename
+    record_timeseries(ts, "files", "meddea")
