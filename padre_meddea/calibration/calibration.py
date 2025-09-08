@@ -98,6 +98,10 @@ def process_file(filename: Path, overwrite=False) -> list:
             empty_primary_hdu = fits.PrimaryHDU(header=primary_hdr)
 
             # PKT HDU
+            # record originating filename
+            aws_db.record_filename(file_path.name, pkt_list.time[0], pkt_list.time[-1])
+            # record output filename
+            aws_db.record_filename(path.name, pkt_list.time[0], pkt_list.time[-1])
             pkt_list = Table(pkt_list)
             pkt_list.remove_column("time")
 
@@ -152,6 +156,7 @@ def process_file(filename: Path, overwrite=False) -> list:
             )
 
             date_beg = calc_time(hk_data["pkttimes"][0])
+            date_end = calc_time(hk_data["pkttimes"][-1])
             primary_hdr["DATE-BEG"] = (date_beg.fits, get_comment("DATE-BEG"))
             primary_hdr["DATEREF"] = (date_beg.fits, get_comment("DATEREF"))
 
@@ -179,7 +184,10 @@ def process_file(filename: Path, overwrite=False) -> list:
                 overwrite=overwrite,
             )
             primary_hdr["FILENAME"] = (path.name, get_comment("FILENAME"))
-
+            # record originating filename
+            aws_db.record_filename(file_path.name, date_beg, date_end)
+            # record output filename
+            aws_db.record_filename(path.name, date_beg, date_end)
             empty_primary_hdu = fits.PrimaryHDU(header=primary_hdr)
 
             # Create HK HDU
@@ -268,6 +276,10 @@ def process_file(filename: Path, overwrite=False) -> list:
                 test=test_flag,
                 overwrite=overwrite,
             )
+            # record originating filename
+            aws_db.record_filename(file_path.name, ts.time[0], ts.time[-1])
+            # record output filename
+            aws_db.record_filename(path.name, ts.time[0], ts.time[-1])
             primary_hdr["FILENAME"] = (path.name, get_comment("FILENAME"))
 
             # Spectrum HDU
