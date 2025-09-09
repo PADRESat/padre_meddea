@@ -72,10 +72,10 @@ def record_cmd(cmd_ts):
     create_annotation(cmd_ts.time[0], f"{cmd_ts.meta['ORIGFILE']}", ["meta"])
 
 
-def record_filename(filename: str, start_time: Time, end_time: Time):
+def record_filename(filename: str, start_time: Time, end_time: Time, level: str):
     """Record filename and time range of the file"""
     ts = TimeSeries(time=[start_time])
     #  convert end time to timestream compatible timestamp, same format as start time
     ts["end_time"] = str(int(end_time.to_datetime().timestamp() * 1000))
     ts["filename"] = filename
-    record_timeseries(ts, "files", "meddea")
+    record_timeseries(ts, f"files_{level}", "meddea")

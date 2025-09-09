@@ -59,6 +59,7 @@ def process_file(filename: Path, overwrite=False) -> list:
 
         # Prepare Metadata for Output Files Naming and Headers
         test_flag = False
+        input_level_str = "raw"
         level_str = "l0"
 
         # Look for each kind of data in the parsed packets
@@ -99,9 +100,16 @@ def process_file(filename: Path, overwrite=False) -> list:
 
             # PKT HDU
             # record originating filename
-            aws_db.record_filename(file_path.name, pkt_list.time[0], pkt_list.time[-1])
+            aws_db.record_filename(
+                file_path.name,
+                pkt_list.time[0],
+                pkt_list.time[-1],
+                level=input_level_str,
+            )
             # record output filename
-            aws_db.record_filename(path.name, pkt_list.time[0], pkt_list.time[-1])
+            aws_db.record_filename(
+                path.name, pkt_list.time[0], pkt_list.time[-1], level=level_str
+            )
             pkt_list = Table(pkt_list)
             pkt_list.remove_column("time")
 
@@ -185,9 +193,11 @@ def process_file(filename: Path, overwrite=False) -> list:
             )
             primary_hdr["FILENAME"] = (path.name, get_comment("FILENAME"))
             # record originating filename
-            aws_db.record_filename(file_path.name, date_beg, date_end)
+            aws_db.record_filename(
+                file_path.name, date_beg, date_end, level=input_level_str
+            )
             # record output filename
-            aws_db.record_filename(path.name, date_beg, date_end)
+            aws_db.record_filename(path.name, date_beg, date_end, level=level_str)
             empty_primary_hdu = fits.PrimaryHDU(header=primary_hdr)
 
             # Create HK HDU
@@ -277,9 +287,11 @@ def process_file(filename: Path, overwrite=False) -> list:
                 overwrite=overwrite,
             )
             # record originating filename
-            aws_db.record_filename(file_path.name, ts.time[0], ts.time[-1])
+            aws_db.record_filename(
+                file_path.name, ts.time[0], ts.time[-1], level=input_level_str
+            )
             # record output filename
-            aws_db.record_filename(path.name, ts.time[0], ts.time[-1])
+            aws_db.record_filename(path.name, ts.time[0], ts.time[-1], level=level_str)
             primary_hdr["FILENAME"] = (path.name, get_comment("FILENAME"))
 
             # Spectrum HDU
