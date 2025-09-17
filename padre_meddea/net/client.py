@@ -2,13 +2,13 @@
 SunPy compatible Fido client for searching and retrieving PADRE MeDDEA data.
 """
 
-from pathlib import Path
 import urllib
 from collections import OrderedDict
 from datetime import timedelta
 from html.parser import HTMLParser
-from urllib.parse import urljoin
+from pathlib import Path
 from typing import List
+from urllib.parse import urljoin
 
 from astropy.time import Time
 from sunpy.net import attrs as a
@@ -176,7 +176,8 @@ class PADREClient(GenericClient):
                             )
         return paths
 
-    def _generate_time_paths(self, start_time: Time, end_time: Time):
+    @classmethod
+    def _generate_time_paths(cls, start_time: Time, end_time: Time):
         """
         Generate all year/month/day path components between start_time and end_time.
 
