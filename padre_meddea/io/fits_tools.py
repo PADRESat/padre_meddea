@@ -1016,10 +1016,9 @@ def filter_files_by_version(
     """
     Remove files that have a different version based on the concatenation version strategy.
 
-    1. If there is an existing file, and it's provenance table contains files with different versions, then we should raise an error. We should not be mixing data from L0 versions in the same L1 file.
-    2. If there is an existing file, and it's provenance table is not empty, then we should only concatenate files that have the same version as the existing file. This will ensure that we do not mix data from different versions.
-    3. If there is no existing file, then we should concatenate files with the latest version available in the input files. This will ensure that we are always using the most recent data.
-
+    1. If there is an existing L1 file, and it's provenance table contains L0 files with different versions, then we should raise an error. We should not be mixing data from L0 versions in the same L1 file.
+    2. If there is an existing L1 file, and it's provenance table is not empty, and contains all the same versions of L0 files, then we should only concatenate new L0 files that have the same version as those in the existing L1 provenance table. This will ensure that we do not mix data from different versions.
+    3. If there is no existing L1 file, then we should concatenate files with the latest version available in the input files. This will ensure that we are always using the most recent data.
     Logs a warning for each file skipped.
 
     Parameters
