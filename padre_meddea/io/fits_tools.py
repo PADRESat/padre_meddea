@@ -8,7 +8,7 @@ import warnings
 from collections import OrderedDict, defaultdict
 from datetime import datetime, time, timedelta
 from pathlib import Path
-from typing import Tuple
+from typing import Optional, Tuple
 
 import astropy.io.fits as fits
 import ccsdspy
@@ -1010,6 +1010,80 @@ def update_hdul_filename_metadata(
     return hdul_dict
 
 
+def filter_files_by_version(
+    files_to_combine: list[Path], existing_file: Optional[Path] = None
+) -> list[Path]:
+    """
+    Remove files that have a different version based on the concatenation version strategy.
+
+    1. If there is an existing file, and it's provenance table contains files with different versions, then we should raise an error. We should not be mixing data from L0 versions in the same L1 file.
+    2. If there is an existing file, and it's provenance table is not empty, then we should only concatenate files that have the same version as the existing file. This will ensure that we do not mix data from different versions.
+    3. If there is no existing file, then we should concatenate files with the latest version available in the input files. This will ensure that we are always using the most recent data.
+
+    Logs a warning for each file skipped.
+
+    Parameters
+    ----------
+    files_to_combine : list of Path
+        List of FITS files to combine
+    existing_file : Path, optional
+        Existing daily FITS file to append to
+
+    Returns
+    -------
+    list of Path
+        Filtered list of files to process
+    """
+
+    # Set of Version strings (X.Y.Z) from files_to_combine
+    file_versions = set(
+        parse_science_filename(f).get("version", None) for f in files_to_combine
+    )
+    # Sort in Descending order (newest first)
+    file_versions = sorted(file_versions, reverse=True)
+
+    if existing_file and Path(existing_file).exists():
+        # If existing_file is provided, get its provenance filenames
+        already_concatenated = get_provenance_filenames(existing_file)
+
+        # Get Versions from Provenance Table
+        prov_versions = set(
+            parse_science_filename(Path(f)).get("version", None)
+            for f in already_concatenated
+        )
+        # Sort in Descending order (newest first)
+        prov_versions = sorted(prov_versions, reverse=True)
+
+        # If Provenance Table is not empty, ensure all versions are the same
+        if len(prov_versions) > 1:
+            raise ValueError(
+                f"Existing file '{existing_file}' has multiple versions in its provenance table: {prov_versions}. Cannot mix versions."
+            )
+        elif len(prov_versions) == 1:
+            target_version = prov_versions[0]
+        else:
+            # If Provenance Table is empty, we should raise an exception since this is also unexpected
+            raise ValueError(
+                f"Existing file '{existing_file}' has an empty provenance table."
+            )
+    else:
+        # If no existing file, Target Version is the latest version from the input files
+        target_version = file_versions[0]
+
+    log.info(f"Target version for concatenation is {target_version}")
+    filtered = []
+    for file_to_combine in files_to_combine:
+        file_version = parse_science_filename(file_to_combine).get("version", None)
+        if file_version != target_version:
+            log.warning(
+                f"Skipping file '{file_to_combine}' as it has version {file_version}, expected {target_version}."
+            )
+        else:
+            filtered.append(file_to_combine)
+
+    return filtered
+
+
 def get_provenance_filenames(fits_path: Path) -> set[str]:
     """
     Read the PROVENANCE table from an existing FITS file and return the set of filenames.
@@ -1033,21 +1107,22 @@ def filter_files_by_provenance(
     Remove files that are already in the provenance table of the existing file.
     Logs a warning for each file skipped.
     """
-    if existing_file is not None and Path(existing_file).exists():
-        already_concatenated = get_provenance_filenames(existing_file)
-        # Add existing_file itself to the set
-        already_concatenated.add(str(existing_file))
-        filtered = []
-        for f in files_to_combine:
-            if Path(f).name in already_concatenated:
-                log.warning(
-                    f"Skipping file '{f}' as it already exists in provenance of {existing_file}."
-                )
-            else:
-                filtered.append(f)
-        return filtered
-    else:
+    if not existing_file or not Path(existing_file).exists():
         return files_to_combine
+
+    # If existing_file is provided, get its provenance filenames
+    already_concatenated = get_provenance_filenames(existing_file)
+    # Add existing_file itself to the set
+    already_concatenated.add(str(existing_file))
+    filtered = []
+    for f in files_to_combine:
+        if Path(f).name in already_concatenated:
+            log.warning(
+                f"Skipping file '{f}' as it already exists in provenance of {existing_file}."
+            )
+        else:
+            filtered.append(f)
+    return filtered
 
 
 def split_provenance_tables_by_day(files_to_combine, existing_file=None):
@@ -1235,6 +1310,14 @@ def concatenate_files(
     """
     # Ignore MergeConflictWarning from astropy
     warnings.simplefilter("ignore", MergeConflictWarning)
+    log.info(
+        f"Starting Concatenation with Existing File: {existing_file}, Joining new files: {files_to_combine}"
+    )
+
+    # Remove Files to Combine that do not match the latest verion
+    # The latest version is determined by the existing_file if provided,
+    # else the newest version from files_to_combine
+    files_to_combine = filter_files_by_version(files_to_combine, existing_file)
 
     # Remove files that are already in the provenance table of the existing file
     files_to_combine = filter_files_by_provenance(files_to_combine, existing_file)
