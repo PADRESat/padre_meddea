@@ -82,6 +82,8 @@ def validate_ccsds_apids(file, output_bad_packets: bool = False) -> List[str]:
                     f"ChecksumWarning: Found unexpected APID {this_apid}"
                 )
                 bad_packets.append(this_packet)
+        else:
+            log.info(f"Found expected APID {this_apid}")
     if output_bad_packets:
         return validation_warnings, bad_packets
     else:
@@ -106,21 +108,42 @@ def validate_ccsds_seqnum(file) -> List[str]:
     """
     validation_warnings = []
     header_arrays = utils.read_primary_headers(file)
+    # check that only one set of APIDs are present
+    apid = np.unique(header_arrays["CCSDS_APID"])
+    if len(apid) > 1:
+        raise ValueError(f"Only one APID expected but found {len(apid)}.")
+
     sequence_count = header_arrays["CCSDS_SEQUENCE_COUNT"]
-    min_seq = sequence_count.min()
-    max_seq = sequence_count.max()
     if is_consecutive(sequence_count):
-        log.info(f"No missing packets from sequence count {min_seq} to {max_seq}")
+        log.info(
+            f"No missing packets from sequence count {sequence_count.min()} to {sequence_count.max()}."
+        )
     else:
-        missing_seqs = sorted(set(range(min_seq, max_seq)) - set(sequence_count))
-        for this_missed_seq in missing_seqs:
+        diff_seq_count = sequence_count[1:] - sequence_count[:-1]
+
+        bad_indices = np.where(diff_seq_count > 1)[0]
+        for this_bad_index in bad_indices + 1:
+            prev_index = max(this_bad_index - 1, 0)
+            next_index = min(this_bad_index + 1, len(diff_seq_count))
+            indices = np.array([prev_index, this_bad_index, next_index])
+            sequence_array = np.array([sequence_count[i] for i in indices])
             validation_warnings.append(
-                f"PacketMissWarning: Packet number {this_missed_seq} is missing."
+                f"Found packet sequence count jump at indices {indices}, sequence numbers are {sequence_array}"
             )
-            percent_error = len(validation_warnings) / len(sequence_count)
-            log.info(
-                f"ChecksumWarning: Found {len(validation_warnings)}/{len(sequence_count)} checksum errors ({percent_error * 100:0.2f}%)"
+        bad_indices = np.where(diff_seq_count == 0)[0]
+        for this_bad_index in bad_indices + 1:
+            prev_index = max(this_bad_index - 1, 0)
+            next_index = min(this_bad_index + 1, len(diff_seq_count))
+            indices = np.array([prev_index, this_bad_index, next_index])
+            sequence_array = np.array([sequence_count[i] for i in indices])
+            validation_warnings.append(
+                f"Found duplicate sequence number at indices {indices}, sequence numbers are {sequence_array}"
             )
+
+        percent_error = len(validation_warnings) / len(sequence_count)
+        log.info(
+            f"MissingPacketWarning: Found {len(validation_warnings)}/{len(sequence_count)} checksum errors ({percent_error * 100:0.2f}%)"
+        )
     return validation_warnings
 
 
