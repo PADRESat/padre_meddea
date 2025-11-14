@@ -36,13 +36,13 @@ jobs:
 
 
     - name: Run tests
-      run: pytest --pyargs padre_meddea --cov padre_meddea
+      run: pytest --pyargs padre_meddea --cov --junitxml=junit.xml -o junit_family=legacy padre_meddea
       env:
         #
         PLATFORM: ${{ matrix.platform }}
         #
-    - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@v4	
-      env:
-        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-
+    - name: Upload test results to Codecov
+      if: ${{ !cancelled() }}
+      uses: codecov/test-results-action@v1
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
