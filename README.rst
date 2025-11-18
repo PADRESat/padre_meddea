@@ -10,7 +10,7 @@ Overview
     * - docs
       - |docs| |readthedocs|
     * - build status
-      - |testing| |codestyle|
+      - |testing| |codestyle| |coverage|
 
 .. |docs| image:: https://github.com/PADRESat/padre_meddea/actions/workflows/docs.yml/badge.svg
     :target: https://github.com/PADRESat/padre_meddea/actions/workflows/docs.yml
@@ -27,6 +27,10 @@ Overview
 .. |readthedocs| image:: https://readthedocs.org/projects/padre-meddea/badge/?version=latest
     :target: https://padre-meddea.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status
+
+.. |coverage| image:: https://codecov.io/gh/PADRESat/padre_meddea/graph/badge.svg?token=HTFYZ1GN4K
+    :target: https://codecov.io/gh/PADRESat/padre_meddea
+    :alt: Code Coverage
 
 .. end-badges
 

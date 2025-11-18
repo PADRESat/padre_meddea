@@ -49,6 +49,7 @@ dev = [
   'coverage[toml]',
   'pytest-doctestplus',
   'ruff',
+  'moto',
 ]
 
 docs = ['sphinx', 'sphinx-automodapi', 'matplotlib', 'sphinx-copybutton', 'pydata-sphinx-theme']
