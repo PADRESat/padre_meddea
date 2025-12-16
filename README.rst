@@ -39,6 +39,8 @@ NASA solar PolArization and Directivity X-Ray Experiment (PADRE) small satellite
 
 PADRE launched on July 23rd, 2025.
 
+Data can be found at [https://umbra.nascom.nasa.gov/padre/](https://umbra.nascom.nasa.gov/padre/).
+
 For information about the PADRE mission, see `PADRESat <https://github.com/PADRESat>`_.
 
 Our documentation can be found at `http://padre-meddea.rtfd.io/ <http://padre-meddea.rtfd.io/>`_.
