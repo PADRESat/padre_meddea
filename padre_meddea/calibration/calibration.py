@@ -46,7 +46,10 @@ def process_file(filename: Path, overwrite=False) -> list:
 
     if file_path.suffix.lower() in [".bin", ".dat"]:  # raw file
         # Before we process, validate the file with CCSDS
-        custom_validators = [validation.validate_packet_checksums]
+        custom_validators = [
+            validation.validate_packet_checksums,
+            lambda f: validation.validate_file_size(f, size_limit=10000000),  # 10 MB
+        ]
         validation_findings = validation.validate(
             file_path,
             valid_apids=list(padre_meddea.APID.values()),
