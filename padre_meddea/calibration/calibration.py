@@ -48,7 +48,7 @@ def process_file(filename: Path, overwrite=False) -> list:
         # Before we process, validate the file with CCSDS
         custom_validators = [
             validation.validate_packet_checksums,
-            lambda f: validation.validate_file_size(f, size_limit=10000000),  # 10 MB
+            lambda f: validation.validate_file_size(f, size_limit=10500000),  # 10 MB
         ]
         validation_findings = validation.validate(
             file_path,
