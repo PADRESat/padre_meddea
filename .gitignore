@@ -191,3 +191,5 @@ _version.py
 
 *.csv
 *.fits
+
+junit.xml

@@ -2,19 +2,20 @@
 This module contains utilities for file and packet validation.
 """
 
+from pathlib import Path
 from typing import List
 
 import numpy as np
 from ccsdspy import utils
 
 
-def validate_packet_checksums(file) -> List[str]:
+def validate_packet_checksums(file: Path) -> List[str]:
     """
     Custom Validation Function to check that all packets have contents that match their checksums. This is achieved be a rolling XOR of the packet contents. If the final XOR value is not 0, a warning is issued.
 
     Parameters
     ----------
-    file: `str | BytesIO`
+    file: `Path`
         A file path (str) or file-like object with a `.read()` method.
 
     Returns
@@ -33,6 +34,30 @@ def validate_packet_checksums(file) -> List[str]:
             validation_warnings.append(
                 f"ChecksumWarning: Packet {i} has a checksum error."
             )
+    return validation_warnings
+
+
+def validate_file_size(file: Path, size_limit: int) -> List[str]:
+    """
+    Custom Validation Function to check that the file size is no larger than the expected size.
+
+    Parameters
+    ----------
+    file: `Path`
+        A file path (str) or file-like object with a `.read()` method.
+    expected_size: `int`
+        The expected maximum size of the file in bytes.
+
+    Returns
+    -------
+    List of strings, each in the format "WarningType: message", describing potential validation issues. Returns an empty list if no warnings are issued.
+    """
+    validation_warnings = []
+    actual_size = Path(file).stat().st_size
+    if actual_size > size_limit:
+        validation_warnings.append(
+            f"FileSizeWarning: File size {actual_size} bytes exceeds expected size of {size_limit} bytes."
+        )
     return validation_warnings
 
 

@@ -10,7 +10,7 @@ Overview
     * - docs
       - |docs| |readthedocs|
     * - build status
-      - |testing| |codestyle|
+      - |testing| |codestyle| |coverage|
 
 .. |docs| image:: https://github.com/PADRESat/padre_meddea/actions/workflows/docs.yml/badge.svg
     :target: https://github.com/PADRESat/padre_meddea/actions/workflows/docs.yml
@@ -28,12 +28,18 @@ Overview
     :target: https://padre-meddea.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status
 
+.. |coverage| image:: https://codecov.io/gh/PADRESat/padre_meddea/graph/badge.svg?token=HTFYZ1GN4K
+    :target: https://codecov.io/gh/PADRESat/padre_meddea
+    :alt: Code Coverage
+
 .. end-badges
 
 A Python package to process and analyze data from the Measuring Directivity to Determine Electron Anisotropy (MeDDEA) instrument on the
 NASA solar PolArization and Directivity X-Ray Experiment (PADRE) small satellite mission.
 
 PADRE launched on July 23rd, 2025.
+
+Data can be found on hosted on the NASA `SDAC <https://umbra.nascom.nasa.gov/padre/>`_ as soon as it is downlinked from the spacecraft.
 
 For information about the PADRE mission, see `PADRESat <https://github.com/PADRESat>`_.
 
