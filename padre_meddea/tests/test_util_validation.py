@@ -4,7 +4,7 @@ from padre_meddea.util import validation
 
 
 def test_validate_packet_checksums():
-    test_file = padre_meddea._test_files_directory / "apid160_4packets.bin"
+    test_file = padre_meddea._test_files_directory / "padreMDA0_240916122901.dat"
     warnings = validation.validate_packet_checksums(test_file)
     assert len(warnings) == 0
 
@@ -48,6 +48,6 @@ def test_validate_file_size_exceeds_limit(tmp_path, monkeypatch):
 
 
 def test_validate():
-    test_file = padre_meddea._test_files_directory / "apid160_4packets.bin"
+    test_file = padre_meddea._test_files_directory / "padreMDA0_240916122901.dat"
     warnings = validation.validate(test_file)
     assert len(warnings) == 0

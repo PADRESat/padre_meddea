@@ -12,9 +12,9 @@ import padre_meddea.io.file_tools as file_tools
 @pytest.mark.parametrize(
     "bin_file,expected_data_type",
     [
-        ("apid160_4packets.bin", "photon"),
-        ("apid162_4packets.bin", "spectrum"),
-        ("apid163_4packets.bin", "housekeeping"),
+        ("padreMDA0_240916122901.dat", "photon"),
+        ("padreMDA2_240916122851.dat", "spectrum"),
+        ("padreMDU8_240916122904.dat", "housekeeping"),
     ],
 )
 def test_process_file_test_files(bin_file, expected_data_type, tmpdir, monkeypatch):

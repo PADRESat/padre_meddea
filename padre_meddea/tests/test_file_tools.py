@@ -12,9 +12,9 @@ from padre_meddea.io.file_tools import (
 from padre_meddea.spectrum.spectrum import PhotonList
 from astropy.timeseries import TimeSeries
 
-ph_packet_file = padre_meddea._test_files_directory / "apid160_4packets.bin"
-spec_packet_file = padre_meddea._test_files_directory / "apid162_4packets.bin"
-hk_packet_file = padre_meddea._test_files_directory / "apid163_4packets.bin"
+ph_packet_file = padre_meddea._test_files_directory / "padreMDA0_240916122901.dat"
+spec_packet_file = padre_meddea._test_files_directory / "padreMDA2_240916122851.dat"
+hk_packet_file = padre_meddea._test_files_directory / "padreMDU8_240916122904.dat"
 
 fits_ph_packet_file = (
     padre_meddea._test_files_directory

@@ -7,7 +7,7 @@ import padre_meddea.housekeeping.calibration as cal
 from padre_meddea import _test_files_directory
 from padre_meddea.housekeeping import housekeeping as hk
 
-hk_packet_file = _test_files_directory / "apid163_4packets.bin"
+hk_packet_file = _test_files_directory / "padreMDU8_240916122904.dat"
 
 NUM_PACKETS = 4
 
