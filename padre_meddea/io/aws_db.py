@@ -13,6 +13,8 @@ from padre_meddea.spectrum.calibration import (
     get_ql_calibration_file,
 )
 from padre_meddea.spectrum.spectrum import SpectrumList
+from padre_meddea.net import PADREClient
+from padre_meddea.util.util import parse_science_filename, parse_raw_meddea_filename
 
 
 def record_spectra(spec_list: SpectrumList):
@@ -72,10 +74,19 @@ def record_cmd(cmd_ts):
     create_annotation(cmd_ts.time[0], f"{cmd_ts.meta['ORIGFILE']}", ["meta"])
 
 
-def record_filename(filename: str, start_time: Time, end_time: Time):
+def record_filename(filename: str, start_time: Time, end_time: Time, level_str: str):
     """Record filename and time range of the file"""
     ts = TimeSeries(time=[start_time])
     #  convert end time to timestream compatible timestamp, same format as start time
-    ts["end_time"] = str(int(end_time.to_datetime().timestamp() * 1000))
-    ts["filename"] = filename
-    record_timeseries(ts, "files", "meddea")
+    ts["end_time"] = [str(int(end_time.to_datetime().timestamp() * 1000))]
+    ts["filename"] = [filename]
+    url_base = f"{PADREClient.baseurl}/padre/padre-meddea/"
+    if level_str == "raw":
+        tokens = parse_raw_meddea_filename(filename)
+    else:
+        tokens = parse_science_filename(filename)
+    data_type = tokens["descriptor"]
+    time_path = PADREClient._generate_time_paths(start_time, end_time)
+    url = f"{url_base}/{level_str}/{data_type}/{time_path[0]}"
+    ts["url"] = [url]
+    record_timeseries(ts, f"files_{level_str}", "meddea")

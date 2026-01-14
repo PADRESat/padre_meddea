@@ -242,13 +242,15 @@ def test_is_not_consecutive():
 
 def test_has_baseline():
     assert not util.has_baseline(
-        padre_meddea._test_files_directory / "apid160_4packets.bin"
+        padre_meddea._test_files_directory / "padreMDA0_240916122901.dat"
     )
 
 
 def test_has_baseline_error():
     with pytest.raises(ValueError):
-        util.has_baseline(padre_meddea._test_files_directory / "apid162_4packets.bin")
+        util.has_baseline(
+            padre_meddea._test_files_directory / "padreMDA2_240916122851.dat"
+        )
 
 
 @pytest.mark.parametrize(

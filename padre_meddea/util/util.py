@@ -33,6 +33,7 @@ MIN_TIME_BAD = Time("2024-02-01T00:00")
 
 __all__ = [
     "parse_science_filename",
+    "parse_raw_meddea_filename",
     "create_science_filename",
     "create_meddea_filename",
     "get_filename_version_base",
@@ -41,6 +42,28 @@ __all__ = [
     "has_baseline",
     "is_consecutive",
 ]
+
+
+def parse_raw_meddea_filename(filename: str):
+    """Parse a raw meddea filename
+
+    Parameters
+    ----------
+    filename : str
+
+    Returns
+    -------
+    tokens : dict
+    """
+    tokens = parse_science_filename(filename)
+    if filename[0:9].lower() == "padremdu8":
+        tokens["descriptor"] = "housekeeping"
+    elif filename[0:9].lower() == "padremda0":
+        tokens["descriptor"] = "photon"
+    elif filename[0:9].lower() == "padremda2":
+        tokens["descriptor"] = "spectrum"
+    tokens["descriptor"]
+    return tokens
 
 
 def create_meddea_filename(

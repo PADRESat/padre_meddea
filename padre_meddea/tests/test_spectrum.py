@@ -15,19 +15,19 @@ from padre_meddea.io.file_tools import (
 from padre_meddea.spectrum import spectrum
 from padre_meddea.util.pixels import PixelList
 
-f1 = _test_files_directory / "apid160_4packets.bin"
-f2 = _test_files_directory / "apid162_4packets.bin"
-f3 = _test_files_directory / "apid163_4packets.bin"
+f1 = _test_files_directory / "padreMDA0_240916122901.dat"
+f2 = _test_files_directory / "padreMDA2_240916122851.dat"
+f3 = _test_files_directory / "padreMDU8_240916122904.dat"
 
 
 @pytest.mark.parametrize(
     "file",
-    [_test_files_directory / "apid162_4packets.bin"]
+    [_test_files_directory / "padreMDA2_240916122851.dat"]
     + list((_test_files_directory / "spec").glob("*.fits")),
 )
 def test_spectrumlist(file):
     """Test that we can create a spectrumlist from a raw file"""
-    if file.suffix == ".bin":
+    if file.suffix == ".dat":
         speclist = read_raw_a2(file)
     else:
         speclist = read_fits_l0l1_spectrum(file)
@@ -58,12 +58,12 @@ def test_spectrumlist(file):
 
 @pytest.mark.parametrize(
     "file",
-    [_test_files_directory / "apid160_4packets.bin"]
+    [_test_files_directory / "padreMDA0_240916122901.dat"]
     + list((_test_files_directory / "eventlist").glob("*.fits")),
 )
 def test_photonlist(file):
     """Test that we can create a spectrumlist from a raw file"""
-    if file.suffix == ".bin":
+    if file.suffix == ".dat":
         phlist = read_raw_a0(file)
     else:
         phlist = read_fits_l0l1_photon(file)
@@ -91,7 +91,7 @@ def test_photonlist(file):
         BinnedTimeSeries,
     )
 
-    if file.suffix == ".bin":
+    if file.suffix == ".dat":
         assert isinstance(
             phlist.data_rate(),  # need to recreate this fits file to include pktlength
             BinnedTimeSeries,
