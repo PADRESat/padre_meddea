@@ -31,7 +31,7 @@ dependencies = [
   'astropy==6.1.*',
   'numpy==2.*',
   'sunpy==6.*',
-  'roentgen',
+  'roentgen==2.2.0',
   'specutils==1.*',
   'ccsdspy==1.4.*',
   'matplotlib==3.10.*',
