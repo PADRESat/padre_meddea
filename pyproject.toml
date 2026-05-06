@@ -14,7 +14,7 @@ authors = [
   {name = "Niharika Godbole", email="niharika.godbole@nasa.gov"},
 ]
 license = {file = "LICENSE.rst"}
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 keywords = ["nasa mission", "space weather"]
 classifiers = [
   "Development Status :: 3 - Alpha",
@@ -22,41 +22,32 @@ classifiers = [
   "Natural Language :: English",
   "Operating System :: OS Independent",
   "Programming Language :: Python",
-  "Programming Language :: Python :: 3.8",
   "Intended Audience :: Science/Research",
   "Topic :: Scientific/Engineering",
   "Topic :: Scientific/Engineering :: Physics",
 ]
 dependencies = [
-  'astropy==6.1.*',
-  'numpy==2.*',
-  'sunpy==6.*',
-  'roentgen==2.2.0',
-  'specutils==1.*',
-  'ccsdspy==1.4.*',
-  'matplotlib==3.10.*',
+  'astropy>=7.1',
+  'numpy>=2',
+  'sunpy>=6',
+  'roentgen>=2.2',
+  'specutils',
+  'ccsdspy>=1.4',
+  'matplotlib',
   'swxsoc @ git+https://github.com/swxsoc/swxsoc.git@main',
-  'gitpython==3.1.*',
   'solarnet_metadata @ git+https://github.com/IHDE-Alliance/solarnet_metadata.git@solarnet_metadata_package',
 ]
 
 [project.optional-dependencies]
 dev = [
-  'coverage>=5.0.3',
-  'pytest',
-  'pytest-astropy',
-  'pytest-cov',
-  'coverage[toml]',
-  'pytest-doctestplus',
-  'ruff',
-  'moto',
+  "padre_meddea[net, other, docs, test, style]"
 ]
 
+net = ['moto']
 docs = ['sphinx', 'sphinx-automodapi', 'matplotlib', 'sphinx-copybutton', 'pydata-sphinx-theme']
-
-test = ['pytest', 'pytest-astropy', 'pytest-cov', 'coverage[toml]']
-
+test = ['pytest', 'pytest-astropy', 'pytest-cov', 'coverage[toml]', 'pytest-doctestplus']
 style = ['ruff']
+other = ['ipython', 'pre-commit', 'gitpython']
 
 [tool.setuptools.package-data]
 "padre_meddea.data" = ["**"]
@@ -130,8 +121,8 @@ exclude = [
 line-length = 88
 indent-width = 4
 
-# Assume Python 3.10
-target-version = "py310"
+# Assume Python 3.11
+target-version = "py311"
 
 [tool.ruff.lint]
 # Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.

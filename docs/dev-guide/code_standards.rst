@@ -15,7 +15,7 @@ The following text is mostly cribbed from Sunpy.
 Language Standard
 =================
 
-* All code must be compatible with Python 3.10 and later.
+* All code must be compatible with Python 3.11 and later.
 
 * The new Python 3 formatting style should be used (i.e.
   ``f"{spam:s}"`` instead of ``"%s" % "spam"``).
