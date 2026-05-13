@@ -27,13 +27,13 @@ classifiers = [
   "Topic :: Scientific/Engineering :: Physics",
 ]
 dependencies = [
-  'astropy>=7.1',
-  'numpy>=2',
-  'sunpy>=6',
-  'roentgen>=2.2',
-  'specutils',
-  'ccsdspy>=1.4',
-  'matplotlib',
+  'astropy==6.1.*',
+  'numpy<2.4',
+  'sunpy==6.*',
+  'roentgen==2.2.0',
+  'specutils==1.*',
+  'ccsdspy==1.4.*',
+  'matplotlib==3.10.*',
   'swxsoc @ git+https://github.com/swxsoc/swxsoc.git@main',
   'solarnet_metadata @ git+https://github.com/IHDE-Alliance/solarnet_metadata.git@solarnet_metadata_package',
 ]
