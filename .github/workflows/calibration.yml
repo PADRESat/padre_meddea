@@ -21,7 +21,7 @@ jobs:
         echo "Branch URL: $BRANCH_URL"
     
         # Clone the Lambda function repository
-        git clone https://github.com/HERMES-SOC/sdc_aws_processing_lambda.git ../sdc_aws_processing_lambda
+        git clone https://github.com/swxsoc/sdc_aws_processing_lambda.git ../sdc_aws_processing_lambda
         cd ../sdc_aws_processing_lambda/lambda_function
     
         # Define mission name & instrument name from the repository name

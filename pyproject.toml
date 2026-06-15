@@ -33,7 +33,7 @@ dependencies = [
   'sunpy==6.*',
   'roentgen==2.2.0',
   'specutils==1.*',
-  'ccsdspy==1.4.*',
+  'ccsdspy',
   'matplotlib==3.10.*',
   'swxsoc @ git+https://github.com/swxsoc/swxsoc.git@main',
   'gitpython==3.1.*',
