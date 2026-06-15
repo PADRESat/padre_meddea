@@ -1,12 +1,6 @@
 name: Test Lambda Function Locally and Upload Artifacts
 
-on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+on: [pull_request_target]
 
 jobs:
   test-and-upload:
@@ -17,11 +11,6 @@ jobs:
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v4
-    - name: Checkout Processing Repo
-      uses: actions/checkout@v4
-      with:
-        repository: swxsoc/sdc_aws_processing_lambda
-        path: sdc_aws_processing_lambda
     - name: Build Lambda Docker Image
       run: |
         # Define the repository and branch dynamically
@@ -32,8 +21,8 @@ jobs:
         echo "Branch URL: $BRANCH_URL"
     
         # Clone the Lambda function repository
-        # git clone https://github.com/swxsoc/sdc_aws_processing_lambda.git ../sdc_aws_processing_lambda
-        cd sdc_aws_processing_lambda/lambda_function
+        git clone https://github.com/HERMES-SOC/sdc_aws_processing_lambda.git ../sdc_aws_processing_lambda
+        cd ../sdc_aws_processing_lambda/lambda_function
     
         # Define mission name & instrument name from the repository name
         PACKAGE_NAME=$(basename -s .git $REPO_URL)
