@@ -21,7 +21,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         repository: swxsoc/sdc_aws_processing_lambda
-        path: ../sdc_aws_processing_lambda
+        path: sdc_aws_processing_lambda
     - name: Build Lambda Docker Image
       run: |
         # Define the repository and branch dynamically
@@ -33,7 +33,7 @@ jobs:
     
         # Clone the Lambda function repository
         # git clone https://github.com/swxsoc/sdc_aws_processing_lambda.git ../sdc_aws_processing_lambda
-        cd ../sdc_aws_processing_lambda/lambda_function
+        cd sdc_aws_processing_lambda/lambda_function
     
         # Define mission name & instrument name from the repository name
         PACKAGE_NAME=$(basename -s .git $REPO_URL)
