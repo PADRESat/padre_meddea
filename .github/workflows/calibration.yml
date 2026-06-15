@@ -1,6 +1,12 @@
 name: Test Lambda Function Locally and Upload Artifacts
 
-on: [pull_request_target]
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   test-and-upload:
