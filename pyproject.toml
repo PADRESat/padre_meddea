@@ -29,7 +29,7 @@ classifiers = [
 ]
 dependencies = [
   'astropy==6.1.*',
-  'numpy==2.*',
+  'numpy<2.4',
   'sunpy==6.*',
   'roentgen==2.2.0',
   'specutils==1.*',
