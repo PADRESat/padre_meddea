@@ -12,6 +12,7 @@ from astropy.time import Time
 from padre_meddea.io.fits_tools import (
     _init_hdul_structure,
     concatenate_files,
+    filter_files_by_version,
     get_hdu_data_times,
 )
 from padre_meddea.util.util import calc_time
@@ -338,7 +339,7 @@ def test_missing_hdu():
         get_hdu_data_times(hdu_dict, "MISSING")
 
 
-def test_unsupported_data_type():
+def test_get_hdu_data_times_unsupported_data_type():
     """Test error when data type is not supported."""
     unsupported_hdu_dict = {
         1: {
@@ -356,7 +357,7 @@ def test_unsupported_data_type():
         get_hdu_data_times(unsupported_hdu_dict, "TEST")
 
 
-def test_missing_pkt_hdu_for_spec():
+def test_get_hdu_data_times_missing_pkt_hdu_for_spec():
     """Test error when PKT HDU is missing for SPEC HDU."""
     # Create a spectrum HDUL dict without PKT HDU
     spec_only_hdu_dict = {
@@ -370,6 +371,95 @@ def test_missing_pkt_hdu_for_spec():
 
     with pytest.raises(ValueError, match="No PKT HDU found for SPEC HDU"):
         get_hdu_data_times(spec_only_hdu_dict, "SPEC")
+
+
+@pytest.mark.parametrize(
+    "files_to_combine, existing_file, provenance_files, expected_result, raises_error",
+    [
+        # Case 1: No existing file, pick latest version
+        (
+            [
+                "padre_meddea_l0_20250101T000000_v0.9.0.fits",
+                "padre_meddea_l0_20250101T000000_v1.0.0.fits",
+                "padre_meddea_l0_20250102T000000_v1.0.0.fits",
+                "padre_meddea_l0_20250101T000000_v1.1.0.fits",
+            ],
+            None,
+            set(),
+            ["padre_meddea_l0_20250101T000000_v1.1.0.fits"],
+            None,
+        ),
+        # Case 2: Existing file with v1.0.0 in provenance, filter to match
+        (
+            [
+                "padre_meddea_l0_20250101T000000_v0.9.0.fits",
+                "padre_meddea_l0_20250101T000000_v1.0.0.fits",
+                "padre_meddea_l0_20250101T000000_v1.1.0.fits",
+            ],
+            "existing_file.fits",
+            {"padre_meddea_l0_20250101T000000_v1.0.0.fits"},
+            ["padre_meddea_l0_20250101T000000_v1.0.0.fits"],
+            None,
+        ),
+        # Case 3: Multiple versions in provenance - error
+        (
+            ["padre_meddea_l0_20250101T000000_v1.0.0.fits"],
+            "existing_file.fits",
+            {
+                "padre_meddea_l0_20250101T000000_v1.0.0.fits",
+                "padre_meddea_l0_20250101T000000_v0.9.0.fits",
+            },
+            None,
+            ValueError,
+        ),
+        # Case 4: Empty provenance - error
+        (
+            ["padre_meddea_l0_20250101T000000_v1.0.0.fits"],
+            "existing_file.fits",
+            set(),
+            None,
+            ValueError,
+        ),
+    ],
+)
+def test_filter_files_by_version(
+    files_to_combine,
+    existing_file,
+    provenance_files,
+    expected_result,
+    raises_error,
+    monkeypatch,
+):
+    """Test the filter_files_by_version function with various scenarios"""
+    # Convert strings to Path objects
+    files_to_combine = [Path(f) for f in files_to_combine]
+    existing_file = Path(existing_file) if existing_file else None
+
+    # Mock Path.exists to only return True for the existing file
+    def mock_path_exists(p):
+        return existing_file is not None and str(p) == str(existing_file)
+
+    # Mock get_provenance_filenames to return our test provenance set
+    def mock_get_provenance_filenames(p):
+        if existing_file is not None and str(p) == str(existing_file):
+            return provenance_files
+        return set()
+
+    # Apply mocks
+    monkeypatch.setattr(Path, "exists", mock_path_exists)
+    monkeypatch.setattr(
+        "padre_meddea.io.fits_tools.get_provenance_filenames",
+        mock_get_provenance_filenames,
+    )
+
+    # Run test
+    if raises_error:
+        with pytest.raises(raises_error):
+            filter_files_by_version(files_to_combine, existing_file)
+    else:
+        result = filter_files_by_version(files_to_combine, existing_file)
+        expected_paths = [Path(f) for f in expected_result]
+        assert result == expected_paths
 
 
 def validate_hdul_members(hdul: fits.HDUList):
