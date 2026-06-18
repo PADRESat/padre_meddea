@@ -1,6 +1,8 @@
 import astropy.units as u
 import numpy as np
 import pytest
+from astropy.tests.helper import assert_quantity_allclose
+from astropy.time import Time
 from astropy.timeseries import TimeSeries
 
 import padre_meddea.housekeeping.calibration as cal
@@ -39,3 +41,53 @@ def test_parse_error_summary_raise():
     ts1["error_flag"] = 2 ** np.arange(16)
     with pytest.raises(ValueError):
         cal.parse_error_summary(ts1)
+
+
+def test_calibrate_spaceops_hk_values():
+    data = {
+        "HVTemp": 46720,
+        "HVCurrent": 65472,
+        "sysError": 160,
+        "phRate": 22,
+        "goodCmdCount": 149,
+        "TimeStamp1": 12680,
+        "Amps_3V3_D": 36876,
+        "TimeStamp2": 54499,
+        "Amps_3V3_A": 37084,
+        "SequenceCount": 61656,
+        "DIBTemp": 55824,
+        "Amps_1V5": 38808,
+        "decimationRate": 0,
+        "HVVolts": 29759,
+        "FPTemp": 34865,
+        "errorCount": 0,
+        "heaterPWM": 24077,
+    }
+    calibrated_data = cal.calibrate_spaceops_hk_values(data)
+    expected_calibrated_data = {
+        "HVTemp": -15.47143951 * u.deg_C,
+        "HVCurrent": 11.06977848 * u.nA,
+        "sysError": 160,
+        "phRate": 22,
+        "goodCmdCount": 149,
+        "TimeStamp1": 12680,
+        "Amps_3V3_D": 48.794224 * u.mA,
+        "TimeStamp2": 54499,
+        "Amps_3V3_A": 46.552816 * u.mA,
+        "SequenceCount": 61656,
+        "DIBTemp": -8.32003798 * u.deg_C,
+        "Amps_1V5": 27.974992 * u.mA,
+        "decimationRate": 0,
+        "HVVolts": -299.2749 * u.V,
+        "FPTemp": -19.90109367 * u.deg_C,
+        "errorCount": 0,
+        "heaterPWM": 38.5232 * u.percent,
+        "time": Time("2026-05-02T15:29:34.000", scale="utc"),
+    }
+    for key in expected_calibrated_data:
+        if isinstance(expected_calibrated_data[key], u.Quantity):
+            assert_quantity_allclose(
+                calibrated_data[key], expected_calibrated_data[key]
+            )
+        else:
+            assert calibrated_data[key] == expected_calibrated_data[key]

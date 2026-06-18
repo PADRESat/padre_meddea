@@ -7,10 +7,67 @@ from astropy.table import QTable, Table
 from astropy.timeseries import TimeSeries
 from scipy.optimize import fsolve
 
+from padre_meddea.util.util import calc_time
+
 from .housekeeping import _data_directory
 
 calibration_table = ascii.read(_data_directory / "padre_meddea_calib_hk_0.csv")
 calibration_table.add_index("name")
+
+# define the conversion from MEDDEA housekeeping names to SpaceOps housekeeping names
+MEDDEA_TO_SPACEOPS_HK_CONVERSION = {
+    "hvps_temp": "HVTemp",
+    "hvps_csense": "HVCurrent",
+    "error_summary": "sysError",
+    "ph_rate": "phRate",
+    "good_cmd_count": "goodCmdCount",
+    "time_stamp1": "TimeStamp1",
+    "csense_33vd": "Amps_3V3_D",
+    "time_stamp2": "TimeStamp2",
+    "csense_33va": "Amps_3V3_A",
+    "sequence_count": "SequenceCount",
+    "dib_temp": "DIBTemp",
+    "csense_15v": "Amps_1V5",
+    "decimation_rate": "decimationRate",
+    "hvps_vsense": "HVVolts",
+    "fp_temp": "FPTemp",
+    "error_cnt": "errorCount",
+    "heater_pwm_duty_cycle": "heaterPWM",
+}
+
+
+def calibrate_spaceops_hk_values(hk_dict: dict) -> dict:
+    """Given a dictionary of housekeeping values from SpaceOps, calibrate the values and return a new dictionary with the same keys but calibrated values.
+
+    Parameters
+    ----------
+    hk_dict : dict
+        A dictionary of uncalibrated housekeeping values from SpaceOps. The keys should be the same as those in SPACEOPS_HK_CONVERSION.
+
+    Returns
+    -------
+    calibrated_hk_dict : dict
+        A new dictionary with the same keys as hk_dict but with calibrated values.
+    """
+    # Swap keys and values
+    SPACEOPS_TO_MEDDEA_HK_CONVERSION = {
+        v: k for k, v in MEDDEA_TO_SPACEOPS_HK_CONVERSION.items()
+    }
+    calibrated_hk_dict = {}
+    for key, value in hk_dict.items():
+        if key in SPACEOPS_TO_MEDDEA_HK_CONVERSION:
+            try:
+                calib_func = get_calibration_func(SPACEOPS_TO_MEDDEA_HK_CONVERSION[key])
+                calibrated_hk_dict[key] = calib_func(value)
+            except ValueError:
+                calibrated_hk_dict[key] = value
+        else:
+            calibrated_hk_dict[key] = value
+    timestamp = np.array(
+        [hk_dict["TimeStamp2"], hk_dict["TimeStamp1"]], dtype="uint16"
+    ).view(dtype="uint32")
+    calibrated_hk_dict["time"] = calc_time(timestamp)
+    return calibrated_hk_dict
 
 
 def get_calibration_func(hk_name: str) -> callable:
