@@ -13,7 +13,7 @@ from padre_meddea import _data_directory
 
 
 def get_decimation(this_time: Time):
-    """Given a time, return the decimation parameters that was in effect at the time"""
+    """Given a time, return the decimation parameters that were in effect at the time"""
     filename = get_decimation_file(this_time)
     return read_decimation_file(_data_directory / "decimation" / filename)
 
