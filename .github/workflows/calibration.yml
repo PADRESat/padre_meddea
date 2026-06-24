@@ -9,6 +9,7 @@ jobs:
   test-and-upload:
     permissions:
         pull-requests: write
+        issues: write
     runs-on: ubuntu-latest
 
     steps:
@@ -139,7 +140,15 @@ jobs:
     
     - name: Comment PR
       if: steps.test-lambda.outputs.test_success == 'true' && github.event_name == 'pull_request'
-      uses: thollander/actions-comment-pull-request@v3
+      uses: actions/github-script@v8
+      env:
+        ARTIFACT_ID: ${{ steps.artifact-upload-step.outputs.artifact-id }}
       with:
-        message: |
-          The processed files are available as an artifact: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts/${{ steps.artifact-upload-step.outputs.artifact-id }}
+        script: |
+          const message = `The processed files are available as an artifact: https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}/artifacts/${process.env.ARTIFACT_ID}`;
+          await github.rest.issues.createComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+            body: message,
+          });
