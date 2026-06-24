@@ -1,6 +1,9 @@
 name: Test Lambda Function Locally and Upload Artifacts
 
-on: [pull_request_target]
+on:
+  pull_request:
+    branches:
+      - main
 
 jobs:
   test-and-upload:
@@ -11,6 +14,7 @@ jobs:
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v4
+
     - name: Build Lambda Docker Image
       run: |
         # Define the repository and branch dynamically
@@ -21,7 +25,7 @@ jobs:
         echo "Branch URL: $BRANCH_URL"
     
         # Clone the Lambda function repository
-        git clone https://github.com/HERMES-SOC/sdc_aws_processing_lambda.git ../sdc_aws_processing_lambda
+        git clone https://github.com/swxsoc/sdc_aws_processing_lambda.git ../sdc_aws_processing_lambda
         cd ../sdc_aws_processing_lambda/lambda_function
     
         # Define mission name & instrument name from the repository name
@@ -128,7 +132,7 @@ jobs:
       run: echo "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts/${{ steps.artifact-upload-step.outputs.artifact-id }}"
     
     - name: Comment PR
-      if: steps.test-lambda.outputs.test_success == 'true' && github.event_name == 'pull_request_target'
+      if: steps.test-lambda.outputs.test_success == 'true' && github.event_name == 'pull_request'
       uses: thollander/actions-comment-pull-request@v2
       with:
         message: |
