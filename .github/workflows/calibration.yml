@@ -49,6 +49,12 @@ jobs:
         # Remove any previous entries for instrument package and add the new branch URL as the first entry
         sed -i "/${PACKAGE_NAME}/d" $REQUIREMENTS_FILE
         sed -i "1i ${PACKAGE_NAME}  @ $BRANCH_URL" $REQUIREMENTS_FILE
+
+        # padre_craft currently pins padre_meddea to PADRESat/main in its own dependency list.
+        # For padre_meddea PR validation, remove padre_craft to avoid resolver conflicts.
+        if [[ "$PACKAGE_NAME" == "padre_meddea" ]]; then
+          sed -i '/^padre_craft[[:space:]]*@/d' $REQUIREMENTS_FILE
+        fi
     
         echo "Updated $REQUIREMENTS_FILE:"
         cat $REQUIREMENTS_FILE
