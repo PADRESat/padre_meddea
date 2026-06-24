@@ -1,15 +1,11 @@
 name: Test Lambda Function Locally and Upload Artifacts
 
-on:
-  pull_request:
-    branches:
-      - main
+on: [pull_request_target]
 
 jobs:
   test-and-upload:
     permissions:
         pull-requests: write
-        issues: write
     runs-on: ubuntu-latest
 
     steps:
@@ -139,7 +135,7 @@ jobs:
       run: echo "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts/${{ steps.artifact-upload-step.outputs.artifact-id }}"
     
     - name: Comment PR
-      if: steps.test-lambda.outputs.test_success == 'true' && github.event_name == 'pull_request'
+      if: steps.test-lambda.outputs.test_success == 'true' && github.event_name == 'pull_request_target'
       uses: andyghc/actions-comment-pull-request@v3
       with:
         message: |
