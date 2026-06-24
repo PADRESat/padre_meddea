@@ -9,7 +9,7 @@ readme = "README.rst"
 dynamic = ["version"]
 authors = [
   {name = "Steven Christe", email="steven.christe@nasa.gov"},
-  {name = "Andrew Robbertz", email="a.robbertz@gmail.com"},
+  {name = "Andrew Robbertz", email="andrew.l.robbertz@nasa.gov"},
   {name = "Damian Barrous-Dume", email="dbarrous@navteca.com"},
   {name = "Niharika Godbole", email="niharika.godbole@nasa.gov"},
 ]
@@ -37,7 +37,7 @@ dependencies = [
   'matplotlib==3.10.*',
   'swxsoc @ git+https://github.com/swxsoc/swxsoc.git@main',
   'gitpython==3.1.*',
-  'solarnet_metadata @ git+https://github.com/IHDE-Alliance/solarnet_metadata.git@solarnet_metadata_package',
+  'solarnet_metadata',
 ]
 
 [project.optional-dependencies]

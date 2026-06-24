@@ -11,6 +11,7 @@ jobs:
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v4
+
     - name: Build Lambda Docker Image
       run: |
         # Define the repository and branch dynamically
@@ -21,7 +22,7 @@ jobs:
         echo "Branch URL: $BRANCH_URL"
     
         # Clone the Lambda function repository
-        git clone https://github.com/HERMES-SOC/sdc_aws_processing_lambda.git ../sdc_aws_processing_lambda
+        git clone https://github.com/swxsoc/sdc_aws_processing_lambda.git ../sdc_aws_processing_lambda
         cd ../sdc_aws_processing_lambda/lambda_function
     
         # Define mission name & instrument name from the repository name
@@ -45,6 +46,12 @@ jobs:
         # Remove any previous entries for instrument package and add the new branch URL as the first entry
         sed -i "/${PACKAGE_NAME}/d" $REQUIREMENTS_FILE
         sed -i "1i ${PACKAGE_NAME}  @ $BRANCH_URL" $REQUIREMENTS_FILE
+
+        # padre_craft currently pins padre_meddea to PADRESat/main in its own dependency list.
+        # For padre_meddea PR validation, remove padre_craft to avoid resolver conflicts.
+        if [[ "$PACKAGE_NAME" == "padre_meddea" ]]; then
+          sed -i '/^padre_craft[[:space:]]*@/d' $REQUIREMENTS_FILE
+        fi
     
         echo "Updated $REQUIREMENTS_FILE:"
         cat $REQUIREMENTS_FILE
@@ -129,7 +136,7 @@ jobs:
     
     - name: Comment PR
       if: steps.test-lambda.outputs.test_success == 'true' && github.event_name == 'pull_request_target'
-      uses: thollander/actions-comment-pull-request@v2
+      uses: andyghc/actions-comment-pull-request@v3
       with:
         message: |
           The processed files are available as an artifact: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts/${{ steps.artifact-upload-step.outputs.artifact-id }}
