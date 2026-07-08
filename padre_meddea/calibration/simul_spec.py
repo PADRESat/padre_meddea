@@ -7,6 +7,7 @@ import astropy.units as u
 from astropy.table import QTable
 from astropy.io import ascii
 from astropy.modeling.models import Gaussian1D, custom_model
+from specutils import Spectrum1D
 
 from scipy.stats.sampling import NumericalInversePolynomial
 
@@ -57,6 +58,11 @@ ba133_lines = QTable(
     )
 )
 ba133_lines["energy (eV)"].unit = u.eV
+
+flare_spec = Spectrum1D(
+    flux=flare_spectrum_data[flare_spectrum_data.colnames[-1]],
+    spectral_axis=flare_spectrum_data["Bin mean (keV)"],
+)
 
 
 @u.quantity_input
