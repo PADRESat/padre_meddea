@@ -1,7 +1,7 @@
-import pytest
-
 import astropy.units as u
+import pytest
 from astropy.tests.helper import assert_quantity_allclose
+
 from padre_meddea.util import pulser
 
 

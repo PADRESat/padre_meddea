@@ -1,13 +1,11 @@
 import re
 
-import numpy as np
-from scipy import interpolate
-
 import astropy.units as u
-from astropy.table import QTable
+import numpy as np
 from astropy.io import ascii
 from astropy.modeling.models import Gaussian1D, custom_model
-
+from astropy.table import QTable
+from scipy import interpolate
 from scipy.stats.sampling import NumericalInversePolynomial
 
 import padre_meddea

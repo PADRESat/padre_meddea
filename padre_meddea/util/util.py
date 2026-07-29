@@ -14,16 +14,9 @@ from astropy.time import Time, TimeDelta
 from astropy.timeseries import TimeSeries
 from ccsdspy.utils import split_by_apid, split_packet_bytes
 from sunpy.net.attr import AttrAnd
-from swxsoc.util import (
-    Descriptor,
-    DevelopmentBucket,
-    Instrument,
-    Level,
-    SearchTime,
-    SWXSOCClient,
-    create_science_filename,
-    parse_science_filename,
-)
+from swxsoc.net.attr import Descriptor, DevelopmentBucket, Instrument, Level, SearchTime
+from swxsoc.net.client import SWXSOCClient
+from swxsoc.util.util import create_science_filename, parse_science_filename
 
 import padre_meddea
 from padre_meddea import APID, EPOCH, log

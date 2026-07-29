@@ -13,9 +13,9 @@ from specutils import SpectralRegion, Spectrum1D
 from specutils.manipulation import extract_region
 
 import padre_meddea.util.util as util
-from padre_meddea.util.pixels import PixelList
 from padre_meddea import _data_directory
 from padre_meddea.spectrum.spectrum import PhotonList, SpectrumList
+from padre_meddea.util.pixels import PixelList
 
 specutils.conf.do_continuum_function_check = False
 

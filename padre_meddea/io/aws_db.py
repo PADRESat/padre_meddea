@@ -5,16 +5,17 @@ import numpy as np
 from astropy.time import Time
 from astropy.timeseries import TimeSeries
 from specutils import SpectralRegion
-from swxsoc.util.util import create_annotation, record_timeseries
+from swxsoc.db.timeseries import record_timeseries
+from swxsoc.util.grafana import create_annotation
 
 from padre_meddea.housekeeping.calibration import get_calibration_func
+from padre_meddea.net import PADREClient
 from padre_meddea.spectrum.calibration import (
     calibrate_linear_speclist,
     get_ql_calibration_file,
 )
 from padre_meddea.spectrum.spectrum import SpectrumList
-from padre_meddea.net import PADREClient
-from padre_meddea.util.util import parse_science_filename, parse_raw_meddea_filename
+from padre_meddea.util.util import parse_raw_meddea_filename, parse_science_filename
 
 
 def record_spectra(spec_list: SpectrumList):

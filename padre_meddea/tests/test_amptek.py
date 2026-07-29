@@ -1,6 +1,5 @@
-import pytest
-
 import astropy.units as u
+import pytest
 from specutils import Spectrum1D
 
 import padre_meddea

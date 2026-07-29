@@ -4,7 +4,6 @@ from glob import glob
 from pathlib import Path
 
 import numpy as np
-
 from astropy.io import ascii
 from astropy.time import Time
 from astropy.timeseries import TimeSeries

@@ -1,11 +1,11 @@
 import os
 import platform
-from pathlib import Path
 import tempfile
+from pathlib import Path
 
+import astropy.io.fits as fits
 import numpy as np
 import pytest
-import astropy.io.fits as fits
 from astropy.table import Table
 from astropy.time import Time
 

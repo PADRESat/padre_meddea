@@ -1,7 +1,8 @@
 from pathlib import Path
-import pytest
 
 import numpy as np
+import pytest
+from astropy.timeseries import TimeSeries
 
 import padre_meddea
 from padre_meddea.io.file_tools import (
@@ -10,7 +11,6 @@ from padre_meddea.io.file_tools import (
     read_file,
 )
 from padre_meddea.spectrum.spectrum import PhotonList
-from astropy.timeseries import TimeSeries
 
 ph_packet_file = padre_meddea._test_files_directory / "padreMDA0_240916122901.dat"
 spec_packet_file = padre_meddea._test_files_directory / "padreMDA2_240916122851.dat"

@@ -14,10 +14,7 @@ from padre_meddea import log
 from padre_meddea.io import file_tools
 from padre_meddea.io.fits_tools import get_comment, get_obs_header, get_primary_header
 from padre_meddea.util import validation
-from padre_meddea.util.util import (
-    calc_time,
-    create_meddea_filename,
-)
+from padre_meddea.util.util import calc_time, create_meddea_filename
 
 __all__ = [
     "process_file",

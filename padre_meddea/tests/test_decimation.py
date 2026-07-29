@@ -1,9 +1,9 @@
 """Test functions in calibration/decimation.py"""
 
-import pytest
 from pathlib import Path
 
 import numpy as np
+import pytest
 from astropy.time import Time
 from astropy.timeseries import TimeSeries
 

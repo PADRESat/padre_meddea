@@ -1,3 +1,3 @@
-from .client import PADREClient, DataType
+from .client import DataType, PADREClient
 
 __all__ = ["PADREClient", "DataType"]
