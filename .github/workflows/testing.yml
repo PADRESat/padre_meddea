@@ -36,7 +36,7 @@ jobs:
 
 
     - name: Run tests
-      run: pytest padre_meddea docs --cov padre_meddea
+      run: pytest --pyargs padre_meddea --cov --junitxml=junit.xml -o junit_family=legacy padre_meddea
       env:
         #
         PLATFORM: ${{ matrix.platform }}
