@@ -37,9 +37,11 @@ Overview
 A Python package to process and analyze data from the Measuring Directivity to Determine Electron Anisotropy (MeDDEA) instrument on the
 NASA solar PolArization and Directivity X-Ray Experiment (PADRE) small satellite mission.
 
-PADRE launched on July 23rd, 2025.
+PADRE launched on July 23rd, 2025. MeDDEA began taking data around Nov 2025.
 
-Data can be found on hosted on the NASA `SDAC <https://umbra.nascom.nasa.gov/padre/>`_ as soon as it is downlinked from the spacecraft.
+MeDDEA data can be found on the NASA SDAC at `<https://umbra.nascom.nasa.gov/padre/padre_meddea>`_ as soon as it is downlinked from the spacecraft.
+
+We also maintain a `MeDDEA Flare list <https://docs.google.com/spreadsheets/d/1i9nKL8huD_rC5Uuw2DvA5bFFewWVpSk5_WIKbaobq2k/edit?gid=0#gid=0>`_.
 
 For information about the PADRE mission, see `PADRESat <https://github.com/PADRESat>`_.
 
