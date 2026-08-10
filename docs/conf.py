@@ -5,11 +5,16 @@
 # This file does only contain a selection of the most common options. For a
 # full list see the documentation:
 # http://www.sphinx-doc.org/en/master/config
+import logging
 import os
 import sys
 from datetime import datetime
 
 sys.path.insert(0, os.path.abspath(".."))
+
+# Suppress INFO (and below) log messages so they do not appear as unexpected
+# output when pytest-doctestplus runs doctests embedded in RST files.
+logging.getLogger().setLevel(logging.WARNING)
 
 now = datetime.now()
 
