@@ -28,7 +28,7 @@ The OGIP format is widely used in the high-energy astrophysics community and is 
     from padre_meddea.spectrum.calibration import get_drm_files
     from astropy.io import fits
 
-    arf_file, rmf_file = get_drm_files()
+    rmf_file, arf_file = get_drm_files()
     with fits.open(arf_file) as hdul:
         arf = hdul[1].data
 
@@ -60,7 +60,7 @@ The OGIP format is widely used in the high-energy astrophysics community and is 
     import numpy as np
     from matplotlib import colors
 
-    arf_file, rmf_file = get_drm_files()
+    rmf_file, arf_file = get_drm_files()
 
     with fits.open(rmf_file) as hdul:
 
