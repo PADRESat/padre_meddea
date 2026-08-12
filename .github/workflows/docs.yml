@@ -25,6 +25,13 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
+    - name: Cache sample data
+      uses: actions/cache@v4
+      with:
+        path: ~/.padre_meddea/data
+        key: padre-sample-data-${{ runner.os }}-${{ hashFiles('padre_meddea/data/_sample.py') }}
+        restore-keys: |
+          padre-sample-data-${{ runner.os }}-
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip setuptools wheel
