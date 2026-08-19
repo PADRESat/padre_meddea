@@ -43,7 +43,7 @@ For information about the PADRE mission, see `PADRESat <https://github.com/PADRE
 
 Documentation
 -------------
-Our documentation can be found at `http://padre-meddea.rtfd.io/ <http://padre-meddea.rtfd.io/>`_.
+Our documentation can be found at `https://padre-meddea.readthedocs.io/en/latest/ <https://padre-meddea.readthedocs.io/en/latest/>`_.
 
 Data
 ----
