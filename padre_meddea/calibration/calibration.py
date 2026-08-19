@@ -13,6 +13,7 @@ import padre_meddea.util.pixels as pixels
 from padre_meddea import log
 from padre_meddea.io import file_tools
 from padre_meddea.io.fits_tools import get_comment, get_obs_header, get_primary_header
+from padre_meddea.spectrum.spectrum import PhotonList
 from padre_meddea.util import validation
 from padre_meddea.util.util import calc_time, create_meddea_filename
 
@@ -71,6 +72,14 @@ def process_file(filename: Path, overwrite=False) -> list:
             log.info(
                 f"Found photon data, {len(event_list)} photons and {len(pkt_list)} packets."
             )
+            ph_list = PhotonList(pkt_list, event_list)
+            try:
+                ph_list.calibrate()
+                aws_db.record_photons(ph_list)
+            except Exception as e:
+                log.error(
+                    f"Failed to calibrate and record photons for file {filename}: {e}"
+                )
 
             event_list = Table(event_list)
             event_list.remove_column("time")

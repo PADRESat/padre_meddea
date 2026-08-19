@@ -317,6 +317,7 @@ class PhotonList:
             bins=[time_edges, energy_edges.to_value(u.keV)],
         )
         ts = TimeSeries(time=Time(time_edges[:-1], format="unix"))
+        ts.time.format = "isot"
         for i, this_range in enumerate(energy_edges[:-1]):
             col_label = f"{energy_edges[i].value:0.0f}to{energy_edges[i + 1].value:0.0f}_{energy_edges[i + 1].unit}"
             ts[col_label] = hist[:, i]

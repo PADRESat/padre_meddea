@@ -37,11 +37,13 @@ def record_spectra(spec_list: SpectrumList):
 
 def record_photons(ph_list: PhotonList):
     """Send photon time series data to AWS."""
-    ph_list.calibrate()
+    if not ph_list.calibrated:
+        ph_list.calibrate()
     energy_edges = [5, 10, 15, 25, 50, 100] * u.keV
     ts = ph_list.lightcurve(energy_edges=energy_edges, time_bin_size=1 * u.s)
     record_timeseries(ts, "spectra", "meddea")
-    create_annotation(ph_list.time[0], f"{ph_list.meta['ORIGFILE']}", ["meta"])
+    # following line is no longer neccesary because we get this inform from the metatracker
+    #  create_annotation(ph_list.time[0], f"{ph_list.meta['ORIGFILE']}", ["meta"])
 
 
 def record_housekeeping(hk_ts: TimeSeries):
