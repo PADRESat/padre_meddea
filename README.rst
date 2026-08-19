@@ -39,13 +39,17 @@ NASA solar PolArization and Directivity X-Ray Experiment (PADRE) small satellite
 
 PADRE launched on July 23rd, 2025. MeDDEA began taking data around Nov 2025.
 
+For information about the PADRE mission, see `PADRESat <https://github.com/PADRESat>`_.
+
+Documentation
+-------------
+Our documentation can be found at `http://padre-meddea.rtfd.io/ <http://padre-meddea.rtfd.io/>`_.
+
+Data
+----
 MeDDEA data can be found on the NASA SDAC at `<https://umbra.nascom.nasa.gov/padre/padre_meddea>`_ as soon as it is downlinked from the spacecraft.
 
 We also maintain a `MeDDEA Flare list <https://docs.google.com/spreadsheets/d/1i9nKL8huD_rC5Uuw2DvA5bFFewWVpSk5_WIKbaobq2k/edit?gid=0#gid=0>`_.
-
-For information about the PADRE mission, see `PADRESat <https://github.com/PADRESat>`_.
-
-Our documentation can be found at `http://padre-meddea.rtfd.io/ <http://padre-meddea.rtfd.io/>`_.
 
 Contributing
 ------------
