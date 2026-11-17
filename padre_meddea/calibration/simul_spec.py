@@ -4,7 +4,7 @@ import astropy.units as u
 import numpy as np
 from astropy.io import ascii
 from astropy.modeling.models import Gaussian1D, custom_model
-from astropy.table import QTable
+from astropy.table import QTable, vstack
 from scipy import interpolate
 from scipy.stats.sampling import NumericalInversePolynomial
 
@@ -350,6 +350,64 @@ def generate_flare_ph_list(goes_class: str, num: int, output_file: bool = False)
 
     if output_file:
         ph_table.write("simul_photon_list.csv", format="ascii.csv", overwrite=True)
+
+    return ph_table
+
+
+def generate_onoff_flare_ph_list(
+    goes_class: str,
+    output_file: bool = False,
+    total_time=60 * u.min,
+    intervals=1 * u.min,
+):
+    """Generate a list of random photons for an on-off flare scenario.
+
+    Parameters
+    ----------
+    goes_class : str
+        The GOES flare class. Accepted values are A, B, C, M, X.
+    total_time : ~astropy.units.Quantity
+        The total duration of the simulation.
+    intervals : ~astropy.units.Quantity
+        The time interval for each on-off cycle.
+    output_file : bool
+        If True then save the list into a csv file.
+
+    Returns
+    -------
+    result : ~astropy.table.Qtable
+    """
+    # number of events to get to 5 s
+    int_time = 5 * u.s
+    goesclass_to_num = {"A": 30, "B": 200, "C": 1200, "M": 11000, "X": 110000}
+
+    this_time = total_time
+    num_events = int(goesclass_to_num["A"] * (intervals / int_time))
+    ph_table = generate_flare_ph_list("A", num_events, output_file=False)
+    this_time -= intervals
+    is_on = True
+    while this_time > 0:
+        if is_on:
+            num_events = int(
+                goesclass_to_num[goes_class.upper()] * (intervals / int_time)
+            )
+            this_ph_table = generate_flare_ph_list(
+                goes_class, num_events, output_file=False
+            )
+        else:
+            num_events = int(goesclass_to_num["A"] * (intervals / int_time))
+            this_ph_table = generate_flare_ph_list(
+                "A", goesclass_to_num["A"], output_file=False
+            )
+        this_ph_table["times (s)"] += ph_table["times (s)"].max()
+        ph_table = vstack([ph_table, this_ph_table])
+        this_time -= intervals
+        is_on = not is_on
+
+    if output_file:
+        ph_table.write(
+            "simul_onoff_photon_list.csv", format="ascii.csv", overwrite=True
+        )
 
     return ph_table
 
