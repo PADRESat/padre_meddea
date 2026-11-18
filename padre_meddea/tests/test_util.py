@@ -228,7 +228,7 @@ def test_is_consecutive():
     assert util.is_consecutive(np.arange(10, 100, 1))
     # test if the array loops over
     assert util.is_consecutive(
-        np.concatenate((np.arange(0, 2**14), np.arange(0, 2000)))
+        np.concatenate((np.arange(0, 2 ** 14), np.arange(0, 2000)))
     )
 
 
@@ -309,3 +309,25 @@ def test_trim_timeseries():
     # all good
     ts = TimeSeries(time_start=util.MIN_TIME_BAD, time_delta=1 * u.year, n_samples=5)
     assert len(util.trim_timeseries(ts)) == len(ts)
+
+
+def test_find_flare_photon_files(monkeypatch):
+    """Files starting in the flare, plus the last one before it, are selected."""
+    times = ["2025-11-28T20:00:00", "2025-11-28T21:00:00", "2025-11-28T22:00:00"]
+    times += ["2025-11-28T23:30:00"]
+    rows = [
+        {"Time": Time(t), "Version": "v1.0.0", "url": f"file_{i}"}
+        for i, t in enumerate(times)
+    ]
+
+    class FakeResult(dict):
+        pass
+
+    monkeypatch.setattr(
+        "sunpy.net.Fido.search", lambda *args, **kwargs: FakeResult(padre=rows)
+    )
+
+    flares = TimeSeries(time=Time(["2025-11-28T21:30:00"]))
+    flares["end_time"] = Time(["2025-11-28T22:45:00"])
+    result = util.find_flare_photon_files(flares)
+    assert result == [["file_1", "file_2"]]
