@@ -23,4 +23,5 @@ API Reference
    padre_meddea.io.fits_tools
    padre_meddea.io.aws_db
    padre_meddea.io.amptek
+   padre_meddea.db
    padre_meddea.net.client
