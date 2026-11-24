@@ -193,3 +193,5 @@ _version.py
 *.fits
 
 junit.xml
+
+*.sqlite

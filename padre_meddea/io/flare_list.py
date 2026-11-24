@@ -1,5 +1,5 @@
 """
-Provides a reader for the PADRE MeDDEA flare list.
+Provides tools for the PADRE MeDDEA flare list.
 """
 
 import csv
@@ -10,6 +10,8 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 import numpy as np
+import astropy.units as u
+from astropy.table import MaskedColumn
 from astropy.time import Time
 from astropy.timeseries import TimeSeries
 
@@ -29,11 +31,16 @@ def read_flare_list(filename: Path) -> TimeSeries:
     -------
     TimeSeries
         Indexed by flare start time with columns ``end_time`` (Time), ``goes_class``,
-        ``quality``, ``grafana_url``, ``public_url``, ``l0_urls`` (a list of urls per flare, empty if none are listed) and ``note``.
+        ``quality``, ``grafana_url``, ``public_url``, ``l0_urls`` (a list of urls per
+        flare, empty if none are listed) and ``note``. When the input has a
+        ``GOES Flux`` column, ``goes_flux`` contains floating-point values; blank
+        values are masked. Older files without that column remain supported.
     """
     starts, ends, rows = [], [], []
     with open(filename, newline="") as f:
-        for row in csv.DictReader(f):
+        reader = csv.DictReader(f)
+        has_goes_flux = "GOES Flux" in (reader.fieldnames or [])
+        for row in reader:
             try:
                 date = datetime.strptime(row["Date"].strip(), "%Y-%m-%d")
                 start = datetime.strptime(row["Start Time (UTC)"].strip(), "%H:%M:%S")
@@ -55,6 +62,22 @@ def read_flare_list(filename: Path) -> TimeSeries:
     ts = TimeSeries(time=Time(starts, scale="utc"))
     ts["end_time"] = Time(ends, scale="utc")
     ts["goes_class"] = [r["GOES Class"].strip() for r in rows]
+    if has_goes_flux:
+        fluxes = []
+        missing = []
+        for start, row in zip(starts, rows):
+            value = row["GOES Flux"]
+            if value is None:
+                raise ValueError(f"Missing GOES Flux field for flare at {start}.")
+            value = value.strip()
+            missing.append(not value)
+            try:
+                fluxes.append(float(value) if value else 0.0)
+            except ValueError as exc:
+                raise ValueError(
+                    f"Invalid GOES Flux {value!r} for flare at {start}."
+                ) from exc
+        ts["goes_flux"] = MaskedColumn(fluxes, mask=missing, dtype=float)
     ts["quality"] = [int(r["Quality Rating"] or 0) for r in rows]
     ts["grafana_url"] = [r["Grafana Dashboard (Internal Link)"] for r in rows]
     ts["public_url"] = [r["Public"] for r in rows]
@@ -66,6 +89,69 @@ def read_flare_list(filename: Path) -> TimeSeries:
     ts["l0_urls"] = l0_urls
     ts["note"] = [r["Note"] for r in rows]
     return ts
+
+
+def find_flare_photon_files(flare_list: TimeSeries, level: str = "l0") -> TimeSeries:
+    """Search for photon files covering the time range of each flare.
+
+    Photon files are named by their start time only. Each is assumed to last
+    one hour and is selected if its interval overlaps the flare interval.
+    Intervals are start-inclusive and end-exclusive.
+
+    Parameters
+    ----------
+    flare_list : TimeSeries
+        Flare list as returned by `padre_meddea.io.read_flare_list`. The index is
+        the flare start time and it must have ``end_time`` and ``l0_urls`` columns.
+    level : str
+        Data level to search, e.g. "l0" or "l1".
+
+    Returns
+    -------
+    TimeSeries
+        A copy of the input with ``found`` (file URLs sorted by time and
+        separated by ``|``, or an empty string if none are found),
+        ``matches_l0`` (whether the listed and found file names match, ignoring
+        order), and ``num_found`` (number of found files) columns. Two empty
+        lists match. The input is not modified.
+    """
+    if "l0_urls" not in flare_list.colnames:
+        raise ValueError("flare_list must contain an l0_urls column.")
+    # importing PADREClient registers it with Fido
+    from sunpy.net import Fido
+    from sunpy.net import attrs as a
+
+    from padre_meddea.net import DataType
+
+    results = []
+    file_duration = 1 * u.hour
+    for start, end in zip(flare_list.time, flare_list["end_time"]):
+        query = a.Time(start - file_duration, end)
+        result = Fido.search(
+            query, a.Instrument.meddea, DataType.photon, a.Level(level)
+        )
+        files = {}
+        for row in result["padre"] if "padre" in result.keys() else []:
+            if not (row["Time"] < end and row["Time"] + file_duration > start):
+                continue
+            # keep only the latest version for each file start time
+            key = row["Time"].isot
+            if key not in files or row["Version"] > files[key]["Version"]:
+                files[key] = row
+        rows = sorted(files.values(), key=lambda r: r["Time"])
+        results.append([r["url"] for r in rows])
+    result = flare_list.copy()
+    result["found"] = np.array(["|".join(urls) for urls in results], dtype=str)
+    result["matches_l0"] = np.array(
+        [
+            {url.split("/")[-1] for url in listed if url}
+            == {url.split("/")[-1] for url in urls if url}
+            for listed, urls in zip(flare_list["l0_urls"], results)
+        ],
+        dtype=bool,
+    )
+    result["num_found"] = np.array([len(urls) for urls in results], dtype=int)
+    return result
 
 
 def _url_exists(url: str, timeout: float) -> bool:
